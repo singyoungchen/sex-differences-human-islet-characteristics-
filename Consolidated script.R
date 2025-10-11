@@ -2295,7 +2295,7 @@ hormone.content %>%
     panel.border = element_blank(), 
     axis.line = element_line()     
   )
-ggsave("Output/Fig5/Fig5A.png", width = 3, height = 3)
+ggsave("Output/Fig5/Fig5C.png", width = 3, height = 3)
 
 ## Fig 5D ## ----
 hormone.content %>%
@@ -2332,7 +2332,7 @@ hormone.content %>%
         panel.border = element_blank(), 
         axis.line = element_line()      
   )
-ggsave("Output/Fig5/Fig5D.png", width = 5, height = 4)
+ggsave("Output/Fig5/Fig5F.png", width = 5, height = 4)
 
 #save the hormone content data frame for later
 UPenn.insulin.content <- write.csv(hormone.content, "Output/Fig5/UPenn insulin content.csv")
@@ -2542,7 +2542,7 @@ donor_isolation %>%
     panel.border = element_blank(), 
     axis.line = element_line()    
   )
-ggsave("Output/Fig5/Fig5C.png", width = 3, height = 3)
+ggsave("Output/Fig5/Fig5A.png", width = 3, height = 3)
 
 ## Fig S3B ## ----
 donor_isolation %>%
@@ -2630,7 +2630,7 @@ donor_isolation %>%
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line())
-ggsave("Output/Fig5/Fig5F.png", width = 5, height = 4)
+ggsave("Output/Fig5/Fig5D.png", width = 5, height = 4)
 
 ### Figure 6 ### ----
 
@@ -8629,16 +8629,21 @@ HIGO_F_CC <- read_excel("Output/Fig3/GSEA_p_bulkRNAseq_FCtrlvsT2D.xlsx",sheet="G
 HIGO_F_BP <- read_excel("Output/Fig3/GSEA_p_bulkRNAseq_FCtrlvsT2D.xlsx",sheet="GO_BP")
 HIGO_F_MF <- read_excel("Output/Fig3/GSEA_p_bulkRNAseq_FCtrlvsT2D.xlsx",sheet="GO_MF")
 HIGO_F <- bind_rows(HIGO_F_CC, HIGO_F_BP, HIGO_F_MF)
+HIGO_F$NES <- -HIGO_F$NES #make consistent with scRNAseq direction
+HIGO_F$dataset <- rep("Humanislets.com bulk RNAseq", nrow(HIGO_F))
+
 
 HPAPbetascGO_F_CC <- read_excel("Output/Fig3/GSEA_p_beta_scRNAseq_F_ctrlvsT2D.xlsx",sheet="GO_CC")
 HPAPbetascGO_F_BP <- read_excel("Output/Fig3/GSEA_p_beta_scRNAseq_F_ctrlvsT2D.xlsx",sheet="GO_BP")
 HPAPbetascGO_F_MF <- read_excel("Output/Fig3/GSEA_p_beta_scRNAseq_F_ctrlvsT2D.xlsx",sheet="GO_MF")
 HPAPbetascGO_F <- bind_rows(HPAPbetascGO_F_CC, HPAPbetascGO_F_BP, HPAPbetascGO_F_MF)
+HPAPbetascGO_F$dataset <- rep("HPAP beta-cell scRNAseq", nrow(HPAPbetascGO_F))
 
 HPAPalphascGO_F_CC <- read_excel("Output/Fig3/GSEA_p_alpha_scRNAseq_F_ctrlvsT2D.xlsx",sheet="GO_CC")
 HPAPalphascGO_F_BP <- read_excel("Output/Fig3/GSEA_p_alpha_scRNAseq_F_ctrlvsT2D.xlsx",sheet="GO_BP")
 HPAPalphascGO_F_MF <- read_excel("Output/Fig3/GSEA_p_alpha_scRNAseq_F_ctrlvsT2D.xlsx",sheet="GO_MF")
 HPAPalphascGO_F <- bind_rows(HPAPalphascGO_F_CC, HPAPalphascGO_F_BP, HPAPalphascGO_F_MF)
+HPAPalphascGO_F$dataset <- rep("HPAP alpha-cell scRNAseq", nrow(HPAPalphascGO_F))
 
 combined <- bind_rows(HIGO_F, HPAPbetascGO_F, HPAPalphascGO_F)
 combined <- combined %>% arrange(p.adjust)
@@ -8655,16 +8660,21 @@ HIGO_M_CC <- read_excel("Output/Fig3/GSEA_p_bulkRNAseq_MCtrlvsT2D.xlsx",sheet="G
 HIGO_M_BP <- read_excel("Output/Fig3/GSEA_p_bulkRNAseq_MCtrlvsT2D.xlsx",sheet="GO_BP")
 HIGO_M_MF <- read_excel("Output/Fig3/GSEA_p_bulkRNAseq_MCtrlvsT2D.xlsx",sheet="GO_MF")
 HIGO_M <- bind_rows(HIGO_M_CC, HIGO_M_BP, HIGO_M_MF)
+HIGO_M$NES <- -HIGO_M$NES #make consistent with scRNAseq direction
+HIGO_M$dataset <- rep("Humanislets.com bulk RNAseq", nrow(HIGO_M))
 
 HPAPbetascGO_M_CC <- read_excel("Output/Fig3/GSEA_p_beta_scRNAseq_M_ctrlvsT2D.xlsx",sheet="GO_CC")
 HPAPbetascGO_M_BP <- read_excel("Output/Fig3/GSEA_p_beta_scRNAseq_M_ctrlvsT2D.xlsx",sheet="GO_BP")
 HPAPbetascGO_M_MF <- read_excel("Output/Fig3/GSEA_p_beta_scRNAseq_M_ctrlvsT2D.xlsx",sheet="GO_MF")
 HPAPbetascGO_M <- bind_rows(HPAPbetascGO_M_CC, HPAPbetascGO_M_BP, HPAPbetascGO_M_MF)
+HPAPbetascGO_M$dataset <- rep("HPAP beta-cell scRNAseq", nrow(HPAPbetascGO_M))
 
 HPAPalphascGO_M_CC <- read_excel("Output/Fig3/GSEA_p_alpha_scRNAseq_M_ctrlvsT2D.xlsx",sheet="GO_CC")
 HPAPalphascGO_M_BP <- read_excel("Output/Fig3/GSEA_p_alpha_scRNAseq_M_ctrlvsT2D.xlsx",sheet="GO_BP")
 HPAPalphascGO_M_MF <- read_excel("Output/Fig3/GSEA_p_alpha_scRNAseq_M_ctrlvsT2D.xlsx",sheet="GO_MF")
 HPAPalphascGO_M <- bind_rows(HPAPalphascGO_M_CC, HPAPalphascGO_M_BP, HPAPalphascGO_M_MF)
+HPAPalphascGO_M$dataset <- rep("HPAP alpha-cell scRNAseq", nrow(HPAPalphascGO_M))
+
 
 combined <- bind_rows(HIGO_M, HPAPbetascGO_M, HPAPalphascGO_M)
 combined <- combined %>% arrange(p.adjust)
