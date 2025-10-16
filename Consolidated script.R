@@ -102,7 +102,7 @@ donor_info %>%
     panel.border = element_blank(),  
     axis.line = element_line()       
   )
-ggsave("Output/Fig1/Fig1A alpha.png", width = 3, height = 3)
+ggsave("Output/Fig1/Fig1A alpha.tiff", width = 3, height = 3)
 
 donor_info %>%
   filter(simplified_diagnosis == "Control") %>%
@@ -111,6 +111,7 @@ donor_info %>%
   filter(!donor_ID %in% low_cells$donor_ID) %>%
   ggplot(aes(x=sex, y = beta.endocrine*100))+
   geom_boxplot(aes(fill = sex), alpha = 0.5)+
+  geom_bracket(xmin = 1, xmax = 2, y.position = 95, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.1))+
   scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
   geom_quasirandom(size = 2, aes(colour = sex)) +
   scale_colour_manual(values = c("#50b5ad", "#dbac5a")) +
@@ -129,7 +130,7 @@ donor_info %>%
     panel.border = element_blank(),  
     axis.line = element_line()       
   )
-ggsave("Output/Fig1/Fig1A beta.png", width = 3, height = 3)
+ggsave("Output/Fig1/Fig1A beta.tiff", width = 3, height = 3)
 
 ## Fig S2A ## ----
 donor_info %>%
@@ -153,12 +154,14 @@ donor_info %>%
   ggplot(aes(x=sex, y = alpha.endocrine*100))+
   geom_boxplot(aes(fill = simplified_diagnosis), alpha = 0.5, position = position_dodge(width = 0.9))+
   geom_quasirandom(size = 1, aes(group = simplified_diagnosis, colour = simplified_diagnosis), dodge.width=0.9) +
-  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 94, label = "p=0.08", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
-  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.775, y.position = 99, label = "*", label.size = 7, size = 0.5, tip.length = c(0.04, 0.02))+
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 93, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 93, label = "p=0.08", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.775, y.position = 102, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE, xmin = 1.225, xmax = 2.225, y.position = 117, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey50", "#d65ac9")) +
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   xlab("")+
-  scale_y_continuous(limits = c(0,110))+
+  scale_y_continuous(limits = c(0,120))+
   ylab("Proportion of endocrine cells\n(%)") +
   labs(fill = "Condition", colour = "Condition")+
   ggtitle("Alpha-cell proportion")+
@@ -173,7 +176,7 @@ donor_info %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS2/FigS2A alpha.png", width = 5, height = 4)
+ggsave("Output/FigS2/FigS2A alpha.tiff", width = 5, height = 4)
 
 donor_info %>%
   filter(simplified_diagnosis != "T1D") %>%
@@ -196,12 +199,14 @@ donor_info %>%
   ggplot(aes(x=sex, y = beta.endocrine*100))+
   geom_boxplot(aes(fill = simplified_diagnosis), alpha = 0.5, position = position_dodge(width = 0.9))+
   geom_quasirandom(size = 1, aes(group = simplified_diagnosis, colour = simplified_diagnosis), dodge.width=0.9) +
-  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 91, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.4))+
-  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.775, y.position = 96, label = "p=0.072", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 85, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.35))+
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 94, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.775, y.position = 103, label = "p=0.072", label.size = 4, size = 0.5, tip.length = c(0.02, 0.1))+
+  geom_bracket(inherit.aes = FALSE, xmin = 1.225, xmax = 2.225, y.position = 115, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey50", "#d65ac9")) +
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   xlab("")+
-  scale_y_continuous(limits = c(0,100))+
+  scale_y_continuous(limits = c(0,120))+
   ylab("Proportion of endocrine cells\n(%)") +
   labs(fill = "Condition", colour = "Condition")+
   ggtitle("Beta-cell proportion")+
@@ -216,7 +221,7 @@ donor_info %>%
         panel.border = element_blank(),
         axis.line = element_line()
   )
-ggsave("Output/FigS2/FigS2A beta.png", width = 5, height = 4)
+ggsave("Output/FigS2/FigS2A beta.tiff", width = 5, height = 4)
 
 ## Fig 1B ## ----
 #clear environment
@@ -273,7 +278,7 @@ celltypeprop %>%
     panel.border = element_blank(),  
     axis.line = element_line()       
   )
-ggsave("Output/Fig1/Fig1B alpha.png", width = 3, height = 3)
+ggsave("Output/Fig1/Fig1B alpha.tiff", width = 3, height = 3)
 
 celltypeprop %>%
   filter(simplified_diagnosis == "Control") %>%
@@ -299,7 +304,7 @@ celltypeprop %>%
     panel.border = element_blank(),  
     axis.line = element_line()       
   )
-ggsave("Output/Fig1/Fig1B beta.png", width = 3, height = 3)
+ggsave("Output/Fig1/Fig1B beta.tiff", width = 3, height = 3)
 
 ## Fig S2B ## ----
 celltypeprop %>%  
@@ -322,8 +327,10 @@ celltypeprop %>%
   ggplot(aes(x=donorsex, y = alpha_end*100))+
   geom_boxplot(aes(fill = diagnosis), alpha = 0.5, position = position_dodge(width = 0.9))+
   geom_quasirandom(size = 1, aes(group = diagnosis, colour = diagnosis), dodge.width=0.9) +
-  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 43, label = "*", label.size = 7, size = 0.5, tip.length = c(0.3, 0.02))+ 
-  geom_bracket(inherit.aes = FALSE, xmin = 1.225, xmax = 2.225, y.position = 42, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.3))+ 
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 42, label = "*", label.size = 7, size = 0.5, tip.length = c(0.2, 0.02))+ 
+  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 41, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.2))+ 
+  geom_bracket(inherit.aes = FALSE, xmin = 1.225, xmax = 2.225, y.position = 43, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.05))+ 
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.775, y.position = 47, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+ 
   scale_colour_manual(values = c("grey40", "#e04e34"))  +
   scale_fill_manual(values = c("grey40", "#e04e34"))  +
   xlab("")+
@@ -341,7 +348,7 @@ celltypeprop %>%
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line())
-ggsave("Output/FigS2/FigS2B alpha.png", width = 5, height = 4)
+ggsave("Output/FigS2/FigS2B alpha.tiff", width = 5, height = 4)
 
 celltypeprop %>%  
   filter(diagnosis != "T1D") %>%
@@ -363,8 +370,10 @@ celltypeprop %>%
   ggplot(aes(x=donorsex, y = beta_end*100))+
   geom_boxplot(aes(fill = diagnosis), alpha = 0.5, position = position_dodge(width = 0.9))+
   geom_quasirandom(size = 1, aes(group = diagnosis, colour = diagnosis), dodge.width=0.9) +
-  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 67, label = "*", label.size = 7, size = 0.5, tip.length = c(0.2, 0.02))+ 
-  geom_bracket(inherit.aes = FALSE, xmin = 1.225, xmax = 2.225, y.position = 66, label = "*", label.size = 7, size = 0.5, tip.length = c(0.53, 0.02))+ 
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 64, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.35))+ 
+  geom_bracket(inherit.aes = FALSE, xmin = 1.225, xmax = 2.225, y.position = 69, label = "*", label.size = 7, size = 0.5, tip.length = c(0.15, 0.02))+ 
+  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 66, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.1, 0.02))+ 
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.775, y.position = 73, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+ 
   scale_colour_manual(values = c("grey40", "#e04e34"))  +
   scale_fill_manual(values = c("grey40", "#e04e34"))  +
   xlab("")+
@@ -382,7 +391,7 @@ celltypeprop %>%
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line())
-ggsave("Output/FigS2/FigS2B beta.png", width = 5, height = 4)
+ggsave("Output/FigS2/FigS2B beta.tiff", width = 5, height = 4)
 
 
 
@@ -847,7 +856,7 @@ GO_Fbiased %>%
         plot.title = element_text(size = 12, hjust = 0.5),
         legend.title = element_text(size = 11),
         legend.text = element_text(size = 10))
-ggsave("Output/Fig2/Fig2A.png", width = 8.5, height = 9)
+ggsave("Output/Fig2/Fig2A.tiff", width = 8.5, height = 9)
 
 GO_Mbiased$NES <- -GO_Mbiased$NES
 summary(GO_Mbiased$NES)
@@ -869,7 +878,7 @@ GO_Mbiased %>%
         plot.title = element_text(size = 12, hjust = 0.5),
         legend.title = element_text(size = 11),
         legend.text = element_text(size = 10))
-ggsave("Output/Fig2/Fig2B.png", width = 7.25, height = 3)
+ggsave("Output/Fig2/Fig2B.tiff", width = 7.25, height = 3)
 
 
 ## Fig 2C-D ##----
@@ -1091,7 +1100,7 @@ GO_combined_Fbiased %>%
         plot.title = element_text(size = 12, hjust = 0.5),
         legend.title = element_text(size = 11),
         legend.text = element_text(size = 10))
-ggsave("Output/Fig2/Fig2C.png", width = 8, height = 6.5)
+ggsave("Output/Fig2/Fig2C.tiff", width = 8, height = 6.5)
 
 GO_combined_Mbiased <- GO_combined_Mbiased[1:30,]
 summary(GO_combined_Mbiased$NES)
@@ -1113,7 +1122,7 @@ GO_combined_Mbiased %>%
         plot.title = element_text(size = 12, hjust = 0.5),
         legend.title = element_text(size = 11),
         legend.text = element_text(size = 10))
-ggsave("Output/Fig2/Fig2D.png", width = 9.5, height = 6.25)
+ggsave("Output/Fig2/Fig2D.tiff", width = 9.5, height = 6.25)
 
 ###Figure 3 ### ----
 #clear environment
@@ -1700,7 +1709,7 @@ GO_F_Ctrlbiased %>%
         plot.title = element_text(size = 12, hjust = 0.5),
         legend.title = element_text(size = 11),
         legend.text = element_text(size = 10))
-ggsave("Output/Fig3/Fig3C.png", width = 9, height = 7)
+ggsave("Output/Fig3/Fig3C.tiff", width = 9, height = 7)
 
 #make long pathway name two lines
 GO_F_T2Dbiased %>%
@@ -1721,7 +1730,7 @@ GO_F_T2Dbiased %>%
         plot.title = element_text(size = 12, hjust = 0.5),
         legend.title = element_text(size = 11),
         legend.text = element_text(size = 10))
-ggsave("Output/Fig3/Fig3A.png", width = 9.5, height = 7)
+ggsave("Output/Fig3/Fig3A.tiff", width = 9.5, height = 7)
 
 #males
 #Combining GSEA results to graph together
@@ -1786,7 +1795,7 @@ GO_M_Ctrlbiased %>%
         plot.title = element_text(size = 12, hjust = 0.5),
         legend.title = element_text(size = 11),
         legend.text = element_text(size = 10))
-ggsave("Output/Fig3/Fig3D.png", width = 8.35, height = 7)
+ggsave("Output/Fig3/Fig3D.tiff", width = 8.35, height = 7)
 
 GO_M_T2Dbiased %>%
   filter(Description %in% GO_M_T2Dbiased_pathways) %>%
@@ -1806,7 +1815,7 @@ GO_M_T2Dbiased %>%
         plot.title = element_text(size = 12, hjust = 0.5),
         legend.title = element_text(size = 11),
         legend.text = element_text(size = 10))
-ggsave("Output/Fig3/Fig3B.png", width = 8.15, height = 7)
+ggsave("Output/Fig3/Fig3B.tiff", width = 8.15, height = 7)
 
 ### Figure 4 ### ----
 
@@ -2093,7 +2102,7 @@ GO_combined_F_upinT2D_select %>%
         plot.title = element_text(size = 12, hjust = 0.5),
         legend.title = element_text(size = 11),
         legend.text = element_text(size = 10))
-ggsave("Output/Fig4/Fig4A.png", width = 6, height = 6)
+ggsave("Output/Fig4/Fig4A.tiff", width = 6, height = 6)
 
 GO_combined_F_downinT2D <- GO_combined_F_downinT2D %>%
   arrange(p.adjust)
@@ -2118,7 +2127,7 @@ GO_combined_F_downinT2D_select %>%
         plot.title = element_text(size = 12, hjust = 0.5),
         legend.title = element_text(size = 11),
         legend.text = element_text(size = 10))
-ggsave("Output/Fig4/Fig4C.png", width = 6.25, height = 6)
+ggsave("Output/Fig4/Fig4C.tiff", width = 6.25, height = 6)
 
 #Top 30 pathways in males
 GO_combined_M_upinT2D <- GO_combined_M_upinT2D %>%
@@ -2143,7 +2152,7 @@ GO_combined_M_upinT2D_select %>%
         plot.title = element_text(size = 12, hjust = 0.5),
         legend.title = element_text(size = 11),
         legend.text = element_text(size = 10))
-ggsave("Output/Fig4/Fig4B.png", width = 6, height = 6)
+ggsave("Output/Fig4/Fig4B.tiff", width = 6, height = 6)
 
 GO_combined_M_downinT2D <- GO_combined_M_downinT2D %>%
   arrange(p.adjust)
@@ -2168,7 +2177,7 @@ GO_combined_M_downinT2D_select %>%
         plot.title = element_text(size = 12, hjust = 0.5),
         legend.title = element_text(size = 11),
         legend.text = element_text(size = 10))
-ggsave("Output/Fig4/Fig4D.png", width = 6.25, height = 6)
+ggsave("Output/Fig4/Fig4D.tiff", width = 6.25, height = 6)
 
 ### Figure 5 and S3 ### ----
 
@@ -2266,7 +2275,7 @@ hormone.content <- perifusion_all_with_metadata %>%
 hist(hormone.content$Insulin.Content...ng.islet.) #left-skewed
 hist(log(hormone.content$Insulin.Content...ng.islet.)) #right-skewed
 
-## Fig 5A ## ----
+## Fig 5C ## ----
 hormone.content %>%
   filter(age_years > 14, age_years < 40) %>%
   filter(simplified_diagnosis == "Control") %>%
@@ -2295,9 +2304,9 @@ hormone.content %>%
     panel.border = element_blank(), 
     axis.line = element_line()     
   )
-ggsave("Output/Fig5/Fig5C.png", width = 3, height = 3)
+ggsave("Output/Fig5/Fig5C.tiff", width = 3, height = 3)
 
-## Fig 5D ## ----
+## Fig 5F ## ----
 hormone.content %>%
   filter(simplified_diagnosis != "T1D") %>%
   anova_test(Insulin.Content...ng.islet. ~ age_years + sex*simplified_diagnosis) #sig for sex but not disease
@@ -2313,7 +2322,9 @@ hormone.content %>%
   geom_boxplot(alpha = 0.5,position = position_dodge(width = 0.9), aes(fill= simplified_diagnosis))+
   geom_quasirandom(size = 1, aes(group = simplified_diagnosis, colour = simplified_diagnosis), dodge.width=0.9) +
   geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 78, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.25))+
-  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.775, y.position = 90, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.3))+
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.775, y.position = 90, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.25))+
+  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 60, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.05))+
+  geom_bracket(inherit.aes = FALSE, xmin = 1.225, xmax = 2.225, y.position = 102, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey50", "#d65ac9")) +
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("Insulin content (ng/islet)") +
@@ -2321,7 +2332,7 @@ hormone.content %>%
   labs(colour = "Condition", fill = "Condition") +
   theme_bw() +
   theme(panel.grid = element_blank())+
-  ylim(0,100)+
+  ylim(0,105)+
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14),
@@ -2332,7 +2343,7 @@ hormone.content %>%
         panel.border = element_blank(), 
         axis.line = element_line()      
   )
-ggsave("Output/Fig5/Fig5F.png", width = 5, height = 4)
+ggsave("Output/Fig5/Fig5F.tiff", width = 5, height = 4)
 
 #save the hormone content data frame for later
 UPenn.insulin.content <- write.csv(hormone.content, "Output/Fig5/UPenn insulin content.csv")
@@ -2420,6 +2431,7 @@ insulin.content_df %>%
   ggplot(aes(x=sex, y=Insulin.content.ng.postperiIEQ, fill = sex))+
   geom_boxplot(alpha = 0.5)+
   geom_quasirandom(size = 2, aes(colour = sex)) +
+  geom_bracket(inherit.aes = FALSE, xmin = 1, xmax = 2, y.position = 19, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.2, 0.02))+
   scale_colour_manual(values = c("#50b5ad", "#dbac5a")) +
   scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
   ylab("Insulin content (ng/IEQ)") +
@@ -2436,7 +2448,7 @@ insulin.content_df %>%
     panel.border = element_blank(),  
     axis.line = element_line()     
   )
-ggsave("Output/Fig5/Fig5B.png", width = 3, height = 3)
+ggsave("Output/Fig5/Fig5B.tiff", width = 3, height = 3)
 
 ## Fig 5E ## ----
 insulin.content_df %>%
@@ -2453,8 +2465,10 @@ insulin.content_df %>%
   ggplot(aes(x=sex, y=Insulin.content.ng.postperiIEQ))+
   geom_boxplot(alpha = 0.5,position = position_dodge(width = 0.9), aes(fill= simplified_diagnosis))+
   geom_quasirandom(size = 1, aes(group = simplified_diagnosis, colour = simplified_diagnosis), dodge.width=0.9) +
-  geom_bracket(inherit.aes = FALSE, xmin = 1.225, xmax = 2.225, y.position = 20, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.3))+
+  geom_bracket(inherit.aes = FALSE, xmin = 1.225, xmax = 2.225, y.position = 22, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.02))+
   geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 21, label = "p=0.05", label.size = 4, size = 0.5, tip.length = c(0.2, 0.02))+
+  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 20, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.2))+
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.775, y.position = 26, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey50", "#d65ac9")) +
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("Insulin content (ng/IEQ)") +
@@ -2462,7 +2476,7 @@ insulin.content_df %>%
   labs(colour = "Condition", fill = "Condition") +
   theme_bw() +
   theme(panel.grid = element_blank())+
-  ylim(0,25)+
+  ylim(0,28)+
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14),
@@ -2473,11 +2487,12 @@ insulin.content_df %>%
         panel.border = element_blank(),  
         axis.line = element_line()       
   )
-ggsave("Output/Fig5/Fig5E.png", width = 5, height = 4)
+ggsave("Output/Fig5/Fig5E.tiff", width = 5, height = 4)
 
 ## Fig S3A ## ----
 UPenn.insulin.content <- read.csv("Output/Fig5/UPenn insulin content.csv")
 UPenn_Vand_inscontent <- insulin.content_df %>%
+  dplyr::select(DonorID, Insulin.content.ng.postperiIEQ, simplified_diagnosis) %>%
   inner_join(UPenn.insulin.content, by = "DonorID")
 dim(UPenn_Vand_inscontent) #39 donors
 
@@ -2495,7 +2510,7 @@ UPenn_Vand_inscontent %>%
   stat_smooth(method = "lm", colour = "grey50") +
   stat_cor(label.y = 19)+
   theme_classic()
-ggsave("Output/FigS3/FigS3A.png", width = 6, height = 4)
+ggsave("Output/FigS3/FigS3A.tiff", width = 6, height = 4)
 
 
 #Insulin content from Humanislets.com
@@ -2511,7 +2526,7 @@ donor_isolation <- inner_join(donor_data, isolation_data, by = "record_id")
 hist(donor_isolation$insulinperieq)
 hist(log(donor_isolation$insulinperieq))
 
-## Fig 5C ## ----
+## Fig 5A ## ----
 donor_isolation %>%
   filter(donorage > 14, donorage < 40) %>%
   filter(diagnosis == "None") %>%
@@ -2527,6 +2542,7 @@ donor_isolation %>%
   ggplot(aes(x=donorsex, y=log(insulinperieq), fill= donorsex))+
   geom_boxplot(aes(fill = donorsex), alpha = 0.5)+
   geom_quasirandom(size = 2, aes(colour = donorsex)) +
+  geom_bracket(inherit.aes = FALSE, xmin = 1, xmax = 2, y.position = 5.25, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_fill_manual(values = c("#113ed1", "#5e4114")) +
   scale_colour_manual(values = c("#113ed1", "#5e4114")) +
   ylab("log(insulin content (ng/IEQ))") +
@@ -2542,7 +2558,7 @@ donor_isolation %>%
     panel.border = element_blank(), 
     axis.line = element_line()    
   )
-ggsave("Output/Fig5/Fig5A.png", width = 3, height = 3)
+ggsave("Output/Fig5/Fig5A.tiff", width = 3, height = 3)
 
 ## Fig S3B ## ----
 donor_isolation %>%
@@ -2565,6 +2581,10 @@ donor_isolation %>%
   ggplot(aes(x=donorsex, y=pdisletparticleindex, fill = diagnosis)) +
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
   geom_quasirandom(size = 1, aes(group = diagnosis, colour = diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE, xmin = 1.225, xmax = 2.225, y.position = 3.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 2.9, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.25))+
+  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 2.8, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.35))+
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.775, y.position = 3.2, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey40", "#e04e34"))  +
   scale_fill_manual(values = c("grey40", "#e04e34"))  +
   ylab("Islet Particle Index") +
@@ -2581,10 +2601,10 @@ donor_isolation %>%
         panel.border = element_blank(), 
         axis.line = element_line() 
   )
-ggsave("Output/FigS3/FigS3B.png", width = 5, height = 4)
+ggsave("Output/FigS3/FigS3B.tiff", width = 5, height = 4)
 
 
-## Fig 5F ## ----
+## Fig 5D ## ----
 donor_isolation %>%
   filter(diagnosis != "Type1") %>%
   mutate(output = log(insulinperieq)) %>%
@@ -2613,12 +2633,15 @@ donor_isolation %>%
   ggplot(aes(x=donorsex, y=log(insulinperieq), fill= diagnosis))+
   geom_boxplot(alpha = 0.5,position = position_dodge(width = 0.9))+
   geom_quasirandom(size = 1, aes(group = diagnosis, colour = diagnosis), dodge.width=0.9) +
-  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 6.5, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.15))+
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 6.5, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.12))+
+  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 5.6, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.075))+
+  geom_bracket(inherit.aes = FALSE, xmin = 1.225, xmax = 2.225, y.position = 9, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.775, y.position = 8, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey40", "#e04e34"))  +
   scale_fill_manual(values = c("grey40", "#e04e34"))  +
   ylab("log(insulin content (ng/IEQ))") +
   xlab("") +
-  scale_y_continuous(limits = c(-2.5,7))+ 
+  scale_y_continuous(limits = c(-2.5,9))+ 
   labs(colour = "Condition", fill = "Condition") +
   theme_bw() +
   theme(legend.position = "bottom",
@@ -2630,7 +2653,7 @@ donor_isolation %>%
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line())
-ggsave("Output/Fig5/Fig5D.png", width = 5, height = 4)
+ggsave("Output/Fig5/Fig5D.tiff", width = 5, height = 4)
 
 ### Figure 6 ### ----
 
@@ -2741,7 +2764,8 @@ OCR_all <- inner_join(OCR_all, NaN3, by = "DonorID")
 View(OCR_all)
 
 OCR_all <- OCR_all %>%
-  left_join(donors, by = c("DonorID" = "donor_ID")) %>%
+  left_join(donors, by = c("DonorID" = "donor_ID"))
+OCR_all <- OCR_all %>%
   mutate(simplified_diagnosis = case_when(
     grepl("T2DM",clinical_diagnosis) == TRUE ~ "T2D",
     grepl("T1DM",clinical_diagnosis) == TRUE ~ "T1D",
@@ -2761,8 +2785,6 @@ OCR_summary_v2 <- OCR_summary %>%
   mutate(spare.resp.max = maxFCCP - lastbasal, spare.resp.max.fcbaseline = (maxFCCP - lastbasal)/lastbasal)
 
 #Add metadata
-OCR_summary_v2 <- OCR_summary_v2 %>%
-  left_join(donors, by = c("DonorID" = "donor_ID"))
 OCR_summary_v2 <- OCR_summary_v2 %>%
   mutate(simplified_diagnosis = case_when(
     grepl("T2DM",clinical_diagnosis) == TRUE ~ "T2D",
@@ -2838,7 +2860,7 @@ OCR_all_over_time_summary %>%
         plot.title = element_text(size = 14, hjust = 0.5),
         legend.title = element_text(size = 14),
         legend.text = element_text(size = 12))
-ggsave("Output/Fig6/Fig6A.png", width = 5.5, height = 4)
+ggsave("Output/Fig6/Fig6A.tiff", width = 5.5, height = 4)
 
 ## Fig 6I ## ----
 stimulus_data2 <- data.frame(
@@ -2893,7 +2915,7 @@ OCR_all_over_time_summary %>%
         plot.title = element_text(size = 14, hjust = 0.5),
         legend.title = element_text(size = 14),
         legend.text = element_text(size = 12))
-ggsave("Output/Fig6/Fig6I.png", width = 5.5, height = 4)
+ggsave("Output/Fig6/Fig6I.tiff", width = 5.5, height = 4)
 
 ## Fig 6B ## ----
 OCR_summary_v2 %>%
@@ -2906,6 +2928,7 @@ OCR_summary_v2 %>%
   ggplot(aes(x=sex, y=lastbasal, fill = sex)) +
   geom_boxplot(alpha = 0.5)+
   geom_quasirandom(size = 2, aes(colour = sex)) +
+  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 0.45, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.2))+
   scale_colour_manual(values = c("#50b5ad", "#dbac5a")) +
   scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
   xlab("") +
@@ -2921,7 +2944,7 @@ OCR_summary_v2 %>%
     panel.border = element_blank(), 
     axis.line = element_line()  
   )
-ggsave("Output/Fig6/Fig6B.png", width = 3, height = 3)
+ggsave("Output/Fig6/Fig6B.tiff", width = 3, height = 3)
 
 ## Fig 6J ## ----
 OCR_summary_v2 %>%
@@ -2939,8 +2962,10 @@ OCR_summary_v2 %>%
   ggplot(aes(x=sex, y=lastbasal)) +
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9), aes(fill = simplified_diagnosis))+
   geom_quasirandom(size = 1, aes(group = simplified_diagnosis, colour = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 0.55, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.1, 0.02))+
   geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 0.75, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.1))+
   geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 0.86, label = "*", label.size = 7, size = 0.5, tip.length = c(0.3, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 1, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey50", "#d65ac9")) +
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("Baseline\n(nmol/min/100 islets)") +
@@ -2958,7 +2983,7 @@ OCR_summary_v2 %>%
         panel.border = element_blank(),
         axis.line = element_line()  
   )
-ggsave("Output/Fig6/Fig6J.png", width = 4.5, height = 4)
+ggsave("Output/Fig6/Fig6J.tiff", width = 4.5, height = 4)
 
 ## Fig 6C ## ----
 OCR_summary_v2 %>%
@@ -2971,6 +2996,7 @@ OCR_summary_v2 %>%
   ggplot(aes(x=sex, y=maxFCCP, fill = sex)) +
   geom_boxplot(alpha = 0.5)+
   geom_quasirandom(size = 2, aes(colour = sex)) +
+  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 0.75, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.2, 0.02))+
   scale_colour_manual(values = c("#50b5ad", "#dbac5a")) +
   scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
   xlab("") +
@@ -2986,14 +3012,14 @@ OCR_summary_v2 %>%
     panel.border = element_blank(), 
     axis.line = element_line()  
   )
-ggsave("Output/Fig6/Fig6C.png", width = 3, height = 3)
+ggsave("Output/Fig6/Fig6C.tiff", width = 3, height = 3)
 
 ## Fig 6K ## ----
 OCR_summary_v2 %>%
   filter(simplified_diagnosis != "T1D") %>%
-  anova_test(spare.resp.max.fcbaseline ~ age_years + sex*simplified_diagnosis) #ns
+  anova_test(maxFCCP ~ age_years + sex*simplified_diagnosis) #ns
 model <- OCR_summary_v2 %>% filter(simplified_diagnosis != "T1D") %>%
-  lm(spare.resp.max.fcbaseline ~ age_years + sex*simplified_diagnosis, data = .)
+  lm(maxFCCP ~ age_years + sex*simplified_diagnosis, data = .)
 emmeans_res <- emmeans(model, ~ sex | simplified_diagnosis)
 pairs(emmeans_res, adjust = "tukey") #p=ns
 emmeans_res <- emmeans(model, ~ simplified_diagnosis | sex)
@@ -3001,9 +3027,13 @@ pairs(emmeans_res, adjust = "tukey") #p=ns
 
 OCR_summary_v2 %>%
   filter(simplified_diagnosis != "T1D") %>%
-  ggplot(aes(x=sex, y=spare.resp.max.fcbaseline)) +
+  ggplot(aes(x=sex, y=maxFCCP)) +
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9), aes(fill = simplified_diagnosis))+
   geom_quasirandom(size = 1, aes(group = simplified_diagnosis, colour = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE, xmin = 1.225, xmax = 2.225, y.position = 1.2, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 1.1, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.3, 0.02))+
+  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 1.1, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.1, 0.02))+
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.775, y.position = 1.3, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey50", "#d65ac9")) +
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("Maximal respiratory capacity\n(nmol/min/100 islets)") +
@@ -3020,7 +3050,7 @@ OCR_summary_v2 %>%
         panel.border = element_blank(),
         axis.line = element_line()  
   )
-ggsave("Output/Fig6/Fig6K.png", width = 4.5, height = 4)
+ggsave("Output/Fig6/Fig6K.tiff", width = 4.5, height = 4)
 
 ## Fig 6D ## ----
 OCR_summary_v2 %>%
@@ -3050,7 +3080,7 @@ OCR_summary_v2 %>%
     panel.border = element_blank(), 
     axis.line = element_line()  
   )
-ggsave("Output/Fig6/Fig6D.png", width = 3, height = 3)
+ggsave("Output/Fig6/Fig6D.tiff", width = 3, height = 3)
 
 ## Fig 6L ## ----
 OCR_summary_v2 %>%
@@ -3068,15 +3098,16 @@ OCR_summary_v2 %>%
   ggplot(aes(x=sex, y=spare.resp.max.fcbaseline*100)) +
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9), aes(fill = simplified_diagnosis))+
   geom_quasirandom(size = 1, aes(group = simplified_diagnosis, colour = simplified_diagnosis), dodge.width=0.9) +
-  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 375, label = "*", label.size = 7, size = 0.5, tip.length = c(0.15, 0.02))+
-  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 430, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.1))+
-  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 360, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.6))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 375, label = "*", label.size = 7, size = 0.5, tip.length = c(0.1, 0.015))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 430, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.08))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 360, label = "*", label.size = 7, size = 0.5, tip.length = c(0.015, 0.5))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 490, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey50", "#d65ac9")) +
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("Spare respiratory capacity\n(% of baseline)") +
   xlab("")+
   labs(colour = "Condition", fill = "Condition")+
-  scale_y_continuous(limits = c(0,450))+
+  scale_y_continuous(limits = c(0,490))+
   theme_bw() +
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
@@ -3088,7 +3119,7 @@ OCR_summary_v2 %>%
         panel.border = element_blank(),
         axis.line = element_line()  
   )
-ggsave("Output/Fig6/Fig6L.png", width = 4.5, height = 4)
+ggsave("Output/Fig6/Fig6L.tiff", width = 4.5, height = 4)
 
 ## Fig 6M ## ----
 OCR_summary_v2 %>%
@@ -3106,13 +3137,16 @@ OCR_summary_v2 %>%
   ggplot(aes(x=sex, y=response.highglc)) +
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9), aes(fill = simplified_diagnosis))+
   geom_quasirandom(size = 1, aes(group = simplified_diagnosis, colour = simplified_diagnosis), dodge.width=0.9) +
-  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 0.12, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.4))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 0.1, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 0.12, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.35))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 0.14, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 0.16, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey50", "#d65ac9")) +
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("High glucose-stimulated\nOCR (nmol/min/100 islets)") +
   xlab("")+
   labs(colour = "Condition", fill = "Condition")+
-  scale_y_continuous(limits = c(-0.1, 0.15)) +
+  scale_y_continuous(limits = c(-0.1, 0.16)) +
   theme_bw() +
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
@@ -3124,7 +3158,7 @@ OCR_summary_v2 %>%
         panel.border = element_blank(),
         axis.line = element_line()  
   )
-ggsave("Output/Fig6/Fig6M.png", width = 4.5, height = 4)
+ggsave("Output/Fig6/Fig6M.tiff", width = 4.5, height = 4)
   
 #Humanislets OCR data
 #clear environment
@@ -3241,7 +3275,7 @@ seahorse_norm_dna_summary_long %>%
         plot.title = element_text(size = 14, hjust = 0.5),
         legend.title = element_text(size = 14),
         legend.text = element_text(size = 12))
-ggsave("Output/Fig6/Fig6E.png", width = 5.5, height = 4)
+ggsave("Output/Fig6/Fig6E.tiff", width = 5.5, height = 4)
 
 ## Fig 6F ## ----
 seahorse_norm_dna_summary %>%
@@ -3255,6 +3289,7 @@ seahorse_norm_dna_summary %>%
   ggplot(aes(x=donorsex, y=calc_basal_resp, fill = donorsex)) +
   geom_boxplot(alpha = 0.5)+
   geom_quasirandom(size = 2, aes(colour = donorsex)) +
+  geom_bracket(inherit.aes = FALSE, xmin = 1, xmax = 2, y.position = 240, label = "ns", label.size = 4, size = 0.5,tip.length = c(0.2, 0.02))+
   scale_fill_manual(values = c("#113ed1", "#5e4114")) +
   scale_colour_manual(values = c("#113ed1", "#5e4114")) +
   xlab("") +
@@ -3270,7 +3305,7 @@ seahorse_norm_dna_summary %>%
     panel.border = element_blank(), 
     axis.line = element_line()    
   )
-ggsave("Output/Fig6/Fig6F.png", width = 3, height = 3)
+ggsave("Output/Fig6/Fig6F.tiff", width = 3, height = 3)
 
 ## Fig 6G ## ----
 seahorse_norm_dna_summary %>%
@@ -3284,6 +3319,7 @@ seahorse_norm_dna_summary %>%
   ggplot(aes(x=donorsex, y=calc_max_resp, fill = donorsex)) +
   geom_boxplot(alpha = 0.5)+
   geom_quasirandom(size = 2, aes(colour = donorsex)) +
+  geom_bracket(inherit.aes = FALSE, xmin = 1, xmax = 2, y.position = 320, label = "ns", label.size = 4, size = 0.5,tip.length = c(0.25, 0.02))+
   scale_fill_manual(values = c("#113ed1", "#5e4114")) +
   scale_colour_manual(values = c("#113ed1", "#5e4114")) +
   xlab("") +
@@ -3299,7 +3335,7 @@ seahorse_norm_dna_summary %>%
     panel.border = element_blank(),
     axis.line = element_line()  
   )
-ggsave("Output/Fig6/Fig6G.png", width = 3, height = 3)
+ggsave("Output/Fig6/Fig6G.tiff", width = 3, height = 3)
 
 ## Fig 6H ## ----
 #Use baselined data and process in the  same way
@@ -3366,7 +3402,7 @@ seahorse_norm_dna_baseline_summary %>%
     panel.border = element_blank(),  
     axis.line = element_line() 
   )
-ggsave("Output/Fig6/Fig6H.png", width = 3, height = 3)
+ggsave("Output/Fig6/Fig6H.tiff", width = 3, height = 3)
 
 
 ## Figure 7 and S4 ## ----
@@ -4354,7 +4390,7 @@ per_donor_mininterval %>%
         plot.title = element_text(size = 14, hjust = 0.5),
         legend.title = element_text(size = 14),
         legend.text = element_text(size = 12))
-ggsave("Output/Fig7/Fig7A.png", width = 7, height = 4)
+ggsave("Output/Fig7/Fig7A.tiff", width = 7, height = 4)
 
 ## Fig 7B ## ----
 AUC_summary %>%
@@ -4373,6 +4409,10 @@ AUC_summary %>%
   ggplot(aes(x=sex, y=AUC.AAM,  fill = simplified_diagnosis))+
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
   geom_quasirandom(size = 1, aes(group = simplified_diagnosis, colour = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 2.2, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.3))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 2, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.075))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 2.4, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 2.7, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey50", "#d65ac9")) +
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("AUC AAM") +
@@ -4389,7 +4429,7 @@ AUC_summary %>%
         panel.border = element_blank(), 
         axis.line = element_line() 
   )
-ggsave("Output/Fig7/Fig7B.png",width = 5, height = 4)
+ggsave("Output/Fig7/Fig7B.tiff",width = 5, height = 4)
 
 ## Fig 7C ## ----
 AUC_summary %>%
@@ -4408,6 +4448,10 @@ AUC_summary %>%
   ggplot(aes(x=sex, y=AUC.LG,  fill = simplified_diagnosis))+
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
   geom_quasirandom(size = 1, aes(group = simplified_diagnosis, colour = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 1.8, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.05))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 1.8, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.05))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 2, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 2.3, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey50", "#d65ac9")) +
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("AUC 3 mM Glucose") +
@@ -4424,7 +4468,7 @@ AUC_summary %>%
         panel.border = element_blank(), 
         axis.line = element_line() 
   )
-ggsave("Output/Fig7/Fig7C.png",width = 5, height = 4)
+ggsave("Output/Fig7/Fig7C.tiff",width = 5, height = 4)
 
 ## Fig 7D ## ----
 AUC_summary %>%
@@ -4443,12 +4487,14 @@ AUC_summary %>%
   ggplot(aes(x=sex, y=AUC.HG,  fill = simplified_diagnosis))+
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
   geom_quasirandom(size = 1, aes(group = simplified_diagnosis, colour = simplified_diagnosis), dodge.width=0.9) +
-  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 8.4, label = "p=0.076", label.size = 4, size = 0.5, tip.length = c(0.02, 0.35))+
-  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 8.1, label = "p=0.16", label.size = 4, size = 0.5, tip.length = c(0.02, 0.3))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 8.4, label = "p=0.076", label.size = 4, size = 0.5, tip.length = c(0.02, 0.25))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 8.1, label = "p=0.16", label.size = 4, size = 0.5, tip.length = c(0.02, 0.2))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 9.2, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 10, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey50", "#d65ac9")) +
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("AUC 16.7 mM Glucose") +
-  scale_y_continuous(limits= c(-1,9))+
+  scale_y_continuous(limits= c(-1,10))+
   xlab("")+
   labs(colour = "Condition", fill = "Condition")+
   theme_bw() +
@@ -4462,7 +4508,7 @@ AUC_summary %>%
         panel.border = element_blank(), 
         axis.line = element_line() 
   )
-ggsave("Output/Fig7/Fig7D.png",width = 5, height = 4)
+ggsave("Output/Fig7/Fig7D.tiff",width = 5, height = 4)
 
 ## Fig 7E ## ----
 AUC_summary %>%
@@ -4481,13 +4527,15 @@ AUC_summary %>%
   ggplot(aes(x=sex, y=AUC.KCl,  fill = simplified_diagnosis))+
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
   geom_quasirandom(size = 1, aes(group = simplified_diagnosis, colour = simplified_diagnosis), dodge.width=0.9) +
-  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 7.2, label = "p=0.12", label.size = 4, size = 0.5, tip.length = c(0.02, 0.4))+
-  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 6.2, label = "p=0.18", label.size = 4, size = 0.5, tip.length = c(0.02, 0.25))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 7.2, label = "p=0.12", label.size = 4, size = 0.5, tip.length = c(0.02, 0.3))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 6.2, label = "p=0.18", label.size = 4, size = 0.5, tip.length = c(0.02, 0.2))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 7.8, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 8.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey50", "#d65ac9")) +
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("AUC KCl") +
   xlab("")+
-  scale_y_continuous(limits= c(0,8))+
+  scale_y_continuous(limits= c(0,8.5))+
   labs(colour = "Condition", fill = "Condition")+
   theme_bw() +
   theme(legend.position = "bottom",
@@ -4500,7 +4548,7 @@ AUC_summary %>%
         panel.border = element_blank(), 
         axis.line = element_line() 
   )
-ggsave("Output/Fig7/Fig7E.png",width = 5, height = 4)
+ggsave("Output/Fig7/Fig7E.tiff",width = 5, height = 4)
 
 ## Fig S4A ## ----
 stimulus_data2 <- data.frame(
@@ -4546,7 +4594,7 @@ per_donor_mininterval %>%
         plot.title = element_text(size = 14, hjust = 0.5),
         legend.title = element_text(size = 14),
         legend.text = element_text(size = 12))
-ggsave("Output/FigS4/FigS4A.png", width = 5.5, height = 4)
+ggsave("Output/FigS4/FigS4A.tiff", width = 5.5, height = 4)
 
 ## Fig S4B ## ----
 AUC_summary %>%
@@ -4560,6 +4608,7 @@ AUC_summary %>%
   ggplot(aes(x=sex, y=AUC.AAM,  fill = sex))+
   geom_boxplot(alpha = 0.5)+
   geom_quasirandom(size = 2, aes(colour = sex)) +
+  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 2.3, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.1))+
   scale_colour_manual(values = c("#50b5ad", "#dbac5a")) +
   scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
   ylab("AUC AAM") +
@@ -4576,7 +4625,7 @@ AUC_summary %>%
         panel.border = element_blank(), 
         axis.line = element_line()    
   )
-ggsave("Output/FigS4/FigS4B.png",width = 3, height = 3)
+ggsave("Output/FigS4/FigS4B.tiff",width = 3, height = 3)
 
 ## Fig S4C ## ----
 AUC_summary %>%
@@ -4590,6 +4639,7 @@ AUC_summary %>%
   ggplot(aes(x=sex, y=AUC.LG,  fill = sex))+
   geom_boxplot(alpha = 0.5)+
   geom_quasirandom(size = 2, aes(colour = sex)) +
+  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 1.8, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.1, 0.02))+
   scale_colour_manual(values = c("#50b5ad", "#dbac5a")) +
   scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
   ylab("AUC 3 mM Glucose") +
@@ -4606,7 +4656,7 @@ AUC_summary %>%
         panel.border = element_blank(), 
         axis.line = element_line()    
   )
-ggsave("Output/FigS4/FigS4C.png",width = 3, height = 3)
+ggsave("Output/FigS4/FigS4C.tiff",width = 3, height = 3)
 
 ## Fig S4B ## ----
 AUC_summary %>%
@@ -4620,6 +4670,7 @@ AUC_summary %>%
   ggplot(aes(x=sex, y=AUC.HG,  fill = sex))+
   geom_boxplot(alpha = 0.5)+
   geom_quasirandom(size = 2, aes(colour = sex)) +
+  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 8.4, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.1))+
   scale_colour_manual(values = c("#50b5ad", "#dbac5a")) +
   scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
   ylab("AUC 16.7 mM Glucose") +
@@ -4636,7 +4687,7 @@ AUC_summary %>%
         panel.border = element_blank(), 
         axis.line = element_line()    
   )
-ggsave("Output/FigS4/FigS4D.png",width = 3, height = 3)
+ggsave("Output/FigS4/FigS4D.tiff",width = 3, height = 3)
 
 ## Fig S4E ## ----
 AUC_summary %>%
@@ -4650,6 +4701,7 @@ AUC_summary %>%
   ggplot(aes(x=sex, y=AUC.KCl,  fill = sex))+
   geom_boxplot(alpha = 0.5)+
   geom_quasirandom(size = 2, aes(colour = sex)) +
+  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 7.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.15))+
   scale_colour_manual(values = c("#50b5ad", "#dbac5a")) +
   scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
   ylab("AUC KCl") +
@@ -4666,7 +4718,7 @@ AUC_summary %>%
         panel.border = element_blank(), 
         axis.line = element_line()    
   )
-ggsave("Output/FigS4/FigS4E.png",width = 3, height = 3)
+ggsave("Output/FigS4/FigS4E.tiff",width = 3, height = 3)
 
 ### Figure 8 and S5-6,9-10 ### ----
 
@@ -4980,7 +5032,7 @@ perifusion_all_with_metadata %>%
         plot.title = element_text(size = 14, hjust = 0.5),
         legend.title = element_text(size = 14),
         legend.text = element_text(size = 12))
-ggsave("Output/Fig8/Fig8A.png", width = 8, height = 4)
+ggsave("Output/Fig8/Fig8A.tiff", width = 8, height = 4)
 
 ## Fig 8B ## ----
 hist(perifusion_summary$mean.ins.baseline)
@@ -5001,13 +5053,16 @@ perifusion_summary %>%
   ggplot(aes(x=sex, y=log(mean.ins.baseline), fill = simplified_diagnosis)) +
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
   geom_quasirandom(size = 1, aes(group = simplified_diagnosis, colour = simplified_diagnosis), dodge.width=0.9) +
-  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 1.5, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 1.5, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.1))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 1.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.05, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 2.4, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 3, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey50", "#d65ac9")) +
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("log(baseline insulin secretion \n(ng/100 islets))") +
   xlab("")+
   labs(colour = "Condition", fill = "Condition")+
-  scale_y_continuous(limits = c(-4.5,2)) +
+  scale_y_continuous(limits = c(-4.5,3)) +
   theme_bw() +
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
@@ -5019,7 +5074,7 @@ perifusion_summary %>%
         panel.border = element_blank(),
         axis.line = element_line()   
   )
-ggsave("Output/Fig8/Fig8B.png", width = 4 , height = 4)
+ggsave("Output/Fig8/Fig8B.tiff", width = 4 , height = 4)
 
 ## Fig 8C ## ----
 hist(perifusion_summary$AUC.ins.AAM)
@@ -5042,12 +5097,14 @@ perifusion_summary %>%
   geom_quasirandom(size = 1, aes(group = simplified_diagnosis, colour = simplified_diagnosis), dodge.width=0.9) +
   geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 4.7, label = "*", label.size = 7, size = 0.5, tip.length = c(0.1, 0.02))+
   geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 4.2, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.1))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 5.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey50", "#d65ac9")) +
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("log(AUC secretion\n4 mM AAM)") +
   xlab("")+
   labs(colour = "Condition", fill = "Condition")+
-  scale_y_continuous(limits = c(-1,5)) +
+  scale_y_continuous(limits = c(-1,5.5)) +
   theme_bw() +
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
@@ -5059,7 +5116,7 @@ perifusion_summary %>%
         panel.border = element_blank(),
         axis.line = element_line()   
   )
-ggsave("Output/Fig8/Fig8C.png", width = 4 , height = 4)
+ggsave("Output/Fig8/Fig8C.tiff", width = 4 , height = 4)
 
 ## Fig 8D ## ----
 hist(perifusion_summary$AUC.ins.LG)
@@ -5081,12 +5138,15 @@ perifusion_summary %>%
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
   geom_quasirandom(size = 1, aes(group = simplified_diagnosis, colour = simplified_diagnosis), dodge.width=0.9) +
   geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 3.6, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.12))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 3.8, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 4.2, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 4.6, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey50", "#d65ac9")) +
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("log(AUC secretion\n3 mM glucose)") +
   xlab("")+
   labs(colour = "Condition", fill = "Condition")+
-  scale_y_continuous(limits = c(-1.5,4)) +
+  scale_y_continuous(limits = c(-1.5,4.6)) +
   theme_bw() +
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
@@ -5098,7 +5158,7 @@ perifusion_summary %>%
         panel.border = element_blank(),
         axis.line = element_line()   
   )
-ggsave("Output/Fig8/Fig8D.png", width = 4 , height = 4)
+ggsave("Output/Fig8/Fig8D.tiff", width = 4 , height = 4)
 
 ## Fig 8E ## ----
 hist(perifusion_summary$AUC.ins.HG)
@@ -5121,12 +5181,14 @@ perifusion_summary %>%
   geom_quasirandom(size = 1, aes(group = simplified_diagnosis, colour = simplified_diagnosis), dodge.width=0.9) +
   geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 5.1, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.1))+
   geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 4.9, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.1))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 5.6, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 6.1, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey50", "#d65ac9")) +
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("log(AUC secretion\n16.7 mM glucose)") +
   xlab("")+
   labs(colour = "Condition", fill = "Condition")+
-  scale_y_continuous(limits = c(-0.5,5.5)) +
+  scale_y_continuous(limits = c(-0.5,6.1)) +
   theme_bw() +
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
@@ -5138,7 +5200,7 @@ perifusion_summary %>%
         panel.border = element_blank(),
         axis.line = element_line()   
   )
-ggsave("Output/Fig8/Fig8E.png", width = 4 , height = 4)
+ggsave("Output/Fig8/Fig8E.tiff", width = 4 , height = 4)
 
 ## Fig 8F ## ----
 hist(perifusion_summary$AUC.ins.IBMX)
@@ -5161,12 +5223,14 @@ perifusion_summary %>%
   geom_quasirandom(size = 1, aes(group = simplified_diagnosis, colour = simplified_diagnosis), dodge.width=0.9) +
   geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 5.7, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.1))+
   geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 5.7, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.1))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 6.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 7, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey50", "#d65ac9")) +
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("log(AUC secretion 16.7 mM\nglucose + 0.1 mM IBMX)") +
   xlab("")+
   labs(colour = "Condition", fill = "Condition")+
-  scale_y_continuous(limits = c(0,6.5)) +
+  scale_y_continuous(limits = c(0,7)) +
   theme_bw() +
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
@@ -5178,7 +5242,7 @@ perifusion_summary %>%
         panel.border = element_blank(),
         axis.line = element_line()   
   )
-ggsave("Output/Fig8/Fig8F.png", width = 4 , height = 4)
+ggsave("Output/Fig8/Fig8F.tiff", width = 4 , height = 4)
 
 ## Fig 8G ## ----
 hist(perifusion_summary$AUC.ins.KCl)
@@ -5201,6 +5265,8 @@ perifusion_summary %>%
   geom_quasirandom(size = 1, aes(group = simplified_diagnosis, colour = simplified_diagnosis), dodge.width=0.9) +
   geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 4.6, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.02))+
   geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 4.5, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.05))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 5.1, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 5.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey50", "#d65ac9")) +
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("log(AUC secretion\n30 mM KCl)") +
@@ -5218,7 +5284,7 @@ perifusion_summary %>%
         panel.border = element_blank(),
         axis.line = element_line()   
   )
-ggsave("Output/Fig8/Fig8G.png", width = 4 , height = 4)
+ggsave("Output/Fig8/Fig8G.tiff", width = 4 , height = 4)
 
 ## Fig S5A ## ----
 stimulus_data2 <- data.frame(
@@ -5270,7 +5336,7 @@ perifusion_all_with_metadata %>%
         plot.title = element_text(size = 14, hjust = 0.5),
         legend.title = element_text(size = 14),
         legend.text = element_text(size = 12))
-ggsave("Output/FigS5/FigS5A.png", width = 5.5, height = 4)
+ggsave("Output/FigS5/FigS5A.tiff", width = 5.5, height = 4)
 
 ## Fig S5B ## ----
 perifusion_summary %>%
@@ -5284,6 +5350,7 @@ perifusion_summary %>%
   ggplot(aes(x=sex, y=log(mean.ins.baseline), fill = sex)) +
   geom_boxplot(alpha = 0.5)+
   geom_quasirandom(size = 2, aes(colour = sex)) +
+  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 1, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.1))+
   scale_colour_manual(values = c("#50b5ad", "#dbac5a")) +
   scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
   ylab("log(baseline insulin secretion \n(ng/100 islets))") +
@@ -5300,7 +5367,7 @@ perifusion_summary %>%
         panel.border = element_blank(),
         axis.line = element_line()
   )
-ggsave("Output/FigS5/FigS5B.png", width = 4 , height = 4)
+ggsave("Output/FigS5/FigS5B.tiff", width = 4 , height = 4)
 
 ## Fig S5C ## ----
 perifusion_summary %>%
@@ -5314,6 +5381,7 @@ perifusion_summary %>%
   ggplot(aes(x=sex, y=log(AUC.ins.AAM), fill = sex)) +
   geom_boxplot(alpha = 0.5)+
   geom_quasirandom(size = 2, aes(colour = sex)) +
+  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 4, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.075))+
   scale_colour_manual(values = c("#50b5ad", "#dbac5a")) +
   scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
   ylab("log(AUC secretion\n4 mM AAM)") +
@@ -5330,7 +5398,7 @@ perifusion_summary %>%
         panel.border = element_blank(),
         axis.line = element_line()
   )
-ggsave("Output/FigS5/FigS5C.png", width = 4 , height = 4)
+ggsave("Output/FigS5/FigS5C.tiff", width = 4 , height = 4)
 
 ## Fig S5D ## ----
 perifusion_summary %>%
@@ -5344,6 +5412,7 @@ perifusion_summary %>%
   ggplot(aes(x=sex, y=log(AUC.ins.LG), fill = sex)) +
   geom_boxplot(alpha = 0.5)+
   geom_quasirandom(size = 2, aes(colour = sex)) +
+  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 3.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.1, 0.02))+
   scale_colour_manual(values = c("#50b5ad", "#dbac5a")) +
   scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
   ylab("log(AUC secretion\n3 mM glucose)") +
@@ -5360,7 +5429,7 @@ perifusion_summary %>%
         panel.border = element_blank(),
         axis.line = element_line()
   )
-ggsave("Output/FigS5/FigS5D.png", width = 4 , height = 4)
+ggsave("Output/FigS5/FigS5D.tiff", width = 4 , height = 4)
 
 ## Fig S5E ## ----
 perifusion_summary %>%
@@ -5374,6 +5443,7 @@ perifusion_summary %>%
   ggplot(aes(x=sex, y=log(AUC.ins.HG), fill = sex)) +
   geom_boxplot(alpha = 0.5)+
   geom_quasirandom(size = 2, aes(colour = sex)) +
+  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("#50b5ad", "#dbac5a")) +
   scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
   ylab("log(AUC secretion\n16.7 mM glucose)") +
@@ -5390,7 +5460,7 @@ perifusion_summary %>%
         panel.border = element_blank(),
         axis.line = element_line()
   )
-ggsave("Output/FigS5/FigS5E.png", width = 4 , height = 4)
+ggsave("Output/FigS5/FigS5E.tiff", width = 4 , height = 4)
 
 ## Fig S5F ## ----
 perifusion_summary %>%
@@ -5404,6 +5474,7 @@ perifusion_summary %>%
   ggplot(aes(x=sex, y=log(AUC.ins.IBMX), fill = sex)) +
   geom_boxplot(alpha = 0.5)+
   geom_quasirandom(size = 2, aes(colour = sex)) +
+  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 5.7, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.05, 0.02))+
   scale_colour_manual(values = c("#50b5ad", "#dbac5a")) +
   scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
   ylab("log(AUC secretion 16.7 mM\nglucose + 0.1 mM IBMX)") +
@@ -5420,7 +5491,7 @@ perifusion_summary %>%
         panel.border = element_blank(),
         axis.line = element_line()
   )
-ggsave("Output/FigS5/FigS5F.png", width = 4 , height = 4)
+ggsave("Output/FigS5/FigS5F.tiff", width = 4 , height = 4)
 
 ## Fig S5G ## ----
 perifusion_summary %>%
@@ -5434,6 +5505,7 @@ perifusion_summary %>%
   ggplot(aes(x=sex, y=log(AUC.ins.KCl), fill = sex)) +
   geom_boxplot(alpha = 0.5)+
   geom_quasirandom(size = 2, aes(colour = sex)) +
+  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 4.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("#50b5ad", "#dbac5a")) +
   scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
   ylab("log(AUC secretion\n30 mM KCl)") +
@@ -5450,7 +5522,7 @@ perifusion_summary %>%
         panel.border = element_blank(),
         axis.line = element_line()
   )
-ggsave("Output/FigS5/FigS5G.png", width = 4 , height = 4)
+ggsave("Output/FigS5/FigS5G.tiff", width = 4 , height = 4)
 
 ## Fig S9A ## ----
 stimulus_data3 <- data.frame(
@@ -5500,7 +5572,7 @@ perifusion_all_with_metadata %>%
         plot.title = element_text(size = 14, hjust = 0.5),
         legend.title = element_text(size = 14),
         legend.text = element_text(size = 12))
-ggsave("Output/FigS9/FigS9A.png", width = 5.5, height = 4)
+ggsave("Output/FigS9/FigS9A.tiff", width = 5.5, height = 4)
 
 ## Fig S9B ## ----
 hist(perifusion_summary$mean.gcg.baseline)
@@ -5516,9 +5588,10 @@ perifusion_summary %>%
   ggplot(aes(x=sex, y=log(mean.gcg.baseline), fill = sex)) +
   geom_boxplot(alpha = 0.5)+
   geom_quasirandom(size = 2, aes(colour = sex)) +
+  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.125))+
   scale_colour_manual(values = c("#50b5ad", "#dbac5a")) +
   scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
-  ylab("log(baseline glucagon secretion\n(pg/100 islets))") +
+  ylab("log(baseline glucagon\nsecretion (pg/100 islets))") +
   xlab("")+
   labs(colour = "Condition", fill = "Condition")+
   theme_bw() +
@@ -5532,7 +5605,7 @@ perifusion_summary %>%
         panel.border = element_blank(),
         axis.line = element_line()
   )
-ggsave("Output/FigS9/FigS9B.png", width = 3 , height = 3)
+ggsave("Output/FigS9/FigS9B.tiff", width = 3 , height = 3)
 
 ## Fig S9C ## ----
 hist(perifusion_summary$AUC.gcg.AAM)
@@ -5548,6 +5621,7 @@ perifusion_summary %>%
   ggplot(aes(x=sex, y=log(AUC.gcg.AAM), fill = sex)) +
   geom_boxplot(alpha = 0.5)+
   geom_quasirandom(size = 2, aes(colour = sex)) +
+  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 8.8, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.1, 0.02))+
   scale_colour_manual(values = c("#50b5ad", "#dbac5a")) +
   scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
   ylab("log(AUC secretion\n4 mM AAM)") +
@@ -5564,7 +5638,7 @@ perifusion_summary %>%
         panel.border = element_blank(),
         axis.line = element_line()
   )
-ggsave("Output/FigS9/FigS9C.png", width = 3 , height = 3)
+ggsave("Output/FigS9/FigS9C.tiff", width = 3 , height = 3)
 
 ## Fig S9D ## ----
 hist(perifusion_summary$AUC.gcg.IBMX)
@@ -5580,6 +5654,7 @@ perifusion_summary %>%
   ggplot(aes(x=sex, y=log(AUC.gcg.IBMX), fill = sex)) +
   geom_boxplot(alpha = 0.5)+
   geom_quasirandom(size = 2, aes(colour = sex)) +
+  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 9.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.1))+
   scale_colour_manual(values = c("#50b5ad", "#dbac5a")) +
   scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
   ylab("log(AUC secretion 16.7 mM\nglucose + 0.1 mM IBMX)") +
@@ -5596,7 +5671,7 @@ perifusion_summary %>%
         panel.border = element_blank(),
         axis.line = element_line()
   )
-ggsave("Output/FigS9/FigS9D.png", width = 3 , height = 3)
+ggsave("Output/FigS9/FigS9D.tiff", width = 3 , height = 3)
 
 ## Fig S9E ## ----
 hist(perifusion_summary$AUC.gcg.KCl)
@@ -5612,6 +5687,7 @@ perifusion_summary %>%
   ggplot(aes(x=sex, y=log(AUC.gcg.KCl), fill = sex)) +
   geom_boxplot(alpha = 0.5)+
   geom_quasirandom(size = 2, aes(colour = sex)) +
+  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 9.2, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.1))+
   scale_colour_manual(values = c("#50b5ad", "#dbac5a")) +
   scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
   ylab("log(AUC secretion\n30 mM KCl)") +
@@ -5628,7 +5704,7 @@ perifusion_summary %>%
         panel.border = element_blank(),
         axis.line = element_line()
   )
-ggsave("Output/FigS9/FigS9E.png", width = 3 , height = 3)
+ggsave("Output/FigS9/FigS9E.tiff", width = 3 , height = 3)
 
 ## Fig S9K ## ----
 glucagon.content <- perifusion_all_with_metadata %>%
@@ -5647,6 +5723,7 @@ glucagon.content %>%
   ggplot(aes(x=sex, y=log(Glucagon.Content..pg.islet.), fill = sex)) +
   geom_boxplot(alpha = 0.5)+
   geom_quasirandom(size = 2, aes(colour = sex)) +
+  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 9.4, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("#50b5ad", "#dbac5a")) +
   scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
   ylab("log(glucagon content\n(pg/islet))") +
@@ -5663,7 +5740,7 @@ glucagon.content %>%
         panel.border = element_blank(),
         axis.line = element_line()
   )
-ggsave("Output/FigS9/FigS9K.png", width = 3 , height = 3)
+ggsave("Output/FigS9/FigS9K.tiff", width = 3 , height = 3)
 
 ## Fig S10A ## ----
 perifusion_all_with_metadata %>%
@@ -5710,7 +5787,7 @@ perifusion_all_with_metadata %>%
         plot.title = element_text(size = 14, hjust = 0.5),
         legend.title = element_text(size = 14),
         legend.text = element_text(size = 12))
-ggsave("Output/FigS10/FigS10A.png", width = 8, height = 4)
+ggsave("Output/FigS10/FigS10A.tiff", width = 8, height = 4)
 
 ## Fig S10B ## ----
 perifusion_summary %>%
@@ -5730,12 +5807,15 @@ perifusion_summary %>%
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
   geom_quasirandom(size = 1, aes(group = simplified_diagnosis, colour = simplified_diagnosis), dodge.width=0.9) +
   geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 5, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.15))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 4.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.1))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 5.56, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 6, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey50", "#d65ac9")) +
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("log(baseline glucagon secretion \n(pg/100 islets))") +
   xlab("")+
   labs(colour = "Condition", fill = "Condition")+
-  scale_y_continuous(limits = c(0.5,5.5)) +
+  scale_y_continuous(limits = c(0.5,6)) +
   theme_bw() +
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
@@ -5747,7 +5827,7 @@ perifusion_summary %>%
         panel.border = element_blank(),
         axis.line = element_line()   
   )
-ggsave("Output/FigS10/FigS10B.png", width = 4 , height = 4)
+ggsave("Output/FigS10/FigS10B.tiff", width = 4 , height = 4)
 
 ## Fig S10C ## ----
 perifusion_summary %>%
@@ -5766,14 +5846,16 @@ perifusion_summary %>%
   ggplot(aes(x=sex, y=log(AUC.gcg.AAM), fill = simplified_diagnosis)) +
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
   geom_quasirandom(size = 1, aes(group = simplified_diagnosis, colour = simplified_diagnosis), dodge.width=0.9) +
-  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 9, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.1))+
-  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 8.8, label = "p=0.09", label.size = 4, size = 0.5, tip.length = c(0.02, 0.07))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 9, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.07))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 8.9, label = "p=0.09", label.size = 4, size = 0.5, tip.length = c(0.02, 0.05))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 9.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 10, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey50", "#d65ac9")) +
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("log(AUC secretion\n4 mM AAM)") +
   xlab("")+
   labs(colour = "Condition", fill = "Condition")+
-  scale_y_continuous(limits = c(4.5,9.5)) +
+  scale_y_continuous(limits = c(4.5,10)) +
   theme_bw() +
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
@@ -5785,7 +5867,7 @@ perifusion_summary %>%
         panel.border = element_blank(),
         axis.line = element_line()   
   )
-ggsave("Output/FigS10/FigS10C.png", width = 4 , height = 4)
+ggsave("Output/FigS10/FigS10C.tiff", width = 4 , height = 4)
 
 ## Fig S10D ## ----
 perifusion_summary %>%
@@ -5804,6 +5886,10 @@ perifusion_summary %>%
   ggplot(aes(x=sex, y=log(AUC.gcg.IBMX), fill = simplified_diagnosis)) +
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
   geom_quasirandom(size = 1, aes(group = simplified_diagnosis, colour = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 9.4, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.1))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 9.1, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.05))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 9.7, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 10.2, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey50", "#d65ac9")) +
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("log(AUC secretion 16.7 mM\nglucose + 0.1 mM IBMX)") +
@@ -5820,7 +5906,7 @@ perifusion_summary %>%
         panel.border = element_blank(),
         axis.line = element_line()   
   )
-ggsave("Output/FigS10/FigS10D.png", width = 4 , height = 4)
+ggsave("Output/FigS10/FigS10D.tiff", width = 4 , height = 4)
 
 ## Fig S10E ## ----
 perifusion_summary %>%
@@ -5840,12 +5926,15 @@ perifusion_summary %>%
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
   geom_quasirandom(size = 1, aes(group = simplified_diagnosis, colour = simplified_diagnosis), dodge.width=0.9) +
   geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 9.2, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.14))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 8.8, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.05))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 9.8, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 10.3, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey50", "#d65ac9")) +
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("log(AUC secretion\n30 mM KCl)") +
   xlab("")+
   labs(colour = "Condition", fill = "Condition")+
-  scale_y_continuous(limits = c(4.5,9.5)) +
+  scale_y_continuous(limits = c(4.5,10.3)) +
   theme_bw() +
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
@@ -5857,7 +5946,7 @@ perifusion_summary %>%
         panel.border = element_blank(),
         axis.line = element_line()   
   )
-ggsave("Output/FigS10/FigS10E.png", width = 4 , height = 4)
+ggsave("Output/FigS10/FigS10E.tiff", width = 4 , height = 4)
 
 ## Fig S10K ## ----
 glucagon.content %>%
@@ -5878,6 +5967,8 @@ glucagon.content %>%
   geom_quasirandom(size = 1, aes(group = simplified_diagnosis, colour = simplified_diagnosis), dodge.width=0.9) +
   geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 9, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.1))+
   geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 10, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.35))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 10.4, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 11, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey50", "#d65ac9")) +
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("log(glucagon content (pg/islet))") +
@@ -5895,7 +5986,7 @@ glucagon.content %>%
         panel.border = element_blank(),
         axis.line = element_line()   
   )
-ggsave("Output/FigS10/FigS10K.png", width = 5 , height = 4)
+ggsave("Output/FigS10/FigS10K.tiff", width = 5 , height = 4)
 
 
 #Vanderbilt insulin perifusion data
@@ -6075,7 +6166,7 @@ all_insulin_df %>%
         plot.title = element_text(size = 14, hjust = 0.5),
         legend.title = element_text(size = 14),
         legend.text = element_text(size = 12))
-ggsave("Output/Fig8/Fig8H.png", width = 8, height = 4)
+ggsave("Output/Fig8/Fig8H.tiff", width = 8, height = 4)
 
 ## Fig 8I ## ----
 hist(all_insulin_wide$baselineins)
@@ -6097,6 +6188,10 @@ all_insulin_wide %>%
   ggplot(aes(x=sex, y=log(baselineins), fill = simplified_diagnosis)) +
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
   geom_quasirandom(size = 1, aes(group = simplified_diagnosis, colour = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 0.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 0.75, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 1, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 1.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey50", "#d65ac9")) +
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("log(baseline insulin secretion\n(ng/100 IEQs))") +
@@ -6113,7 +6208,7 @@ all_insulin_wide %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/Fig8/Fig8I.png", width = 4, height = 4)
+ggsave("Output/Fig8/Fig8I.tiff", width = 4, height = 4)
 
 ## Fig 8J ## ----
 hist(all_insulin_wide$AUC.G16.7)
@@ -6135,8 +6230,10 @@ all_insulin_wide %>%
   ggplot(aes(x=sex, y=log(AUC.G16.7), fill = simplified_diagnosis)) +
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
   geom_quasirandom(size = 1, aes(group = simplified_diagnosis, colour = simplified_diagnosis), dodge.width=0.9) +
-  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 4.5, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.03))+
-  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 4.9, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.14))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 4.6, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.03))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 5.1, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.14))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 5.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 6, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey50", "#d65ac9")) +
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("log(AUC secretion\n16.7 mM glucose)") +
@@ -6154,7 +6251,7 @@ all_insulin_wide %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/Fig8/Fig8J.png", width = 4, height = 4)
+ggsave("Output/Fig8/Fig8J.tiff", width = 4, height = 4)
 
 ## Fig 8K ## ----
 hist(all_insulin_wide$AUC.IBMX)
@@ -6177,7 +6274,9 @@ all_insulin_wide %>%
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
   geom_quasirandom(size = 1, aes(group = simplified_diagnosis, colour = simplified_diagnosis), dodge.width=0.9) +
   geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 4.9, label = "p=0.053", label.size = 4, size = 0.5, tip.length = c(0.02, 0.12))+
-  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 5, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.18))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 5.2, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.18))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 5.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 6, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey50", "#d65ac9")) +
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("log(AUC secretion 16.7 mM\nglucose + 0.1 mM IBMX)") +
@@ -6195,7 +6294,7 @@ all_insulin_wide %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/Fig8/Fig8K.png", width = 4, height = 4)
+ggsave("Output/Fig8/Fig8K.tiff", width = 4, height = 4)
 
 ## Fig 8L ## ----
 hist(all_insulin_wide$AUC.KCl)
@@ -6220,12 +6319,13 @@ all_insulin_wide %>%
   geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 4, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.22))+
   geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 3.8, label = "p=0.07", label.size = 4, size = 0.5, tip.length = c(0.02, 0.1))+
   geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 4.6, label = "p=0.08", label.size = 4, size = 0.5, tip.length = c(0.1, 0.07))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 5.1, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey50", "#d65ac9")) +
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("log(AUC secretion\n20 mM KCl)") +
   xlab("")+
   labs(colour = "Condition", fill = "Condition")+
-  scale_y_continuous(limits = c(0.5,5)) +
+  scale_y_continuous(limits = c(0.5,5.1)) +
   theme_bw() +
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
@@ -6237,7 +6337,7 @@ all_insulin_wide %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/Fig8/Fig8L.png", width = 4, height = 4)
+ggsave("Output/Fig8/Fig8L.tiff", width = 4, height = 4)
 
 ## Fig S5H ## ----
 stimulus_data2 <- data.frame(
@@ -6290,7 +6390,7 @@ all_insulin_df %>%
         plot.title = element_text(size = 14, hjust = 0.5),
         legend.title = element_text(size = 14),
         legend.text = element_text(size = 12))
-ggsave("Output/FigS5/FigS5H.png", width = 5.5, height = 4)
+ggsave("Output/FigS5/FigS5H.tiff", width = 5.5, height = 4)
 
 ## Fig S5I ## ----
 all_insulin_wide %>%
@@ -6305,6 +6405,7 @@ all_insulin_wide %>%
   ggplot(aes(x=sex, y=log(baselineins), fill = sex)) +
   geom_boxplot(alpha = 0.5)+
   geom_quasirandom(size = 2, aes(colour = sex)) +
+  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 0.75, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.2, 0.02))+
   scale_colour_manual(values = c("#50b5ad", "#dbac5a")) +
   scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
   ylab("log(baseline insulin secretion\n(ng/100 IEQs))") +
@@ -6320,7 +6421,7 @@ all_insulin_wide %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS5/FigS5I.png", width = 3, height = 3)
+ggsave("Output/FigS5/FigS5I.tiff", width = 3, height = 3)
 
 ## Fig S5J ## ----
 all_insulin_wide %>%
@@ -6335,6 +6436,7 @@ all_insulin_wide %>%
   ggplot(aes(x=sex, y=log(AUC.G16.7), fill = sex)) +
   geom_boxplot(alpha = 0.5)+
   geom_quasirandom(size = 2, aes(colour = sex)) +
+  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 4.8, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.2, 0.02))+
   scale_colour_manual(values = c("#50b5ad", "#dbac5a")) +
   scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
   ylab("log(AUC secretion\n16.7 mM glucose)") +
@@ -6350,7 +6452,7 @@ all_insulin_wide %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS5/FigS5J.png", width = 3, height = 3)
+ggsave("Output/FigS5/FigS5J.tiff", width = 3, height = 3)
 
 ## Fig S5K ## ----
 all_insulin_wide %>%
@@ -6365,6 +6467,7 @@ all_insulin_wide %>%
   ggplot(aes(x=sex, y=log(AUC.IBMX), fill = sex)) +
   geom_boxplot(alpha = 0.5)+
   geom_quasirandom(size = 2, aes(colour = sex)) +
+  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 4.9, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.075, 0.02))+
   scale_colour_manual(values = c("#50b5ad", "#dbac5a")) +
   scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
   ylab("log(AUC secretion 16.7 mM\nglucose + 0.1 mM IBMX)") +
@@ -6380,7 +6483,7 @@ all_insulin_wide %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS5/FigS5K.png", width = 3, height = 3)
+ggsave("Output/FigS5/FigS5K.tiff", width = 3, height = 3)
 
 ## Fig S5L ## ----
 all_insulin_wide %>%
@@ -6395,6 +6498,7 @@ all_insulin_wide %>%
   ggplot(aes(x=sex, y=log(AUC.KCl), fill = sex)) +
   geom_boxplot(alpha = 0.5)+
   geom_quasirandom(size = 2, aes(colour = sex)) +
+  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 3.9, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.2, 0.02))+
   scale_colour_manual(values = c("#50b5ad", "#dbac5a")) +
   scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
   ylab("log(AUC secretion\n20 mM KCl)") +
@@ -6410,7 +6514,7 @@ all_insulin_wide %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS5/FigS5L.png", width = 3, height = 3)
+ggsave("Output/FigS5/FigS5L.tiff", width = 3, height = 3)
 
 #Vanderbilt glucagon perifusion data
 all_glucagon <- list()
@@ -6535,7 +6639,7 @@ all_glucagon_df %>%
         plot.title = element_text(size = 14, hjust = 0.5),
         legend.title = element_text(size = 14),
         legend.text = element_text(size = 12))
-ggsave("Output/FigS9/FigS9F.png", width = 5.5, height = 4)
+ggsave("Output/FigS9/FigS9F.tiff", width = 5.5, height = 4)
 
 ## Fig S9G ## ----
 hist(all_glucagon_wide$baselinegcg)
@@ -6552,6 +6656,7 @@ all_glucagon_wide %>%
   ggplot(aes(x=sex, y=log(baselinegcg), fill = sex)) +
   geom_boxplot(alpha = 0.5)+
   geom_quasirandom(size = 2, aes(colour = sex)) +
+  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 5.6, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.05))+
   scale_colour_manual(values = c("#50b5ad", "#dbac5a")) +
   scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
   ylab("log(baseline glucagon\nsecretion (pg/100 IEQs))") +
@@ -6567,7 +6672,7 @@ all_glucagon_wide %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS9/FigS9G.png", width = 3, height = 3)
+ggsave("Output/FigS9/FigS9G.tiff", width = 3, height = 3)
 
 ## Fig S9H ## ----
 hist(all_glucagon_wide$AUC.Epi)
@@ -6584,6 +6689,7 @@ all_glucagon_wide %>%
   ggplot(aes(x=sex, y=log(AUC.Epi), fill = sex)) +
   geom_boxplot(alpha = 0.5)+
   geom_quasirandom(size = 2, aes(colour = sex)) +
+  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 9, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.2))+
   scale_colour_manual(values = c("#50b5ad", "#dbac5a")) +
   scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
   ylab("log(AUC secretion\n1.7 mM glucose + Epi)") +
@@ -6599,7 +6705,7 @@ all_glucagon_wide %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS9/FigS9H.png", width = 3, height = 3)
+ggsave("Output/FigS9/FigS9H.tiff", width = 3, height = 3)
 
 ## Fig S9I ## ----
 hist(all_glucagon_wide$AUC.IBMX)
@@ -6616,6 +6722,7 @@ all_glucagon_wide %>%
   ggplot(aes(x=sex, y=log(AUC.IBMX), fill = sex)) +
   geom_boxplot(alpha = 0.5)+
   geom_quasirandom(size = 2, aes(colour = sex)) +
+  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 9.2, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.2))+
   scale_colour_manual(values = c("#50b5ad", "#dbac5a")) +
   scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
   ylab("log(AUC secretion 16.7 mM\nglucose + 0.1 mM IBMX)") +
@@ -6631,7 +6738,7 @@ all_glucagon_wide %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS9/FigS9I.png", width = 3, height = 3)
+ggsave("Output/FigS9/FigS9I.tiff", width = 3, height = 3)
 
 ## Fig S9J ## ----
 hist(all_glucagon_wide$AUC.KCl)
@@ -6648,6 +6755,7 @@ all_glucagon_wide %>%
   ggplot(aes(x=sex, y=log(AUC.KCl), fill = sex)) +
   geom_boxplot(alpha = 0.5)+
   geom_quasirandom(size = 2, aes(colour = sex)) +
+  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 8.3, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.1))+
   scale_colour_manual(values = c("#50b5ad", "#dbac5a")) +
   scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
   ylab("log(AUC secretion\n20 mM KCl)") +
@@ -6663,7 +6771,7 @@ all_glucagon_wide %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS9/FigS9J.png", width = 3, height = 3)
+ggsave("Output/FigS9/FigS9J.tiff", width = 3, height = 3)
 
 ## Fig S10F ## ----
 stimulus_data4 <- data.frame(
@@ -6718,7 +6826,7 @@ all_glucagon_df %>%
         plot.title = element_text(size = 14, hjust = 0.5),
         legend.title = element_text(size = 14),
         legend.text = element_text(size = 12))
-ggsave("Output/FigS10/FigS10F.png", width = 8, height = 4)
+ggsave("Output/FigS10/FigS10F.tiff", width = 8, height = 4)
 
 ## Fig S10G ## ----
 all_glucagon_wide %>%
@@ -6738,6 +6846,10 @@ all_glucagon_wide %>%
   ggplot(aes(x=sex, y=log(baselinegcg), fill = simplified_diagnosis)) +
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
   geom_quasirandom(size = 1, aes(group = simplified_diagnosis, colour = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 5.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.1))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 5.8, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.1, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 6, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 6.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey50", "#d65ac9")) +
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("log(baseline glucagon secretion\n(pg/100 IEQs))") +
@@ -6754,7 +6866,7 @@ all_glucagon_wide %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS10/FigS10G.png", width = 4, height = 4)
+ggsave("Output/FigS10/FigS10G.tiff", width = 4, height = 4)
 
 
 ## Fig S10I ## ----
@@ -6775,6 +6887,10 @@ all_glucagon_wide %>%
   ggplot(aes(x=sex, y=log(AUC.Epi), fill = simplified_diagnosis)) +
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
   geom_quasirandom(size = 1, aes(group = simplified_diagnosis, colour = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 9, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 9.1, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.12, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 9.4, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 9.8, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey50", "#d65ac9")) +
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("log(AUC secretion\n1.7 mM glucose + Epi)") +
@@ -6791,7 +6907,7 @@ all_glucagon_wide %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS10/FigS10I.png", width = 4, height = 4)
+ggsave("Output/FigS10/FigS10I.tiff", width = 4, height = 4)
 
 ## Fig S10H ## ----
 all_glucagon_wide %>%
@@ -6811,6 +6927,10 @@ all_glucagon_wide %>%
   ggplot(aes(x=sex, y=log(AUC.IBMX), fill = simplified_diagnosis)) +
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
   geom_quasirandom(size = 1, aes(group = simplified_diagnosis, colour = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 9.1, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.25))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 8.8, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.1, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 9.4, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 9.7, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey50", "#d65ac9")) +
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("log(AUC secretion 16.7 mM\nglucose + 0.1 mM IBMX)") +
@@ -6827,7 +6947,7 @@ all_glucagon_wide %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS10/FigS10H.png", width = 4, height = 4)
+ggsave("Output/FigS10/FigS10H.tiff", width = 4, height = 4)
 
 ## Fig S10J ## ----
 all_glucagon_wide %>%
@@ -6847,6 +6967,10 @@ all_glucagon_wide %>%
   ggplot(aes(x=sex, y=log(AUC.KCl), fill = simplified_diagnosis)) +
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
   geom_quasirandom(size = 1, aes(group = simplified_diagnosis, colour = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 8.4, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.15))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 8.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.1, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 9, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 9.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey50", "#d65ac9")) +
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("log(AUC secretion\n20 mM KCl)") +
@@ -6863,7 +6987,7 @@ all_glucagon_wide %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS10/FigS10J.png", width = 4, height = 4)
+ggsave("Output/FigS10/FigS10J.tiff", width = 4, height = 4)
 
 #Vanderbilt glucagon content data
 #Load data
@@ -6917,7 +7041,8 @@ glucagon.content_df %>%
   ggplot(aes(x=sex, y=log(Glucagon.content.pg.IEQ), fill = sex)) +
   geom_boxplot(alpha = 0.5)+
   geom_quasirandom(size = 2, aes(colour = sex)) +
-  scale_colour_manual(values = c("#50b5ad", "#dbac5a")) +
+  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 8.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.25))+
+   scale_colour_manual(values = c("#50b5ad", "#dbac5a")) +
   scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
   ylab("log(glucagon content\n(pg/IEQ))") +
   xlab("") +
@@ -6933,7 +7058,7 @@ glucagon.content_df %>%
     panel.border = element_blank(),
     axis.line = element_line()  
   )
-ggsave("Output/FigS9/FigS9L.png", width = 3, height = 3)
+ggsave("Output/FigS9/FigS9L.tiff", width = 3, height = 3)
 
 ## Fig S10L ## ----
 glucagon.content_df %>%
@@ -6953,6 +7078,10 @@ glucagon.content_df %>%
   ggplot(aes(x=sex, y=log(Glucagon.content.pg.IEQ), fill = simplified_diagnosis)) +
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
   geom_quasirandom(size = 1, aes(group = simplified_diagnosis, colour = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 8.8, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.05, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 8, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 9.2, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 9.7, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey50", "#d65ac9")) +
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("log(glucagon content (pg/IEQ))") +
@@ -6970,7 +7099,7 @@ glucagon.content_df %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS10/FigS10L.png", width = 5, height = 4)
+ggsave("Output/FigS10/FigS10L.tiff", width = 5, height = 4)
 
 #Humanislets.com glucose perifusion data
 #clear environment
@@ -7096,7 +7225,7 @@ peri_gluc_long %>%
         plot.title = element_text(size = 14, hjust = 0.5),
         legend.title = element_text(size = 14),
         legend.text = element_text(size = 12))
-ggsave("Output/Fig8/Fig8M.png", width = 8, height = 4)
+ggsave("Output/Fig8/Fig8M.tiff", width = 8, height = 4)
 
 ## Fig 8N ## ----
 hist(peri_gluc_means$baseline.mean)
@@ -7118,13 +7247,16 @@ peri_gluc_means %>%
   ggplot(aes(x=donorsex, y=log(baseline.mean), fill = diagnosis)) +
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
   geom_quasirandom(size = 1, aes(group = diagnosis, colour = diagnosis), dodge.width=0.9) +
-  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 5.75, label = "*", label.size = 7, size = 0.5, tip.length = c(0.1, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 5.2, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.075))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 5.75, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.1))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 6, label = "*", label.size = 7, size = 0.5, tip.length = c(0.1, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 6.75, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey40", "#e04e34"))  +
   scale_fill_manual(values = c("grey40", "#e04e34"))  +
   ylab("log(baseline insulin secretion\n(\U03BCU/mL/65 islets))") +
   xlab("")+
   labs(colour = "Condition", fill = "Condition")+
-  scale_y_continuous(limits = c(0.5,6)) +
+  scale_y_continuous(limits = c(0.5,6.75)) +
   theme_bw() +
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
@@ -7136,7 +7268,7 @@ peri_gluc_means %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/Fig8/Fig8N.png", width = 4, height = 4)
+ggsave("Output/Fig8/Fig8N.tiff", width = 4, height = 4)
 
 ## Fig 8O ## ----
 hist(peri_gluc_means$AUC.G15)
@@ -7159,7 +7291,9 @@ peri_gluc_means %>%
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
   geom_quasirandom(size = 1, aes(group = diagnosis, colour = diagnosis), dodge.width=0.9) +
   geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 10.3, label = "p=0.06", label.size = 4, size = 0.5, tip.length = c(0.02, 0.1))+
-  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 11, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.14))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 10.6, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.14))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 11.3, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.1, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 12, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey40", "#e04e34"))  +
   scale_fill_manual(values = c("grey40", "#e04e34"))  +
   ylab("log(AUC secretion\n15 mM glucose)") +
@@ -7177,7 +7311,7 @@ peri_gluc_means %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/Fig8/Fig8O.png", width = 4, height = 4)
+ggsave("Output/Fig8/Fig8O.tiff", width = 4, height = 4)
 
 ## Fig 8P ## ----
 hist(peri_gluc_means$AUC.G6)
@@ -7199,7 +7333,10 @@ peri_gluc_means %>%
   ggplot(aes(x=donorsex, y=log(AUC.G6), fill = diagnosis)) +
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
   geom_quasirandom(size = 1, aes(group = diagnosis, colour = diagnosis), dodge.width=0.9) +
-  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 10.2, label = "*", label.size = 7, size = 0.5, tip.length = c(0.1, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 9.7, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.15))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 10.1, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.15))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 10.3, label = "*", label.size = 7, size = 0.5, tip.length = c(0.1, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 11, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey40", "#e04e34"))  +
   scale_fill_manual(values = c("grey40", "#e04e34"))  +
   ylab("log(AUC secretion\n6 mM glucose)") +
@@ -7217,7 +7354,7 @@ peri_gluc_means %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/Fig8/Fig8P.png", width = 4, height = 4)
+ggsave("Output/Fig8/Fig8P.tiff", width = 4, height = 4)
 
 ## Fig 8Q ## ----
 hist(peri_gluc_means$AUC.KCl)
@@ -7239,6 +7376,10 @@ peri_gluc_means %>%
   ggplot(aes(x=donorsex, y=log(AUC.KCl), fill = diagnosis)) +
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
   geom_quasirandom(size = 1, aes(group = diagnosis, colour = diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 9.4, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.15))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 9.8, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.15))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 10.1, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 10.4, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey40", "#e04e34"))  +
   scale_fill_manual(values = c("grey40", "#e04e34"))  +
   ylab("log(AUC secretion\n30 mM KCl)") +
@@ -7255,7 +7396,7 @@ peri_gluc_means %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/Fig8/Fig8Q.png", width = 4, height = 4)
+ggsave("Output/Fig8/Fig8Q.tiff", width = 4, height = 4)
 
 ## Fig S5M ## ----
 stimulus_data2 <- data.frame(
@@ -7307,7 +7448,7 @@ peri_gluc_long %>%
         plot.title = element_text(size = 14, hjust = 0.5),
         legend.title = element_text(size = 14),
         legend.text = element_text(size = 12))
-ggsave("Output/FigS5/FigS5M.png", width = 5.5, height = 4)
+ggsave("Output/FigS5/FigS5M.tiff", width = 5.5, height = 4)
 
 ## Fig S5N ## ----
 peri_gluc_means %>%
@@ -7321,6 +7462,7 @@ peri_gluc_means %>%
   ggplot(aes(x=donorsex, y=log(baseline.mean),  fill = donorsex)) +
   geom_boxplot(alpha = 0.5)+
   geom_quasirandom(size = 2, aes(colour = donorsex)) +
+  geom_bracket(inherit.aes = FALSE, xmin = 1, xmax = 2, y.position = 5.7, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.1, 0.02))+
   scale_fill_manual(values = c("#113ed1", "#5e4114")) +
   scale_colour_manual(values = c("#113ed1", "#5e4114")) +
   ylab("log(baseline insulin secretion\n(\U03BCU/mL/65 islets))") +
@@ -7336,7 +7478,7 @@ peri_gluc_means %>%
     panel.border = element_blank(), 
     axis.line = element_line()  
   )
-ggsave("Output/FigS5/FigS5N.png", width = 3, height = 3)
+ggsave("Output/FigS5/FigS5N.tiff", width = 3, height = 3)
 
 ## Fig S5O ## ----
 peri_gluc_means %>%
@@ -7367,7 +7509,7 @@ peri_gluc_means %>%
     panel.border = element_blank(), 
     axis.line = element_line()  
   )
-ggsave("Output/FigS5/FigS5O.png", width = 3, height = 3)
+ggsave("Output/FigS5/FigS5O.tiff", width = 3, height = 3)
 
 ## Fig S5P ## ----
 peri_gluc_means %>%
@@ -7398,7 +7540,7 @@ peri_gluc_means %>%
     panel.border = element_blank(), 
     axis.line = element_line()  
   )
-ggsave("Output/FigS5/FigS5P.png", width = 3, height = 3)
+ggsave("Output/FigS5/FigS5P.tiff", width = 3, height = 3)
 
 ## Fig S5Q ## ----
 peri_gluc_means %>%
@@ -7429,7 +7571,7 @@ peri_gluc_means %>%
     panel.border = element_blank(), 
     axis.line = element_line()  
   )
-ggsave("Output/FigS5/FigS5Q.png", width = 3, height = 3)
+ggsave("Output/FigS5/FigS5Q.tiff", width = 3, height = 3)
 
 ## Fig S6A ## ----
 peri_gluc_means %>% 
@@ -7443,7 +7585,7 @@ peri_gluc_means %>%
   stat_smooth(method = "lm", colour = "grey50") +
   stat_cor(label.y = 6)+
   theme_classic()
-ggsave("Output/FigS6/FigS6A.png", width = 5, height = 4)
+ggsave("Output/FigS6/FigS6A.tiff", width = 5, height = 4)
 
 ## Fig S6B ## ----
 peri_gluc_means %>% 
@@ -7457,7 +7599,7 @@ peri_gluc_means %>%
   stat_smooth(method = "lm", colour = "grey50") +
   stat_cor(label.y = 6)+
   theme_classic()
-ggsave("Output/FigS6/FigS6B.png", width = 5, height = 4)
+ggsave("Output/FigS6/FigS6B.tiff", width = 5, height = 4)
 
 ## Fig S6C ## ----
 peri_gluc_means %>% 
@@ -7471,7 +7613,7 @@ peri_gluc_means %>%
   stat_smooth(method = "lm", colour = "grey50") +
   stat_cor(label.y = 6)+
   theme_classic()
-ggsave("Output/FigS6/FigS6C.png", width = 5, height = 4)
+ggsave("Output/FigS6/FigS6C.tiff", width = 5, height = 4)
 
 ### Figures S7-8 ### ----
 #clear environment
@@ -7599,7 +7741,7 @@ peri_leu_long %>%
         plot.title = element_text(size = 14, hjust = 0.5),
         legend.title = element_text(size = 14),
         legend.text = element_text(size = 12))
-ggsave("Output/FigS7/FigS7A.png", width = 5.5, height = 4)
+ggsave("Output/FigS7/FigS7A.tiff", width = 5.5, height = 4)
 
 ## Fig S7B ## ----
 hist(peri_leu_means$baseline.mean)
@@ -7633,7 +7775,7 @@ peri_leu_means %>%
         panel.border = element_blank(), 
         axis.line = element_line() 
   )
-ggsave("Output/FigS7/FigS7B.png", width = 3, height = 3)
+ggsave("Output/FigS7/FigS7B.tiff", width = 3, height = 3)
 
 ## Fig S7C ## ----
 hist(peri_leu_means$AUC.leu5)
@@ -7667,7 +7809,7 @@ peri_leu_means %>%
         panel.border = element_blank(), 
         axis.line = element_line() 
   )
-ggsave("Output/FigS7/FigS7C.png", width = 3, height = 3)
+ggsave("Output/FigS7/FigS7C.tiff", width = 3, height = 3)
 
 ## Fig S7D ## ----
 hist(peri_leu_means$AUC.leu5glc6)
@@ -7701,7 +7843,7 @@ peri_leu_means %>%
         panel.border = element_blank(), 
         axis.line = element_line() 
   )
-ggsave("Output/FigS7/FigS7D.png", width = 3, height = 3)
+ggsave("Output/FigS7/FigS7D.tiff", width = 3, height = 3)
 
 ## Fig S7E ## ----
 hist(peri_leu_means$AUC.KCl)
@@ -7735,7 +7877,7 @@ peri_leu_means %>%
         panel.border = element_blank(), 
         axis.line = element_line() 
   )
-ggsave("Output/FigS7/FigS7E.png", width = 3, height = 3)
+ggsave("Output/FigS7/FigS7E.tiff", width = 3, height = 3)
 
 ## Fig S8A ## ----
 stimulus_data2 <- data.frame(
@@ -7787,7 +7929,7 @@ peri_leu_long %>%
         plot.title = element_text(size = 14, hjust = 0.5),
         legend.title = element_text(size = 14),
         legend.text = element_text(size = 12))
-ggsave("Output/FigS8/FigS8A.png", width = 8, height = 4)
+ggsave("Output/FigS8/FigS8A.tiff", width = 8, height = 4)
 
 ## Fig S8B ## ----
 peri_leu_means %>%
@@ -7807,13 +7949,16 @@ peri_leu_means %>%
   ggplot(aes(x=donorsex, y=log(baseline.mean), fill = diagnosis)) +
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
   geom_quasirandom(size = 1, aes(group = diagnosis, colour = diagnosis), dodge.width=0.9) +
-  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 6, label = "*", label.size = 7, size = 0.5, tip.length = c(0.17, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.05))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 6, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.15))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 6.3, label = "*", label.size = 7, size = 0.5, tip.length = c(0.17, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 7.2, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey40", "#e04e34"))  +
   scale_fill_manual(values = c("grey40", "#e04e34"))  +
   ylab("log(baseline insulin secretion\n(\U03BCU/mL/65 islets))") +
   xlab("")+
   labs(colour = "Condition", fill = "Condition")+
-  scale_y_continuous(limits = c(0,6.5)) +
+  scale_y_continuous(limits = c(0,7.2)) +
   theme_bw() +
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
@@ -7825,7 +7970,7 @@ peri_leu_means %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS8/FigS8B.png", width = 5, height = 4)
+ggsave("Output/FigS8/FigS8B.tiff", width = 5, height = 4)
 
 ## Fig S8C ## ----
 peri_leu_means %>%
@@ -7845,13 +7990,16 @@ peri_leu_means %>%
   ggplot(aes(x=donorsex, y=log(AUC.leu5), fill = diagnosis)) +
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
   geom_quasirandom(size = 1, aes(group = diagnosis, colour = diagnosis), dodge.width=0.9) +
-  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 10.5, label = "*", label.size = 7, size = 0.5, tip.length = c(0.15, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 9.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.05))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 10.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.15))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 10.8, label = "*", label.size = 7, size = 0.5, tip.length = c(0.15, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 11.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey40", "#e04e34"))  +
   scale_fill_manual(values = c("grey40", "#e04e34"))  +
   ylab("log(AUC secretion 5 mM leucine)") +
   xlab("")+
   labs(colour = "Condition", fill = "Condition")+
-  scale_y_continuous(limits = c(5,11)) +
+  scale_y_continuous(limits = c(5,11.5)) +
   theme_bw() +
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
@@ -7863,7 +8011,7 @@ peri_leu_means %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS8/FigS8C.png", width = 5, height = 4)
+ggsave("Output/FigS8/FigS8C.tiff", width = 5, height = 4)
 
 ## Fig S8D ## ----
 peri_leu_means %>%
@@ -7883,13 +8031,16 @@ peri_leu_means %>%
   ggplot(aes(x=donorsex, y=log(AUC.leu5glc6), fill = diagnosis)) +
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
   geom_quasirandom(size = 1, aes(group = diagnosis, colour = diagnosis), dodge.width=0.9) +
-  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 10.5, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.17))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 9.8, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.075))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 10.5, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.15))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 10.8, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 11.2, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey40", "#e04e34"))  +
   scale_fill_manual(values = c("grey40", "#e04e34"))  +
   ylab("log(AUC secretion 5 mM leucine\n+ 6 mM glucose)") +
   xlab("")+
   labs(colour = "Condition", fill = "Condition")+
-  scale_y_continuous(limits = c(5,11)) +
+  scale_y_continuous(limits = c(5,11.2)) +
   theme_bw() +
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
@@ -7901,7 +8052,7 @@ peri_leu_means %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS8/FigS8D.png", width = 5, height = 4)
+ggsave("Output/FigS8/FigS8D.tiff", width = 5, height = 4)
 
 ## Fig S8E ## ----
 peri_leu_means %>%
@@ -7921,7 +8072,10 @@ peri_leu_means %>%
   ggplot(aes(x=donorsex, y=log(AUC.KCl), fill = diagnosis)) +
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
   geom_quasirandom(size = 1, aes(group = diagnosis, colour = diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 9.8, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.12))+
   geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 9.9, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.07))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 10.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 11, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey40", "#e04e34"))  +
   scale_fill_manual(values = c("grey40", "#e04e34"))  +
   ylab("log(AUC secretion 30 mM KCl) ") +
@@ -7939,7 +8093,7 @@ peri_leu_means %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS8/FigS8E.png", width = 5, height = 4)
+ggsave("Output/FigS8/FigS8E.tiff", width = 5, height = 4)
 
 #Humanislets.com oleate/palmitate perifusion
 #metadata
@@ -8063,7 +8217,7 @@ peri_olp_long %>%
         plot.title = element_text(size = 14, hjust = 0.5),
         legend.title = element_text(size = 14),
         legend.text = element_text(size = 12))
-ggsave("Output/FigS7/FigS7F.png", width = 5.5, height = 4)
+ggsave("Output/FigS7/FigS7F.tiff", width = 5.5, height = 4)
 
 ## Fig S7G ## ----
 hist(peri_olp_means$baseline.mean)
@@ -8097,7 +8251,7 @@ peri_olp_means %>%
         panel.border = element_blank(), 
         axis.line = element_line() 
   )
-ggsave("Output/FigS7/FigS7G.png", width = 3, height = 3)
+ggsave("Output/FigS7/FigS7G.tiff", width = 3, height = 3)
 
 ## Fig S7H ## ----
 hist(peri_olp_means$AUC.olp1.5)
@@ -8113,7 +8267,7 @@ peri_olp_means %>%
   ggplot(aes(x=donorsex, y=log(AUC.olp1.5), fill = donorsex)) +
   geom_boxplot(alpha = 0.5)+
   geom_quasirandom(size = 2, aes(colour = donorsex)) +
-  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 10, label = "*", label.size = 7, size = 0.5, tip.length = c(0.4, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 10, label = "*", label.size = 7, size = 0.5, tip.length = c(0.45, 0.02))+
   scale_fill_manual(values = c("#113ed1", "#5e4114")) +
   scale_colour_manual(values = c("#113ed1", "#5e4114")) +
   ylab("log(AUC secretion 0.75 mM\noleate + 0.75 mM palmitate)") +
@@ -8131,7 +8285,7 @@ peri_olp_means %>%
         panel.border = element_blank(), 
         axis.line = element_line() 
   )
-ggsave("Output/FigS7/FigS7H.png", width = 3, height = 3)
+ggsave("Output/FigS7/FigS7H.tiff", width = 3, height = 3)
 
 ## Fig S7I ## ----
 hist(peri_olp_means$AUC.olp1.5glc6)
@@ -8165,7 +8319,7 @@ peri_olp_means %>%
         panel.border = element_blank(), 
         axis.line = element_line() 
   )
-ggsave("Output/FigS7/FigS7I.png", width = 3, height = 3)
+ggsave("Output/FigS7/FigS7I.tiff", width = 3, height = 3)
 
 ## Fig S7J ## ----
 hist(peri_olp_means$AUC.KCl)
@@ -8199,7 +8353,7 @@ peri_olp_means %>%
         panel.border = element_blank(), 
         axis.line = element_line() 
   )
-ggsave("Output/FigS7/FigS7J.png", width = 3, height = 3)
+ggsave("Output/FigS7/FigS7J.tiff", width = 3, height = 3)
 
 ## Fig S8F ## ----
 stimulus_data2 <- data.frame(
@@ -8251,7 +8405,7 @@ peri_olp_long %>%
         plot.title = element_text(size = 14, hjust = 0.5),
         legend.title = element_text(size = 14),
         legend.text = element_text(size = 12))
-ggsave("Output/FigS8/FigS8F.png", width = 8, height = 4)
+ggsave("Output/FigS8/FigS8F.tiff", width = 8, height = 4)
 
 ## Fig S8G ## ----
 peri_olp_means %>%
@@ -8271,13 +8425,16 @@ peri_olp_means %>%
   ggplot(aes(x=donorsex, y=log(baseline.mean), fill = diagnosis)) +
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
   geom_quasirandom(size = 1, aes(group = diagnosis, colour = diagnosis), dodge.width=0.9) +
-  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 6.2, label = "*", label.size = 7, size = 0.5, tip.length = c(0.18, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 5.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.25))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 6.2, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.15))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 6.4, label = "*", label.size = 7, size = 0.5, tip.length = c(0.12, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 7.2, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey40", "#e04e34"))  +
   scale_fill_manual(values = c("grey40", "#e04e34"))  +
   ylab("log(baseline insulin secretion\n(\U03BCU/mL/65 islets))") +
   xlab("")+
   labs(colour = "Condition", fill = "Condition")+
-  scale_y_continuous(limits = c(0,6.5)) +
+  scale_y_continuous(limits = c(0,7.2)) +
   theme_bw() +
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
@@ -8289,7 +8446,7 @@ peri_olp_means %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS8/FigS8G.png", width = 5, height = 4)
+ggsave("Output/FigS8/FigS8G.tiff", width = 5, height = 4)
 
 ## Fig S8H ## ----
 peri_olp_means %>%
@@ -8309,7 +8466,10 @@ peri_olp_means %>%
   ggplot(aes(x=donorsex, y=log(AUC.olp1.5), fill = diagnosis)) +
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
   geom_quasirandom(size = 1, aes(group = diagnosis, colour = diagnosis), dodge.width=0.9) +
-  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 10, label = "*", label.size = 7, size = 0.5, tip.length = c(0.2, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 9.1, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.1))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 10.1, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.3))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 10.3, label = "*", label.size = 7, size = 0.5, tip.length = c(0.2, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 11, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey40", "#e04e34"))  +
   scale_fill_manual(values = c("grey40", "#e04e34"))  +
   ylab("log(AUC secretion 0.75 mM\noleate + 0.75 mM palmitate)") +
@@ -8327,7 +8487,7 @@ peri_olp_means %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS8/FigS8H.png", width = 5, height = 4)
+ggsave("Output/FigS8/FigS8H.tiff", width = 5, height = 4)
 
 ## Fig S8I ## ----
 peri_olp_means %>%
@@ -8350,6 +8510,7 @@ peri_olp_means %>%
   geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 10, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.15))+
   geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 10.7, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.4))+
   geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 11, label = "*", label.size = 7, size = 0.5, tip.length = c(0.15, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 12, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey40", "#e04e34"))  +
   scale_fill_manual(values = c("grey40", "#e04e34"))  +
   ylab("log(AUC secretion 0.75 mM\noleate + 0.75 mM palmitate\n+ 6 mM glucose)") +
@@ -8367,7 +8528,7 @@ peri_olp_means %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS8/FigS8I.png", width = 5, height = 4)
+ggsave("Output/FigS8/FigS8I.tiff", width = 5, height = 4)
 
 ## Fig S8J ## ----
 peri_olp_means %>%
@@ -8387,6 +8548,10 @@ peri_olp_means %>%
   ggplot(aes(x=donorsex, y=log(AUC.KCl), fill = diagnosis)) +
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
   geom_quasirandom(size = 1, aes(group = diagnosis, colour = diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 10, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.25))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 10.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.25))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 10.8, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 11.2, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey40", "#e04e34"))  +
   scale_fill_manual(values = c("grey40", "#e04e34"))  +
   ylab("log(AUC secretion 30 mM KCl) ") +
@@ -8403,7 +8568,7 @@ peri_olp_means %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS8/FigS8J.png", width = 5, height = 4)
+ggsave("Output/FigS8/FigS8J.tiff", width = 5, height = 4)
 
 ### Figure S1 ### ---
 #clear environment
@@ -8518,7 +8683,7 @@ age %>%
   facet_grid(sex~simplified_diagnosis)+
   theme_bw()+
   theme(panel.grid = element_blank())
-ggsave("Output/FigS1/FigS1A.png", width = 6, height = 4)
+ggsave("Output/FigS1/FigS1A.tiff", width = 6, height = 4)
 
 ## FIg S1B ## ----
 bmi <- metadata_bothdatasets %>%
@@ -8537,7 +8702,7 @@ bmi %>%
   facet_grid(sex~simplified_diagnosis)+
   theme_bw()+
   theme(panel.grid = element_blank())
-ggsave("Output/FigS1/FigS1B.png", width = 6, height = 4)
+ggsave("Output/FigS1/FigS1B.tiff", width = 6, height = 4)
 
 ## Fig S1C ## ----
 hba1c <- metadata_bothdatasets %>%
@@ -8555,7 +8720,7 @@ hba1c %>%
   facet_grid(sex~simplified_diagnosis)+
   theme_bw()+
   theme(panel.grid = element_blank())
-ggsave("Output/FigS1/FigSC.png", width = 6, height = 4)
+ggsave("Output/FigS1/FigSC.tiff", width = 6, height = 4)
 
 ## Fig S1D ## ----
 culturetime <- metadata_bothdatasets %>%
@@ -8574,7 +8739,7 @@ culturetime %>%
   facet_grid(sex~simplified_diagnosis)+
   theme_bw()+
   theme(panel.grid = element_blank())
-ggsave("Output/FigS1/FigSD.png", width = 6, height = 4)
+ggsave("Output/FigS1/FigSD.tiff", width = 6, height = 4)
 
 ### Table S1 ### ----
 #clear environment
