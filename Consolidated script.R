@@ -24,7 +24,7 @@ library(zoo)
 #set working directory to location of this R script
 setwd(dirname(this.path::this.path()))
 
-### Figure 1 and S2 ### ----
+### Figure 1 ### ----
 ## Fig 1A ## ----
 
 #clear environment
@@ -131,7 +131,7 @@ donor_info %>%
   )
 ggsave("Output/Fig1/Fig1A beta.tiff", width = 3, height = 3)
 
-## Fig S2A ## ----
+## Fig 1C ## ----
 donor_info %>%
   filter(simplified_diagnosis != "T1D") %>%
   filter(!donor_ID %in% no_cells$donor_ID) %>%
@@ -174,7 +174,7 @@ donor_info %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS2/FigS2A alpha.tiff", width = 5, height = 4)
+ggsave("Output/Fig1/Fig1C alpha.tiff", width = 5, height = 4)
 
 donor_info %>%
   filter(simplified_diagnosis != "T1D") %>%
@@ -218,7 +218,7 @@ donor_info %>%
         panel.border = element_blank(),
         axis.line = element_line()
   )
-ggsave("Output/FigS2/FigS2A beta.tiff", width = 5, height = 4)
+ggsave("Output/Fig1/Fig1C beta.tiff", width = 5, height = 4)
 
 ## Fig 1B ## ----
 #clear environment
@@ -301,7 +301,7 @@ celltypeprop %>%
   )
 ggsave("Output/Fig1/Fig1B beta.tiff", width = 3, height = 3)
 
-## Fig S2B ## ----
+## Fig 1D ## ----
 celltypeprop %>%  
   filter(diagnosis != "T1D") %>%
   anova_test(alpha_end ~ donorage + donorsex*diagnosis) #sig for disease and interaction
@@ -342,7 +342,7 @@ celltypeprop %>%
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line())
-ggsave("Output/FigS2/FigS2B alpha.tiff", width = 5, height = 4)
+ggsave("Output/Fig1/Fig1D alpha.tiff", width = 5, height = 4)
 
 celltypeprop %>%  
   filter(diagnosis != "T1D") %>%
@@ -384,7 +384,7 @@ celltypeprop %>%
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line())
-ggsave("Output/FigS2/FigS2B beta.tiff", width = 5, height = 4)
+ggsave("Output/Fig1/Fig1D beta.tiff", width = 5, height = 4)
 
 
 
@@ -446,7 +446,8 @@ betares <- results(betadds)
 resultsNames(betadds)
 betaresLFCdisease <- lfcShrink(betadds, coef="sex_Female_vs_Male", type="apeglm")
 betaresLFCdiseaseOrdered <- betaresLFCdisease[order(betaresLFCdisease$pvalue),] #reorder by p value
-betaresLFCdiseaseOrdered
+dim(betaresLFCdiseaseOrdered %>% filter(padj < 0.05, log2FoldChange > 0)) #1 female-biased, GHRL
+dim(betaresLFCdiseaseOrdered %>% filter(padj < 0.05, log2FoldChange < 0)) #10 male-biased
 
 #write csv file
 write.csv(betaresLFCdiseaseOrdered, "Output/Fig2/HPAP beta scRNAseq DEseq2 ctrls 15-39.csv")
@@ -578,7 +579,8 @@ alphares <- results(alphadds)
 resultsNames(alphadds)
 alpharesLFCdisease <- lfcShrink(alphadds, coef="sex_Female_vs_Male", type="apeglm")
 alpharesLFCdiseaseOrdered <- alpharesLFCdisease[order(alpharesLFCdisease$pvalue),] #reorder by p value
-alpharesLFCdiseaseOrdered
+dim(alpharesLFCdiseaseOrdered %>% filter(padj < 0.05, log2FoldChange > 0)) #5 female-biased
+dim(alpharesLFCdiseaseOrdered %>% filter(padj < 0.05, log2FoldChange < 0)) #17 male-biased
 
 #write csv file
 write.csv(alpharesLFCdiseaseOrdered, "Output/Fig2/HPAP alpha scRNAseq DEseq2 ctrls 15-39.csv")
@@ -686,6 +688,8 @@ for (i in 1:ngenes){
   proc_rnaseq_ancovas_15to39$common.name[i] <- common.names[entrez]
 }
 head(proc_rnaseq_ancovas_15to39)
+dim(proc_rnaseq_ancovas_15to39 %>% filter(padj < 0.05, logFC < 0)) #0 female-biased
+dim(proc_rnaseq_ancovas_15to39 %>% filter(padj < 0.05, logFC > 0)) #0 male-biased
 
 write.csv(proc_rnaseq_ancovas_15to39, "Output/Fig2/Humanisletscom bulk RNAseq DEseq2 ctrls 15-39.csv")
 
@@ -988,6 +992,8 @@ colnames(res.table)[4] <- "T_statistic"
 colnames(res.table)[5] <- "P_value"
 colnames(res.table)[6] <- "Adjusted p_value"
 colnames(res.table)[7] <- "GeneID"
+dim(res.table %>% filter(Adjusted.p_value < 0.05, logFC > 0)) #0 female-biased
+dim(res.table %>% filter(Adjusted.p_value < 0.05, logFC < 0)) #0 male-biased
 
 write.csv(res.table, "Output/Fig2/prot_dea_results_correctforage_controls_15to39.csv", row.names = FALSE)
 
@@ -1204,6 +1210,8 @@ betaresLFCdiseaseOrdered_F <- betaresLFCdisease_F[order(betaresLFCdisease_F$pval
 
 betaresLFCdiseaseOrdered_F <- data.frame(betaresLFCdiseaseOrdered_F)
 betaresLFCdiseaseOrdered_F$Gene <- rownames(betaresLFCdiseaseOrdered_F)
+dim(betaresLFCdiseaseOrdered_F %>% filter(padj < 0.05, log2FoldChange > 0)) #7 increased with T2D
+dim(betaresLFCdiseaseOrdered_F %>% filter(padj < 0.05, log2FoldChange < 0)) #6 increased with T2D
 
 #write csv file
 write.csv(betaresLFCdiseaseOrdered_F, "Output/Fig3/Female ctrl vs T2D beta scRNAseq.csv")
@@ -1335,6 +1343,8 @@ betaresLFCdiseaseOrdered_M <- betaresLFCdisease_M[order(betaresLFCdisease_M$pval
 
 betaresLFCdiseaseOrdered_M <- data.frame(betaresLFCdiseaseOrdered_M)
 betaresLFCdiseaseOrdered_M$Gene <- rownames(betaresLFCdiseaseOrdered_M)
+dim(betaresLFCdiseaseOrdered_M %>% filter(padj < 0.05, log2FoldChange > 0)) #8 increased with T2D
+dim(betaresLFCdiseaseOrdered_M %>% filter(padj < 0.05, log2FoldChange < 0)) #26 increased with T2D
 
 #write csv file
 write.csv(betaresLFCdiseaseOrdered_M, "Output/Fig3/Male ctrl vs T2D beta scRNAseq.csv")
@@ -1389,6 +1399,8 @@ alpharesLFCdiseaseOrdered_F <- alpharesLFCdisease_F[order(alpharesLFCdisease_F$p
 
 alpharesLFCdiseaseOrdered_F <- data.frame(alpharesLFCdiseaseOrdered_F)
 alpharesLFCdiseaseOrdered_F$Gene <- rownames(alpharesLFCdiseaseOrdered_F)
+dim(alpharesLFCdiseaseOrdered_F %>% filter(padj < 0.05, log2FoldChange > 0)) #0 increased with T2D
+dim(alpharesLFCdiseaseOrdered_F %>% filter(padj < 0.05, log2FoldChange < 0)) #1 increased with T2D
 
 #write csv file
 write.csv(alpharesLFCdiseaseOrdered_F, "Output/Fig3/Female ctrl vs T2D alpha scRNAseq.csv")
@@ -1443,6 +1455,8 @@ alpharesLFCdiseaseOrdered_M <- alpharesLFCdisease_M[order(alpharesLFCdisease_M$p
 
 alpharesLFCdiseaseOrdered_M <- data.frame(alpharesLFCdiseaseOrdered_M)
 alpharesLFCdiseaseOrdered_M$Gene <- rownames(alpharesLFCdiseaseOrdered_M)
+dim(alpharesLFCdiseaseOrdered_M %>% filter(padj < 0.05, log2FoldChange > 0)) #0 increased with T2D
+dim(alpharesLFCdiseaseOrdered_M %>% filter(padj < 0.05, log2FoldChange < 0)) #0 increased with T2D
 
 #write csv file
 write.csv(alpharesLFCdiseaseOrdered_M, "Output/Fig3/Male ctrl vs T2D alpha scRNAseq.csv")
@@ -1549,7 +1563,10 @@ for (i in 1:length(proc_rnaseq_ancovas_FctrlvsT2D$gene_id)){
   proc_rnaseq_ancovas_FctrlvsT2D$common.name[i] <- common.names[entrez]
 }
 
-write.csv(proc_rnaseq_ancovas_FctrlvsT2D, "Humanisletscom bulkRNAseq F Ctrl vs F T2D.csv")
+dim(proc_rnaseq_ancovas_FctrlvsT2D %>% filter(padj < 0.05, logFC < 0)) #0 increased with T2D
+dim(proc_rnaseq_ancovas_FctrlvsT2D %>% filter(padj < 0.05, logFC > 0)) #0 increased with T2D
+
+write.csv(proc_rnaseq_ancovas_FctrlvsT2D, "Output/Fig3/Humanisletscom bulkRNAseq F Ctrl vs F T2D.csv")
 
 #GSEA
 proc_rnaseq_ancovas_FctrlvsT2D$entrez1 <- mapIds(org.Hs.eg.db, keys=c(proc_rnaseq_ancovas_FctrlvsT2D$common.name), column="ENTREZID", keytype="SYMBOL", multiVals="first") %>% 
@@ -1640,7 +1657,10 @@ for (i in 1:length(proc_rnaseq_ancovas_MctrlvsT2D$gene_id)){
   proc_rnaseq_ancovas_MctrlvsT2D$common.name[i] <- common.names[entrez]
 }
 
-write.csv(proc_rnaseq_ancovas_MctrlvsT2D, "Humanisletscom bulkRNAseq M Ctrl vs F T2D.csv")
+dim(proc_rnaseq_ancovas_MctrlvsT2D %>% filter(padj < 0.05, logFC < 0)) #375 increased with T2D
+dim(proc_rnaseq_ancovas_MctrlvsT2D %>% filter(padj < 0.05, logFC > 0)) #209 increased with T2D
+
+write.csv(proc_rnaseq_ancovas_MctrlvsT2D, "Output/Fig3/Humanisletscom bulkRNAseq M Ctrl vs M T2D.csv")
 
 #GSEA
 proc_rnaseq_ancovas_MctrlvsT2D$entrez1 <- mapIds(org.Hs.eg.db, keys=c(proc_rnaseq_ancovas_MctrlvsT2D$common.name), column="ENTREZID", keytype="SYMBOL", multiVals="first") %>% 
@@ -1665,18 +1685,24 @@ HIGO_F_MF <- read_excel("Output/Fig3/GSEA_p_bulkRNAseq_FCtrlvsT2D.xlsx",sheet="G
 HIGO_F <- bind_rows(HIGO_F_CC, HIGO_F_BP, HIGO_F_MF)
 HIGO_F$NES <- -HIGO_F$NES #make it so that negative means down with T2D
 HIGO_F <- HIGO_F %>% filter(p.adjust < 0.05) #significant only
+dim(HIGO_F %>% filter(NES > 0)) #54 significant pathways up with T2D
+dim(HIGO_F %>% filter(NES < 0)) #84 significant pathways down with T2D
 
 HPAPbetascGO_F_CC <- read_excel("Output/Fig3/GSEA_p_beta_scRNAseq_F_ctrlvsT2D.xlsx",sheet="GO_CC")
 HPAPbetascGO_F_BP <- read_excel("Output/Fig3/GSEA_p_beta_scRNAseq_F_ctrlvsT2D.xlsx",sheet="GO_BP")
 HPAPbetascGO_F_MF <- read_excel("Output/Fig3/GSEA_p_beta_scRNAseq_F_ctrlvsT2D.xlsx",sheet="GO_MF")
 HPAPbetascGO_F <- bind_rows(HPAPbetascGO_F_CC, HPAPbetascGO_F_BP, HPAPbetascGO_F_MF)
 HPAPbetascGO_F <- HPAPbetascGO_F %>% filter(p.adjust < 0.05) #significant only
+dim(HPAPbetascGO_F %>% filter(NES > 0)) #251 significant pathways up with T2D
+dim(HPAPbetascGO_F %>% filter(NES < 0)) #196 significant pathways down with T2D
 
 HPAPalphascGO_F_CC <- read_excel("Output/Fig3/GSEA_p_alpha_scRNAseq_F_ctrlvsT2D.xlsx",sheet="GO_CC")
 HPAPalphascGO_F_BP <- read_excel("Output/Fig3/GSEA_p_alpha_scRNAseq_F_ctrlvsT2D.xlsx",sheet="GO_BP")
 HPAPalphascGO_F_MF <- read_excel("Output/Fig3/GSEA_p_alpha_scRNAseq_F_ctrlvsT2D.xlsx",sheet="GO_MF")
 HPAPalphascGO_F <- bind_rows(HPAPalphascGO_F_CC, HPAPalphascGO_F_BP, HPAPalphascGO_F_MF)
 HPAPalphascGO_F <- HPAPalphascGO_F %>% filter(p.adjust < 0.05) #significant only
+dim(HPAPalphascGO_F %>% filter(NES > 0)) #90 significant pathways up with T2D
+dim(HPAPalphascGO_F %>% filter(NES < 0)) #255 significant pathways down with T2D
 
 #Check that column names are consistent
 all(colnames(HIGO_F) == colnames(HPAPbetascGO_F)) #TRUE
@@ -1783,18 +1809,24 @@ HIGO_M_MF <- read_excel("Output/Fig3/GSEA_p_bulkRNAseq_MCtrlvsT2D.xlsx",sheet="G
 HIGO_M <- bind_rows(HIGO_M_CC, HIGO_M_BP, HIGO_M_MF)
 HIGO_M$NES <- -HIGO_M$NES #make it so that negative means down with T2D
 HIGO_M <- HIGO_M %>% filter(p.adjust < 0.05) #significant only
+dim(HIGO_M %>% filter(NES > 0)) #557 significant pathways up with T2D
+dim(HIGO_M %>% filter(NES < 0)) #178 significant pathways down with T2D
 
 HPAPbetascGO_M_CC <- read_excel("Output/Fig3/GSEA_p_beta_scRNAseq_M_ctrlvsT2D.xlsx",sheet="GO_CC")
 HPAPbetascGO_M_BP <- read_excel("Output/Fig3/GSEA_p_beta_scRNAseq_M_ctrlvsT2D.xlsx",sheet="GO_BP")
 HPAPbetascGO_M_MF <- read_excel("Output/Fig3/GSEA_p_beta_scRNAseq_M_ctrlvsT2D.xlsx",sheet="GO_MF")
 HPAPbetascGO_M <- bind_rows(HPAPbetascGO_M_CC, HPAPbetascGO_M_BP, HPAPbetascGO_M_MF)
 HPAPbetascGO_M <- HPAPbetascGO_M %>% filter(p.adjust < 0.05) #significant only
+dim(HPAPbetascGO_M %>% filter(NES > 0)) #176 significant pathways up with T2D
+dim(HPAPbetascGO_M %>% filter(NES < 0)) #379 significant pathways down with T2D
 
 HPAPalphascGO_M_CC <- read_excel("Output/Fig3/GSEA_p_alpha_scRNAseq_M_ctrlvsT2D.xlsx",sheet="GO_CC")
 HPAPalphascGO_M_BP <- read_excel("Output/Fig3/GSEA_p_alpha_scRNAseq_M_ctrlvsT2D.xlsx",sheet="GO_BP")
 HPAPalphascGO_M_MF <- read_excel("Output/Fig3/GSEA_p_alpha_scRNAseq_M_ctrlvsT2D.xlsx",sheet="GO_MF")
 HPAPalphascGO_M <- bind_rows(HPAPalphascGO_M_CC, HPAPalphascGO_M_BP, HPAPalphascGO_M_MF)
 HPAPalphascGO_M <- HPAPalphascGO_M %>% filter(p.adjust < 0.05) #significant only
+dim(HPAPalphascGO_M %>% filter(NES > 0)) #23 significant pathways up with T2D
+dim(HPAPalphascGO_M %>% filter(NES < 0)) #52 significant pathways down with T2D
 
 #Check that column names are consistent
 all(colnames(HIGO_M) == colnames(HPAPbetascGO_M)) #TRUE
@@ -2139,6 +2171,124 @@ gsea_human(df = res.table_M,
            name = "proteomics_M_controlvsT2D")
 
 #Make graphs
+#UpSet plot
+de_results_F_proteomics <- read.csv("Output/Fig4/prot_dea_results_correctforage_F.csv")
+de_results_M_proteomics <- read.csv("Output/Fig4/prot_dea_results_correctforage_M.csv")
+
+colnames(de_results_F_proteomics) <- c("entrez","logFC_F","AveExpr_F","t_F","P.Value_F","adj.P.Val_F","Gene")
+colnames(de_results_M_proteomics) <- c("entrez","logFC_M","AveExpr_M","t_M","P.Value_M","adj.P.Val_M","Gene")
+
+de_results_proteomics_all <- full_join(de_results_F_proteomics, de_results_M_proteomics, by = c("entrez","Gene"))
+
+
+#label directions for each direction
+de_results_proteomics_all$F_CtrlvsT2D.direction <- ifelse(!de_results_proteomics_all$adj.P.Val_F<0.05, 
+                                                          "NS",
+                                                          ifelse(de_results_proteomics_all$logFC_F>0,
+                                                                 "Up", "Down"))
+de_results_proteomics_all$M_CtrlvsT2D.direction <- ifelse(!de_results_proteomics_all$adj.P.Val_M<0.05, 
+                                                          "NS",
+                                                          ifelse(de_results_proteomics_all$logFC_M>0,
+                                                                 "Up", "Down"))
+
+# Label the overall direction of change of both comparisons. If all non NS directions are Up or Down, write "Up" or "Down", otherwise write "Different direction"
+de_results_proteomics_all$Intersect_direction <- ifelse(rowSums(de_results_proteomics_all[, c(13:14)] =="Down", na.rm = TRUE) == rowSums(!de_results_proteomics_all[, c(13:14)] == "NS"), 
+                                                        "Down", 
+                                                        ifelse(rowSums(de_results_proteomics_all[, c(13:14)] =="Up", na.rm = TRUE) == rowSums(!de_results_proteomics_all[, c(13:14)] == "NS"), "Up", "Different direction"))
+
+
+# Make the overall direction factors. And their levels should be in the order of Up, Down, Different direction.
+de_results_proteomics_all$Intersect_direction <- factor(de_results_proteomics_all$Intersect_direction, 
+                                                        levels = c("Up","Down","Different direction"))
+
+#label comparisons as significant or not
+de_results_proteomics_all$F_CtrlvsT2D <- de_results_proteomics_all$adj.P.Val_F < 0.05
+de_results_proteomics_all$M_CtrlvsT2D <- de_results_proteomics_all$adj.P.Val_M < 0.05
+
+# Plot UpSet
+data.sets.proteomics <- colnames(de_results_proteomics_all)[16:17]
+
+theme_intersection <- theme(
+  axis.title.y = element_text(margin = margin(r = -10), colour = "black"),
+  axis.text.y = element_text(colour = "black"),
+  axis.text.x = element_blank(),
+  axis.title.x = element_blank(),
+  legend.title = element_blank(),
+  panel.grid.major = element_blank(),
+  panel.grid.minor = element_blank(),
+  axis.ticks = element_blank(),
+  legend.position = "none"
+)
+theme_direction <- theme(
+  axis.title.y = element_text(margin = margin(r = -10)),
+  axis.text.x = element_blank(),
+  axis.text.y = element_text(colour = "black"),
+  axis.title.x = element_blank(),
+  legend.title = element_blank(),
+  legend.position = "top",
+  panel.grid.major = element_blank(),
+  panel.grid.minor = element_blank(),
+  axis.ticks = element_blank()
+)
+theme_set_sizes <- theme(
+  axis.title.y = element_blank(),
+  axis.text.y = element_blank(),
+  axis.title.x = element_text(margin = margin(t = -15)),
+  axis.text.x = element_blank(),
+  panel.grid.major = element_blank(),
+  panel.grid.minor = element_blank(),
+  axis.ticks = element_blank()
+)
+
+
+upset(
+  de_results_proteomics_all,
+  data.sets.proteomics,
+  name = '',
+  width_ratio = 0.25,
+  height_ratio = 0.5,
+  min_size = 1,
+  min_degree = 1,
+  base_annotations = list(
+    'Intersection size' = (
+      intersection_size(aes(fill = Intersect_direction)) +
+        scale_fill_manual(values = c("tomato", "cornflowerblue", "grey"))+
+        theme_intersection
+    )
+  ),
+  annotations = list(
+    'Direction' = (
+      ggplot(mapping = aes(fill = Intersect_direction)) +
+        geom_bar(stat = 'count', position = 'fill') +
+        scale_y_continuous(labels = scales::percent_format()) +
+        scale_fill_manual(values = c("tomato", "cornflowerblue", "grey")) +
+        ylab('Direction') +
+        theme_direction
+    )
+  ),
+  set_sizes = (
+    upset_set_size() +
+      ylab('') +
+      geom_text(aes(label = ..count..), hjust = 1.1, stat = 'count') +
+      expand_limits(y = 2020) +
+      theme_set_sizes
+  ),
+  stripes = c("white"),
+  themes = list(intersections_matrix = theme(axis.title.y = element_blank()))
+) +
+  theme(
+    panel.grid = element_blank(),
+    text = element_text(size = 12),
+    axis.ticks.x = element_blank(),
+    axis.text.x = element_blank(),
+    axis.text.y = element_text(colour = "black")
+  ) +
+  patchwork::plot_layout(heights = c(0.5, 1, 0.5))
+
+ggsave("Output/Fig4/Fig4A.tiff", width = 2.75, height = 4)
+
+
+#Pathways
 GO_BP_F <- read_excel("Output/Fig4/GSEA_p_proteomics_F_controlvsT2D.xlsx", sheet = "GO_BP")
 GO_BP_M <- read_excel("Output/Fig4/GSEA_p_proteomics_M_controlvsT2D.xlsx", sheet = "GO_BP")
 GO_MF_F <- read_excel("Output/Fig4/GSEA_p_proteomics_F_controlvsT2D.xlsx", sheet = "GO_MF")
@@ -2148,6 +2298,12 @@ GO_CC_M <- read_excel("Output/Fig4/GSEA_p_proteomics_M_controlvsT2D.xlsx", sheet
 
 GO_combined_F <- bind_rows(GO_BP_F, GO_MF_F, GO_CC_F)
 GO_combined_M <- bind_rows(GO_BP_M, GO_MF_M, GO_CC_M)
+
+dim(GO_combined_F %>% filter(p.adjust < 0.05) %>% filter(NES > 0)) #544 significant pathways up with T2D
+dim(GO_combined_F %>% filter(p.adjust < 0.05) %>% filter(NES < 0)) #225 significant pathways down with T2D
+dim(GO_combined_M %>% filter(p.adjust < 0.05) %>% filter(NES > 0)) #269 significant pathways up with T2D
+dim(GO_combined_M %>% filter(p.adjust < 0.05) %>% filter(NES < 0)) #332 significant pathways down with T2D
+
 
 #Females
 GO_combined_F <- GO_combined_F %>%
@@ -2207,7 +2363,7 @@ GO_combined_F_top60 %>%
         plot.title = element_text(size = 12, hjust = 0.5),
         legend.title = element_text(size = 11),
         legend.text = element_text(size = 10))
-ggsave("Output/Fig4/Fig4A.tiff", width = 8, height = 11.5)
+ggsave("Output/Fig4/Fig4B.tiff", width = 8, height = 11.5)
 
 
 #males
@@ -2268,7 +2424,7 @@ GO_combined_M_top60 %>%
         plot.title = element_text(size = 12, hjust = 0.5),
         legend.title = element_text(size = 11),
         legend.text = element_text(size = 10))
-ggsave("Output/Fig4/Fig4B.tiff", width = 8, height = 11.5)
+ggsave("Output/Fig4/Fig4C.tiff", width = 8, height = 11.5)
 
 ### Figure 5 ### ----
 #clear environment
@@ -3427,7 +3583,7 @@ seahorse_norm_dna_baseline_summary %>%
 ggsave("Output/Fig6/Fig6H.tiff", width = 3, height = 3)
 
 
-## Figure S3-4 ## ----
+## Figure S2-3 ## ----
 
 #clear environment
 rm(list = ls())
@@ -4369,7 +4525,7 @@ AUC_summary <- KCldf %>% dplyr::select(Donor, AUC.KCl) %>% full_join(AUC_summary
 #Add metadata
 AUC_summary <- left_join(AUC_summary, donor_info, by = c("Donor"="donor_ID"))
 
-## Fig S4A ## ----
+## Fig S3A ## ----
 stimulus_data <- data.frame(
   xmin = c(0,9,16,23,27,39),
   xmax = c(9,16,23,27,39,45),
@@ -4413,9 +4569,9 @@ per_donor_mininterval %>%
         plot.title = element_text(size = 14, hjust = 0.5),
         legend.title = element_text(size = 14),
         legend.text = element_text(size = 12))
-ggsave("Output/FigS4/FigS4A.tiff", width = 7, height = 4)
+ggsave("Output/FigS3/FigS3A.tiff", width = 7, height = 4)
 
-## Fig S4B ## ----
+## Fig S3B ## ----
 AUC_summary %>%
   ungroup() %>%
   filter(simplified_diagnosis != "T1D") %>%
@@ -4452,9 +4608,9 @@ AUC_summary %>%
         panel.border = element_blank(), 
         axis.line = element_line() 
   )
-ggsave("Output/FigS4/FigS4B.tiff",width = 5, height = 4)
+ggsave("Output/FigS3/FigS3B.tiff",width = 5, height = 4)
 
-## Fig S4C ## ----
+## Fig S3C ## ----
 AUC_summary %>%
   ungroup() %>%
   filter(simplified_diagnosis != "T1D") %>%
@@ -4491,9 +4647,9 @@ AUC_summary %>%
         panel.border = element_blank(), 
         axis.line = element_line() 
   )
-ggsave("Output/FigS4/FigS4C.tiff",width = 5, height = 4)
+ggsave("Output/FigS3/FigS3C.tiff",width = 5, height = 4)
 
-## Fig S4D ## ----
+## Fig S3D ## ----
 AUC_summary %>%
   ungroup() %>%
   filter(simplified_diagnosis != "T1D") %>%
@@ -4531,9 +4687,9 @@ AUC_summary %>%
         panel.border = element_blank(), 
         axis.line = element_line() 
   )
-ggsave("Output/FigS4/FigS4D.tiff",width = 5, height = 4)
+ggsave("Output/FigS3/FigS3D.tiff",width = 5, height = 4)
 
-## Fig S4E ## ----
+## Fig S3E ## ----
 AUC_summary %>%
   ungroup() %>%
   filter(simplified_diagnosis != "T1D") %>%
@@ -4571,9 +4727,9 @@ AUC_summary %>%
         panel.border = element_blank(), 
         axis.line = element_line() 
   )
-ggsave("Output/FigS4/FigS4E.tiff",width = 5, height = 4)
+ggsave("Output/FigS3/FigS3E.tiff",width = 5, height = 4)
 
-## Fig S3A ## ----
+## Fig S2A ## ----
 stimulus_data2 <- data.frame(
   xmin = c(0,9,16,23,27,39),
   xmax = c(9,16,23,27,39,45),
@@ -4617,9 +4773,9 @@ per_donor_mininterval %>%
         plot.title = element_text(size = 14, hjust = 0.5),
         legend.title = element_text(size = 14),
         legend.text = element_text(size = 12))
-ggsave("Output/FigS3/FigS3A.tiff", width = 5.5, height = 4)
+ggsave("Output/FigS2/FigS2A.tiff", width = 5.5, height = 4)
 
-## Fig S3B ## ----
+## Fig S2B ## ----
 AUC_summary %>%
   ungroup() %>%
   filter(simplified_diagnosis %in% c("Control")) %>%
@@ -4648,9 +4804,9 @@ AUC_summary %>%
         panel.border = element_blank(), 
         axis.line = element_line()    
   )
-ggsave("Output/FigS3/FigS3B.tiff",width = 3, height = 3)
+ggsave("Output/FigS2/FigS2B.tiff",width = 3, height = 3)
 
-## Fig S3C ## ----
+## Fig S2C ## ----
 AUC_summary %>%
   ungroup() %>%
   filter(simplified_diagnosis %in% c("Control")) %>%
@@ -4679,9 +4835,9 @@ AUC_summary %>%
         panel.border = element_blank(), 
         axis.line = element_line()    
   )
-ggsave("Output/FigS3/FigS3C.tiff",width = 3, height = 3)
+ggsave("Output/FigS2/FigS2C.tiff",width = 3, height = 3)
 
-## Fig S3D ## ----
+## Fig S2D ## ----
 AUC_summary %>%
   ungroup() %>%
   filter(simplified_diagnosis %in% c("Control")) %>%
@@ -4710,9 +4866,9 @@ AUC_summary %>%
         panel.border = element_blank(), 
         axis.line = element_line()    
   )
-ggsave("Output/FigS3/FigS3D.tiff",width = 3, height = 3)
+ggsave("Output/FigS2/FigS2D.tiff",width = 3, height = 3)
 
-   ## Fig S3E ## ----
+## Fig S2E ## ----
 AUC_summary %>%
   ungroup() %>%
   filter(simplified_diagnosis %in% c("Control")) %>%
@@ -4741,9 +4897,9 @@ AUC_summary %>%
         panel.border = element_blank(), 
         axis.line = element_line()    
   )
-ggsave("Output/FigS3/FigS3E.tiff",width = 3, height = 3)
+ggsave("Output/FigS2/FigS2E.tiff",width = 3, height = 3)
 
-### Figure 7 and S5-6,9-10 ### ----
+### Figure 7 and S4,7-8 ### ----
 
 #UPenn perifusion data
 #clear environment
@@ -5306,7 +5462,7 @@ perifusion_summary %>%
   )
 ggsave("Output/Fig7/Fig7O.tiff", width = 4 , height = 4)
 
-## Fig S5A ## ----
+## Fig S4A ## ----
 stimulus_data2 <- data.frame(
   xmin = c(20,30,61,81,101,121,141),
   xmax = c(30,121,81,121,121,141,160),
@@ -5356,9 +5512,9 @@ perifusion_all_with_metadata %>%
         plot.title = element_text(size = 14, hjust = 0.5),
         legend.title = element_text(size = 14),
         legend.text = element_text(size = 12))
-ggsave("Output/FigS5/FigS5A.tiff", width = 5.5, height = 4)
+ggsave("Output/FigS4/FigS4A.tiff", width = 5.5, height = 4)
 
-## Fig S5B ## ----
+## Fig S4B ## ----
 perifusion_summary %>%
   filter(simplified_diagnosis == "Control") %>%
   filter(age_years > 14, age_years < 40) %>%
@@ -5387,9 +5543,9 @@ perifusion_summary %>%
         panel.border = element_blank(),
         axis.line = element_line()
   )
-ggsave("Output/FigS5/FigS5B.tiff", width = 3 , height = 3)
+ggsave("Output/FigS4/FigS4B.tiff", width = 3 , height = 3)
 
-## Fig S5C ## ----
+## Fig S4C ## ----
 perifusion_summary %>%
   filter(simplified_diagnosis == "Control") %>%
   filter(age_years > 14, age_years < 40) %>%
@@ -5418,9 +5574,9 @@ perifusion_summary %>%
         panel.border = element_blank(),
         axis.line = element_line()
   )
-ggsave("Output/FigS5/FigS5C.tiff", width = 3 , height = 3)
+ggsave("Output/FigS4/FigS4C.tiff", width = 3 , height = 3)
 
-## Fig S5D ## ----
+## Fig S4D ## ----
 perifusion_summary %>%
   filter(simplified_diagnosis == "Control") %>%
   filter(age_years > 14, age_years < 40) %>%
@@ -5449,9 +5605,9 @@ perifusion_summary %>%
         panel.border = element_blank(),
         axis.line = element_line()
   )
-ggsave("Output/FigS5/FigS5D.tiff", width = 3 , height = 3)
+ggsave("Output/FigS4/FigS4D.tiff", width = 3 , height = 3)
 
-## Fig S5E ## ----
+## Fig S4E ## ----
 perifusion_summary %>%
   filter(simplified_diagnosis == "Control") %>%
   filter(age_years > 14, age_years < 40) %>%
@@ -5480,9 +5636,9 @@ perifusion_summary %>%
         panel.border = element_blank(),
         axis.line = element_line()
   )
-ggsave("Output/FigS5/FigS5E.tiff", width = 3, height = 3)
+ggsave("Output/FigS4/FigS4E.tiff", width = 3, height = 3)
 
-## Fig S5F ## ----
+## Fig S4F ## ----
 perifusion_summary %>%
   filter(simplified_diagnosis == "Control") %>%
   filter(age_years > 14, age_years < 40) %>%
@@ -5511,9 +5667,9 @@ perifusion_summary %>%
         panel.border = element_blank(),
         axis.line = element_line()
   )
-ggsave("Output/FigS5/FigS5F.tiff", width = 3, height = 3)
+ggsave("Output/FigS4/FigS4F.tiff", width = 3, height = 3)
 
-## Fig S5G ## ----
+## Fig S4G ## ----
 perifusion_summary %>%
   filter(simplified_diagnosis == "Control") %>%
   filter(age_years > 14, age_years < 40) %>%
@@ -5542,9 +5698,9 @@ perifusion_summary %>%
         panel.border = element_blank(),
         axis.line = element_line()
   )
-ggsave("Output/FigS5/FigS5G.tiff", width = 3, height = 3)
+ggsave("Output/FigS4/FigS4G.tiff", width = 3, height = 3)
 
-## Fig S8A ## ----
+## Fig S7A ## ----
 stimulus_data3 <- data.frame(
   xmin = c(20,30,61,81,101,121,141),    
   xmax = c(30,121,81,121,121,141,160),
@@ -5592,9 +5748,9 @@ perifusion_all_with_metadata %>%
         plot.title = element_text(size = 14, hjust = 0.5),
         legend.title = element_text(size = 14),
         legend.text = element_text(size = 12))
-ggsave("Output/FigS8/FigS8A.tiff", width = 5.5, height = 4)
+ggsave("Output/FigS7/FigS7A.tiff", width = 5.5, height = 4)
 
-## Fig S8C ## ----
+## Fig S7C ## ----
 hist(perifusion_summary$mean.gcg.baseline)
 hist(log(perifusion_summary$mean.gcg.baseline))
 perifusion_summary %>%
@@ -5625,9 +5781,9 @@ perifusion_summary %>%
         panel.border = element_blank(),
         axis.line = element_line()
   )
-ggsave("Output/FigS8/FigS8C.tiff", width = 3 , height = 3)
+ggsave("Output/FigS7/FigS7C.tiff", width = 3 , height = 3)
 
-## Fig S8E ## ----
+## Fig S7E ## ----
 hist(perifusion_summary$AUC.gcg.AAM)
 hist(log(perifusion_summary$AUC.gcg.AAM))
 perifusion_summary %>%
@@ -5658,9 +5814,9 @@ perifusion_summary %>%
         panel.border = element_blank(),
         axis.line = element_line()
   )
-ggsave("Output/FigS8/FigS8E.tiff", width = 3 , height = 3)
+ggsave("Output/FigS7/FigS7E.tiff", width = 3 , height = 3)
 
-## Fig S8G ## ----
+## Fig S7G ## ----
 hist(perifusion_summary$AUC.gcg.IBMX)
 hist(log(perifusion_summary$AUC.gcg.IBMX))
 perifusion_summary %>%
@@ -5691,9 +5847,9 @@ perifusion_summary %>%
         panel.border = element_blank(),
         axis.line = element_line()
   )
-ggsave("Output/FigS8/FigS8G.tiff", width = 3 , height = 3)
+ggsave("Output/FigS7/FigS7G.tiff", width = 3 , height = 3)
 
-## Fig S8I ## ----
+## Fig S7I ## ----
 hist(perifusion_summary$AUC.gcg.KCl)
 hist(log(perifusion_summary$AUC.gcg.KCl))
 perifusion_summary %>%
@@ -5724,9 +5880,9 @@ perifusion_summary %>%
         panel.border = element_blank(),
         axis.line = element_line()
   )
-ggsave("Output/FigS8/FigS8I.tiff", width = 3 , height = 3)
+ggsave("Output/FigS7/FigS7I.tiff", width = 3 , height = 3)
 
-## Fig S8K ## ----
+## Fig S7K ## ----
 glucagon.content <- perifusion_all_with_metadata %>%
   dplyr:: select(Glucagon.Content..pg.islet., DonorID, sex, age_years, simplified_diagnosis) %>%
   distinct()
@@ -5760,9 +5916,9 @@ glucagon.content %>%
         panel.border = element_blank(),
         axis.line = element_line()
   )
-ggsave("Output/FigS8/FigS8K.tiff", width = 3 , height = 3)
+ggsave("Output/FigS7/FigS7K.tiff", width = 3 , height = 3)
 
-## Fig S9A ## ----
+## Fig S8A ## ----
 perifusion_all_with_metadata %>%
   filter(Time..min. < 160) %>%
   filter(simplified_diagnosis %in% c("Control","T2D")) %>%
@@ -5807,9 +5963,9 @@ perifusion_all_with_metadata %>%
         plot.title = element_text(size = 14, hjust = 0.5),
         legend.title = element_text(size = 14),
         legend.text = element_text(size = 12))
-ggsave("Output/FigS9/FigS9A.tiff", width = 8, height = 4)
+ggsave("Output/FigS8/FigS8A.tiff", width = 8, height = 4)
 
-## Fig S9C ## ----
+## Fig S8C ## ----
 perifusion_summary %>%
   filter(simplified_diagnosis != "T1D") %>%
   anova_test(log(mean.gcg.baseline) ~ age_years + sex*simplified_diagnosis) #sig for disease
@@ -5847,9 +6003,9 @@ perifusion_summary %>%
         panel.border = element_blank(),
         axis.line = element_line()   
   )
-ggsave("Output/FigS9/FigS9C.tiff", width = 4 , height = 4)
+ggsave("Output/FigS8/FigS8C.tiff", width = 4 , height = 4)
 
-## Fig S9E ## ----
+## Fig S8E ## ----
 perifusion_summary %>%
   filter(simplified_diagnosis != "T1D") %>%
   anova_test(log(AUC.gcg.AAM) ~ age_years + sex*simplified_diagnosis) #sig for disease
@@ -5887,9 +6043,9 @@ perifusion_summary %>%
         panel.border = element_blank(),
         axis.line = element_line()   
   )
-ggsave("Output/FigS9/FigS9E.tiff", width = 4 , height = 4)
+ggsave("Output/FigS8/FigS8E.tiff", width = 4 , height = 4)
 
-## Fig S9G ## ----
+## Fig S8G ## ----
 perifusion_summary %>%
   filter(simplified_diagnosis != "T1D") %>%
   anova_test(log(AUC.gcg.IBMX) ~ age_years + sex*simplified_diagnosis) #ns
@@ -5926,9 +6082,9 @@ perifusion_summary %>%
         panel.border = element_blank(),
         axis.line = element_line()   
   )
-ggsave("Output/FigS9/FigS9G.tiff", width = 4 , height = 4)
+ggsave("Output/FigS8/FigS8G.tiff", width = 4 , height = 4)
 
-## Fig S9I ## ----
+## Fig S8I ## ----
 perifusion_summary %>%
   filter(simplified_diagnosis != "T1D") %>%
   anova_test(log(AUC.gcg.KCl) ~ age_years + sex*simplified_diagnosis) #sig for disease
@@ -5966,9 +6122,9 @@ perifusion_summary %>%
         panel.border = element_blank(),
         axis.line = element_line()   
   )
-ggsave("Output/FigS9/FigS9I.tiff", width = 4 , height = 4)
+ggsave("Output/FigS8/FigS8I.tiff", width = 4 , height = 4)
 
-## Fig S9K ## ----
+## Fig S8K ## ----
 glucagon.content %>%
   filter(simplified_diagnosis != "T1D") %>%
   anova_test(log(Glucagon.Content..pg.islet.) ~ age_years + sex*simplified_diagnosis) #sig for disease
@@ -6006,7 +6162,7 @@ glucagon.content %>%
         panel.border = element_blank(),
         axis.line = element_line()   
   )
-ggsave("Output/FigS9/FigS9K.tiff", width = 5 , height = 4)
+ggsave("Output/FigS8/FigS8K.tiff", width = 5 , height = 4)
 
 
 #Vanderbilt insulin perifusion data
@@ -6359,7 +6515,7 @@ all_insulin_wide %>%
   )
 ggsave("Output/Fig7/Fig7P.tiff", width = 4, height = 4)
 
-## Fig S5H ## ----
+## Fig S4H ## ----
 stimulus_data2 <- data.frame(
   xmin = c(3,12,42,63,63,72,93,93,102,123), 
   xmax = c(12,42,63,72,72,93,102,102,150,132),
@@ -6410,9 +6566,9 @@ all_insulin_df %>%
         plot.title = element_text(size = 14, hjust = 0.5),
         legend.title = element_text(size = 14),
         legend.text = element_text(size = 12))
-ggsave("Output/FigS5/FigS5H.tiff", width = 5.5, height = 4)
+ggsave("Output/FigS4/FigS4H.tiff", width = 5.5, height = 4)
 
-## Fig S5I ## ----
+## Fig S4I ## ----
 all_insulin_wide %>%
   ungroup() %>%
   filter(simplified_diagnosis == "Control") %>%
@@ -6441,9 +6597,9 @@ all_insulin_wide %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS5/FigS5I.tiff", width = 3, height = 3)
+ggsave("Output/FigS4/FigS4I.tiff", width = 3, height = 3)
 
-## Fig S5J ## ----
+## Fig S4J ## ----
 all_insulin_wide %>%
   ungroup() %>%
   filter(simplified_diagnosis == "Control") %>%
@@ -6472,9 +6628,9 @@ all_insulin_wide %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS5/FigS5J.tiff", width = 3, height = 3)
+ggsave("Output/FigS4/FigS4J.tiff", width = 3, height = 3)
 
-## Fig S5K ## ----
+## Fig S4K ## ----
 all_insulin_wide %>%
   ungroup() %>%
   filter(simplified_diagnosis == "Control") %>%
@@ -6503,9 +6659,9 @@ all_insulin_wide %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS5/FigS5K.tiff", width = 3, height = 3)
+ggsave("Output/FigS4/FigS4K.tiff", width = 3, height = 3)
 
-## Fig S5L ## ----
+## Fig S4L ## ----
 all_insulin_wide %>%
   ungroup() %>%
   filter(simplified_diagnosis == "Control") %>%
@@ -6534,7 +6690,7 @@ all_insulin_wide %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS5/FigS5L.tiff", width = 3, height = 3)
+ggsave("Output/FigS4/FigS4L.tiff", width = 3, height = 3)
 
 #Vanderbilt glucagon perifusion data
 all_glucagon <- list()
@@ -6606,7 +6762,7 @@ all_glucagon_wide <- all_glucagon_wide %>%
 #add metadata
 all_glucagon_wide <- left_join(all_glucagon_wide, donors, by = c("DonorID" = "donor_ID"))
 
-## Fig S8B ## ----
+## Fig S7B ## ----
 stimulus_data3 <- data.frame(
   xmin = c(3,12,42,63,63,72,93,93,102,123),   
   xmax = c(12,42,63,72,72,93,102,102,150,132),  
@@ -6657,9 +6813,9 @@ all_glucagon_df %>%
         plot.title = element_text(size = 14, hjust = 0.5),
         legend.title = element_text(size = 14),
         legend.text = element_text(size = 12))
-ggsave("Output/FigS8/FigS8B.tiff", width = 5.5, height = 4)
+ggsave("Output/FigS7/FigS7B.tiff", width = 5.5, height = 4)
 
-## Fig S8D ## ----
+## Fig S7D ## ----
 hist(all_glucagon_wide$baselinegcg)
 hist(log(all_glucagon_wide$baselinegcg))
 all_glucagon_wide %>%
@@ -6690,9 +6846,9 @@ all_glucagon_wide %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS8/FigS8D.tiff", width = 3, height = 3)
+ggsave("Output/FigS7/FigS7D.tiff", width = 3, height = 3)
 
-## Fig S8F ## ----
+## Fig S7F ## ----
 hist(all_glucagon_wide$AUC.Epi)
 hist(log(all_glucagon_wide$AUC.Epi))
 all_glucagon_wide %>%
@@ -6723,9 +6879,9 @@ all_glucagon_wide %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS8/FigS8F.tiff", width = 3, height = 3)
+ggsave("Output/FigS7/FigS7F.tiff", width = 3, height = 3)
 
-## Fig S8H ## ----
+## Fig S7H ## ----
 hist(all_glucagon_wide$AUC.IBMX)
 hist(log(all_glucagon_wide$AUC.IBMX))
 all_glucagon_wide %>%
@@ -6756,9 +6912,9 @@ all_glucagon_wide %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS8/FigS8H.tiff", width = 3, height = 3)
+ggsave("Output/FigS7/FigS7H.tiff", width = 3, height = 3)
 
-## Fig S8J ## ----
+## Fig S7J ## ----
 hist(all_glucagon_wide$AUC.KCl)
 hist(log(all_glucagon_wide$AUC.KCl))
 all_glucagon_wide %>%
@@ -6789,9 +6945,9 @@ all_glucagon_wide %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS8/FigS8J.tiff", width = 3, height = 3)
+ggsave("Output/FigS7/FigS7J.tiff", width = 3, height = 3)
 
-## Fig S9B ## ----
+## Fig S8B ## ----
 stimulus_data4 <- data.frame(
   xmin = c(3,12,42,63,63,72,93,93,102,123),         
   xmax = c(12,42,63,72,72,93,102,102,150,132), 
@@ -6844,9 +7000,9 @@ all_glucagon_df %>%
         plot.title = element_text(size = 14, hjust = 0.5),
         legend.title = element_text(size = 14),
         legend.text = element_text(size = 12))
-ggsave("Output/FigS9/FigS9B.tiff", width = 8, height = 4)
+ggsave("Output/FigS8/FigS8B.tiff", width = 8, height = 4)
 
-## Fig S9D ## ----
+## Fig S8D ## ----
 all_glucagon_wide %>%
   ungroup() %>%
   filter(simplified_diagnosis != "T1D") %>%
@@ -6884,10 +7040,10 @@ all_glucagon_wide %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS9/FigS9D.tiff", width = 4, height = 4)
+ggsave("Output/FigS8/FigS8D.tiff", width = 4, height = 4)
 
 
-## Fig S9F ## ----
+## Fig S8F ## ----
 all_glucagon_wide %>%
   ungroup() %>%
   filter(simplified_diagnosis != "T1D") %>%
@@ -6925,9 +7081,9 @@ all_glucagon_wide %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS9/FigS9F.tiff", width = 4, height = 4)
+ggsave("Output/FigS8/FigS8F.tiff", width = 4, height = 4)
 
-## Fig S9H ## ----
+## Fig S8H ## ----
 all_glucagon_wide %>%
   ungroup() %>%
   filter(simplified_diagnosis != "T1D") %>%
@@ -6965,9 +7121,9 @@ all_glucagon_wide %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS9/FigS9H.tiff", width = 4, height = 4)
+ggsave("Output/FigS8/FigS8H.tiff", width = 4, height = 4)
 
-## Fig S9J ## ----
+## Fig S8J ## ----
 all_glucagon_wide %>%
   ungroup() %>%
   filter(simplified_diagnosis != "T1D") %>%
@@ -7005,7 +7161,7 @@ all_glucagon_wide %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS9/FigS9J.tiff", width = 4, height = 4)
+ggsave("Output/FigS8/FigS8J.tiff", width = 4, height = 4)
 
 #Vanderbilt glucagon content data
 #Load data
@@ -7044,7 +7200,7 @@ head(glucagon.content_df)
 #Add metadata
 glucagon.content_df <- inner_join(glucagon.content_df, donors, by = c("DonorID" = "donor_ID")) 
 
-## Fig S9L ## ----
+## Fig S8L ## ----
 hist(glucagon.content_df$Glucagon.content.pg.IEQ)
 hist(log(glucagon.content_df$Glucagon.content.pg.IEQ))
 glucagon.content_df %>%
@@ -7076,9 +7232,9 @@ glucagon.content_df %>%
     panel.border = element_blank(),
     axis.line = element_line()  
   )
-ggsave("Output/FigS8/FigS8L.tiff", width = 3, height = 3)
+ggsave("Output/FigS7/FigS7L.tiff", width = 3, height = 3)
 
-## Fig S9L ## ----
+## Fig S8L ## ----
 glucagon.content_df %>%
   ungroup() %>%
   filter(simplified_diagnosis != "T1D") %>%
@@ -7117,7 +7273,7 @@ glucagon.content_df %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS9/FigS9L.tiff", width = 5, height = 4)
+ggsave("Output/FigS8/FigS8L.tiff", width = 5, height = 4)
 
 #Humanislets.com glucose perifusion data
 #clear environment
@@ -7415,7 +7571,7 @@ peri_gluc_means %>%
   )
 ggsave("Output/Fig7/Fig7Q.tiff", width = 4, height = 4)
 
-## Fig S5M ## ----
+## Fig S4M ## ----
 stimulus_data2 <- data.frame(
   xmin = c(0,20,90,160),
   xmax = c(20,70,140,190),
@@ -7465,9 +7621,9 @@ peri_gluc_long %>%
         plot.title = element_text(size = 14, hjust = 0.5),
         legend.title = element_text(size = 14),
         legend.text = element_text(size = 12))
-ggsave("Output/FigS5/FigS5M.tiff", width = 5.5, height = 4)
+ggsave("Output/FigS4/FigS4M.tiff", width = 5.5, height = 4)
 
-## Fig S5N ## ----
+## Fig S4N ## ----
 peri_gluc_means %>%
   filter(diagnosis == "Control") %>%
   filter(donorage > 14, donorage < 40) %>%
@@ -7495,9 +7651,9 @@ peri_gluc_means %>%
     panel.border = element_blank(), 
     axis.line = element_line()  
   )
-ggsave("Output/FigS5/FigS5N.tiff", width = 3, height = 3)
+ggsave("Output/FigS4/FigS4N.tiff", width = 3, height = 3)
 
-## Fig S5O ## ----
+## Fig S4O ## ----
 peri_gluc_means %>%
   filter(diagnosis == "Control") %>%
   filter(donorage > 14, donorage < 40) %>%
@@ -7526,9 +7682,9 @@ peri_gluc_means %>%
     panel.border = element_blank(), 
     axis.line = element_line()  
   )
-ggsave("Output/FigS5/FigS5O.tiff", width = 3, height = 3)
+ggsave("Output/FigS4/FigS4O.tiff", width = 3, height = 3)
 
-## Fig S5P ## ----
+## Fig S4P ## ----
 peri_gluc_means %>%
   filter(diagnosis == "Control") %>%
   filter(donorage > 14, donorage < 40) %>%
@@ -7557,9 +7713,9 @@ peri_gluc_means %>%
     panel.border = element_blank(), 
     axis.line = element_line()  
   )
-ggsave("Output/FigS5/FigS5P.tiff", width = 3, height = 3)
+ggsave("Output/FigS4/FigS4P.tiff", width = 3, height = 3)
 
-## Fig S5Q ## ----
+## Fig S4Q ## ----
 peri_gluc_means %>%
   filter(diagnosis == "Control") %>%
   filter(donorage > 14, donorage < 40) %>%
@@ -7588,10 +7744,10 @@ peri_gluc_means %>%
     panel.border = element_blank(), 
     axis.line = element_line()  
   )
-ggsave("Output/FigS5/FigS5Q.tiff", width = 3, height = 3)
+ggsave("Output/FigS4/FigS4Q.tiff", width = 3, height = 3)
 
 
-### Figures S6-7 ### ----
+### Figures S5-6 ### ----
 #clear environment
 rm(list = ls())
 
@@ -7667,7 +7823,7 @@ peri_leu_means <- peri_leu_means %>%
 #add metadata
 peri_leu_means <- left_join(peri_leu_means, donor_data, by = "record_id")
 
-## Fig S6A ## ----
+## Fig S5A ## ----
 stimulus_data <- data.frame(
   xmin = c(0,20,90,160),
   xmax = c(20,70,140,190),
@@ -7717,9 +7873,9 @@ peri_leu_long %>%
         plot.title = element_text(size = 14, hjust = 0.5),
         legend.title = element_text(size = 14),
         legend.text = element_text(size = 12))
-ggsave("Output/FigS6/FigS6A.tiff", width = 5.5, height = 4)
+ggsave("Output/FigS5/FigS5A.tiff", width = 5.5, height = 4)
 
-## Fig S6B ## ----
+## Fig S5B ## ----
 hist(peri_leu_means$baseline.mean)
 hist(log(peri_leu_means$baseline.mean))
 peri_leu_means %>%
@@ -7751,9 +7907,9 @@ peri_leu_means %>%
         panel.border = element_blank(), 
         axis.line = element_line() 
   )
-ggsave("Output/FigS6/FigS6B.tiff", width = 3, height = 3)
+ggsave("Output/FigS5/FigS5B.tiff", width = 3, height = 3)
 
-## Fig S6C ## ----
+## Fig S5C ## ----
 hist(peri_leu_means$AUC.leu5)
 hist(log(peri_leu_means$AUC.leu5))
 peri_leu_means %>%
@@ -7785,9 +7941,9 @@ peri_leu_means %>%
         panel.border = element_blank(), 
         axis.line = element_line() 
   )
-ggsave("Output/FigS6/FigS6C.tiff", width = 3, height = 3)
+ggsave("Output/FigS5/FigS5C.tiff", width = 3, height = 3)
 
-## Fig S6D ## ----
+## Fig S5D ## ----
 hist(peri_leu_means$AUC.leu5glc6)
 hist(log(peri_leu_means$AUC.leu5glc6))
 peri_leu_means %>%
@@ -7819,9 +7975,9 @@ peri_leu_means %>%
         panel.border = element_blank(), 
         axis.line = element_line() 
   )
-ggsave("Output/FigS6/FigS6D.tiff", width = 3, height = 3)
+ggsave("Output/FigS5/FigS5D.tiff", width = 3, height = 3)
 
-## Fig S6E ## ----
+## Fig S5E ## ----
 hist(peri_leu_means$AUC.KCl)
 hist(log(peri_leu_means$AUC.KCl))
 peri_leu_means %>%
@@ -7853,9 +8009,9 @@ peri_leu_means %>%
         panel.border = element_blank(), 
         axis.line = element_line() 
   )
-ggsave("Output/FigS6/FigS6E.tiff", width = 3, height = 3)
+ggsave("Output/FigS5/FigS5E.tiff", width = 3, height = 3)
 
-## Fig S7A ## ----
+## Fig S6A ## ----
 stimulus_data2 <- data.frame(
   xmin = c(0,20,90,160),
   xmax = c(20,70,140,190), 
@@ -7905,9 +8061,9 @@ peri_leu_long %>%
         plot.title = element_text(size = 14, hjust = 0.5),
         legend.title = element_text(size = 14),
         legend.text = element_text(size = 12))
-ggsave("Output/FigS7/FigS7A.tiff", width = 8, height = 4)
+ggsave("Output/FigS6/FigS6A.tiff", width = 8, height = 4)
 
-## Fig S7B ## ----
+## Fig S6B ## ----
 peri_leu_means %>%
   ungroup() %>%
   filter(diagnosis != "T1D") %>%
@@ -7946,9 +8102,9 @@ peri_leu_means %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS7/FigS7B.tiff", width = 5, height = 4)
+ggsave("Output/FigS6/FigS6B.tiff", width = 5, height = 4)
 
-## Fig S7C ## ----
+## Fig S6C ## ----
 peri_leu_means %>%
   ungroup() %>%
   filter(diagnosis != "T1D") %>%
@@ -7987,9 +8143,9 @@ peri_leu_means %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS7/FigS7C.tiff", width = 5, height = 4)
+ggsave("Output/FigS6/FigS6C.tiff", width = 5, height = 4)
 
-## Fig S7D ## ----
+## Fig S6D ## ----
 peri_leu_means %>%
   ungroup() %>%
   filter(diagnosis != "T1D") %>%
@@ -8028,9 +8184,9 @@ peri_leu_means %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS7/FigS7D.tiff", width = 5, height = 4)
+ggsave("Output/FigS6/FigS6D.tiff", width = 5, height = 4)
 
-## Fig S7E ## ----
+## Fig S6E ## ----
 peri_leu_means %>%
   ungroup() %>%
   filter(diagnosis != "T1D") %>%
@@ -8069,7 +8225,7 @@ peri_leu_means %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS7/FigS7E.tiff", width = 5, height = 4)
+ggsave("Output/FigS6/FigS6E.tiff", width = 5, height = 4)
 
 #Humanislets.com oleate/palmitate perifusion
 #metadata
@@ -8143,7 +8299,7 @@ peri_olp_means <- peri_olp_means %>%
 #add metadata
 peri_olp_means <- left_join(peri_olp_means, donor_data, by = "record_id")
 
-## Fig S6F ## ----
+## Fig S5F ## ----
 stimulus_data <- data.frame(
   xmin = c(0,20,90,160), 
   xmax = c(20,70,140,190), 
@@ -8193,9 +8349,9 @@ peri_olp_long %>%
         plot.title = element_text(size = 14, hjust = 0.5),
         legend.title = element_text(size = 14),
         legend.text = element_text(size = 12))
-ggsave("Output/FigS6/FigS6F.tiff", width = 5.5, height = 4)
+ggsave("Output/FigS5/FigS5F.tiff", width = 5.5, height = 4)
 
-## Fig S6G ## ----
+## Fig S5G ## ----
 hist(peri_olp_means$baseline.mean)
 hist(log(peri_olp_means$baseline.mean))
 peri_olp_means %>%
@@ -8227,9 +8383,9 @@ peri_olp_means %>%
         panel.border = element_blank(), 
         axis.line = element_line() 
   )
-ggsave("Output/FigS6/FigS6G.tiff", width = 3, height = 3)
+ggsave("Output/FigS5/FigS5G.tiff", width = 3, height = 3)
 
-## Fig S6H ## ----
+## Fig S5H ## ----
 hist(peri_olp_means$AUC.olp1.5)
 hist(log(peri_olp_means$AUC.olp1.5))
 peri_olp_means %>%
@@ -8261,9 +8417,9 @@ peri_olp_means %>%
         panel.border = element_blank(), 
         axis.line = element_line() 
   )
-ggsave("Output/FigS6/FigS6H.tiff", width = 3, height = 3)
+ggsave("Output/FigS5/FigS5H.tiff", width = 3, height = 3)
 
-## Fig S6I ## ----
+## Fig S5I ## ----
 hist(peri_olp_means$AUC.olp1.5glc6)
 hist(log(peri_olp_means$AUC.olp1.5glc6))
 peri_olp_means %>%
@@ -8295,9 +8451,9 @@ peri_olp_means %>%
         panel.border = element_blank(), 
         axis.line = element_line() 
   )
-ggsave("Output/FigS6/FigS6I.tiff", width = 3.25, height = 3)
+ggsave("Output/FigS5/FigS5I.tiff", width = 3.25, height = 3)
 
-## Fig S6J ## ----
+## Fig S5J ## ----
 hist(peri_olp_means$AUC.KCl)
 hist(log(peri_olp_means$AUC.KCl))
 peri_olp_means %>%
@@ -8329,9 +8485,9 @@ peri_olp_means %>%
         panel.border = element_blank(), 
         axis.line = element_line() 
   )
-ggsave("Output/FigS6/FigS6J.tiff", width = 3, height = 3)
+ggsave("Output/FigS5/FigS5J.tiff", width = 3, height = 3)
 
-## Fig S7F ## ----
+## Fig S6F ## ----
 stimulus_data2 <- data.frame(
   xmin = c(0,20,90,160),
   xmax = c(20,70,140,190), 
@@ -8381,9 +8537,9 @@ peri_olp_long %>%
         plot.title = element_text(size = 14, hjust = 0.5),
         legend.title = element_text(size = 14),
         legend.text = element_text(size = 12))
-ggsave("Output/FigS7/FigS7F.tiff", width = 8, height = 4)
+ggsave("Output/FigS6/FigS6F.tiff", width = 8, height = 4)
 
-## Fig S7G ## ----
+## Fig S6G ## ----
 peri_olp_means %>%
   ungroup() %>%
   filter(diagnosis != "T1D") %>%
@@ -8422,9 +8578,9 @@ peri_olp_means %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS7/FigS7G.tiff", width = 5, height = 4)
+ggsave("Output/FigS6/FigS6G.tiff", width = 5, height = 4)
 
-## Fig S7H ## ----
+## Fig S6H ## ----
 peri_olp_means %>%
   ungroup() %>%
   filter(diagnosis != "T1D") %>%
@@ -8463,9 +8619,9 @@ peri_olp_means %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS7/FigS7H.tiff", width = 5, height = 4)
+ggsave("Output/FigS6/FigS6H.tiff", width = 5, height = 4)
 
-## Fig S7I ## ----
+## Fig S6I ## ----
 peri_olp_means %>%
   ungroup() %>%
   filter(diagnosis != "T1D") %>%
@@ -8504,9 +8660,9 @@ peri_olp_means %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS7/FigS7I.tiff", width = 5.25, height = 4)
+ggsave("Output/FigS6/FigS6I.tiff", width = 5.25, height = 4)
 
-## Fig S7J ## ----
+## Fig S6J ## ----
 peri_olp_means %>%
   ungroup() %>%
   filter(diagnosis != "T1D") %>%
@@ -8544,7 +8700,7 @@ peri_olp_means %>%
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS7/FigS7J.tiff", width = 5, height = 4)
+ggsave("Output/FigS6/FigS6J.tiff", width = 5, height = 4)
 
 ### Figure S1 ### ---
 #clear environment
@@ -8725,6 +8881,35 @@ ggsave("Output/FigS1/FigSD.tiff", width = 6, height = 4)
 #clear environment
 rm(list = ls())
 
+#read in sheets
+betascRNAseq <- read.csv("Output/Fig2/HPAP beta scRNAseq DEseq2 ctrls 15-39.csv")
+colnames(betascRNAseq)[1] <- "Gene"
+alphascRNAseq <- read.csv("Output/Fig2/HPAP alpha scRNAseq DEseq2 ctrls 15-39.csv")
+colnames(alphascRNAseq)[1] <- "Gene"
+bulkRNAseq <- read.csv("Output/Fig2/Humanisletscom bulk RNAseq DEseq2 ctrls 15-39.csv")
+bulkRNAseq <- bulkRNAseq[,2:8]
+bulkRNAseq <- bulkRNAseq[,c(7,1:6)]
+colnames(bulkRNAseq)[1] <- "Gene"
+bulkRNAseq$logFC <- -bulkRNAseq$logFC #get the direction to be consistent with others
+
+#write as new sheet
+wb <- createWorkbook()
+addWorksheet(wb, "DE results")
+
+writeData(wb, sheet = "DE results", x = betascRNAseq, startRow = 2, startCol = 1)
+writeData(wb, sheet = "DE results", x = alphascRNAseq, startRow = 2, startCol = 8)
+writeData(wb, sheet = "DE results", x = bulkRNAseq, startRow = 2, startCol = 15)
+
+writeData(wb, sheet = "DE results", x = "HPAP beta-cell scRNAseq", startRow = 1, startCol = 1)
+writeData(wb, sheet = "DE results", x = "HPAP alpha-cell scRNAseq", startRow = 1, startCol = 8)
+writeData(wb, sheet = "DE results", x = "Humanislets.com bulk RNAseq", startRow = 1, startCol = 15)
+
+saveWorkbook(wb, "Output/Table S1.xlsx", overwrite = TRUE)
+
+### Table S2 ### ----
+#clear environment
+rm(list = ls())
+
 #read in sheets and merge
 HIGO_CC <- read_excel("Output/Fig2/GSEA_p_bulk_RNAseq_youngcontrols.xlsx",sheet="GO_CC")
 HIGO_BP <- read_excel("Output/Fig2/GSEA_p_bulk_RNAseq_youngcontrols.xlsx",sheet="GO_BP")
@@ -8749,9 +8934,19 @@ combined <- bind_rows(HIGO, HPAPbetascGO, HPAPalphascGO)
 combined <- combined %>% arrange(p.adjust)
 head(combined)
 
-write.csv(combined, "Output/Table S1.csv")
+write.csv(combined, "Output/Table S2.csv")
 
-### Table S2 ### ----
+### Table S3 ### ----
+#clear environment
+rm(list = ls())
+
+#read in sheet
+proteomics <- read.csv("Output/Fig2/prot_dea_results_correctforage_controls_15to39.csv")
+
+#write as new sheet
+write.csv(proteomics, "Output/Table S3.csv")
+
+### Table S4 ### ----
 #clear environment
 rm(list = ls())
 
@@ -8763,9 +8958,74 @@ sheet <- bind_rows(sheet_CC, sheet_BP, sheet_MF)
 sheet$NES <- -sheet$NES #reverse sign to change direction so positive is up in females
 sheet <- sheet %>% arrange(p.adjust)
 
-write.csv(sheet, "Output/Table S2.csv")
+write.csv(sheet, "Output/Table S4.csv")
 
-### Table S3 ### ----
+### Table S5 ### ----
+#clear environment
+rm(list = ls())
+
+#read in sheets
+betascRNAseq <- read.csv("Output/Fig3/Female ctrl vs T2D beta scRNAseq.csv")
+colnames(betascRNAseq)[1] <- "Gene"
+betascRNAseq <- betascRNAseq[,1:6]
+alphascRNAseq <- read.csv("Output/Fig3/Female ctrl vs T2D alpha scRNAseq.csv")
+colnames(alphascRNAseq)[1] <- "Gene"
+alphascRNAseq <- alphascRNAseq[,1:6]
+bulkRNAseq <- read.csv("Output/Fig3/Humanisletscom bulkRNAseq F Ctrl vs F T2D.csv")
+bulkRNAseq <- bulkRNAseq[,2:8]
+bulkRNAseq <- bulkRNAseq[,c(7,1:6)]
+colnames(bulkRNAseq)[1] <- "Gene"
+bulkRNAseq <- bulkRNAseq %>% arrange(pval)
+bulkRNAseq$logFC <- -bulkRNAseq$logFC #get the direction to be consistent with others
+
+#write as new sheet
+wb <- createWorkbook()
+addWorksheet(wb, "DE results")
+
+writeData(wb, sheet = "DE results", x = betascRNAseq, startRow = 2, startCol = 1)
+writeData(wb, sheet = "DE results", x = alphascRNAseq, startRow = 2, startCol = 8)
+writeData(wb, sheet = "DE results", x = bulkRNAseq, startRow = 2, startCol = 15)
+
+writeData(wb, sheet = "DE results", x = "HPAP beta-cell scRNAseq", startRow = 1, startCol = 1)
+writeData(wb, sheet = "DE results", x = "HPAP alpha-cell scRNAseq", startRow = 1, startCol = 8)
+writeData(wb, sheet = "DE results", x = "Humanislets.com bulk RNAseq", startRow = 1, startCol = 15)
+
+saveWorkbook(wb, "Output/Table S5.xlsx", overwrite = TRUE)
+
+### Table S6 ### ----
+#clear environment
+rm(list = ls())
+
+#read in sheets
+betascRNAseq <- read.csv("Output/Fig3/Male ctrl vs T2D beta scRNAseq.csv")
+colnames(betascRNAseq)[1] <- "Gene"
+betascRNAseq <- betascRNAseq[,1:6]
+alphascRNAseq <- read.csv("Output/Fig3/Male ctrl vs T2D alpha scRNAseq.csv")
+colnames(alphascRNAseq)[1] <- "Gene"
+alphascRNAseq <- alphascRNAseq[,1:6]
+bulkRNAseq <- read.csv("Output/Fig3/Humanisletscom bulkRNAseq M Ctrl vs M T2D.csv")
+bulkRNAseq <- bulkRNAseq[,2:8]
+bulkRNAseq <- bulkRNAseq[,c(7,1:6)]
+colnames(bulkRNAseq)[1] <- "Gene"
+bulkRNAseq <- bulkRNAseq %>% arrange(pval)
+bulkRNAseq$logFC <- -bulkRNAseq$logFC #get the direction to be consistent with others
+
+#write as new sheet
+wb <- createWorkbook()
+addWorksheet(wb, "DE results")
+
+writeData(wb, sheet = "DE results", x = betascRNAseq, startRow = 2, startCol = 1)
+writeData(wb, sheet = "DE results", x = alphascRNAseq, startRow = 2, startCol = 8)
+writeData(wb, sheet = "DE results", x = bulkRNAseq, startRow = 2, startCol = 15)
+
+writeData(wb, sheet = "DE results", x = "HPAP beta-cell scRNAseq", startRow = 1, startCol = 1)
+writeData(wb, sheet = "DE results", x = "HPAP alpha-cell scRNAseq", startRow = 1, startCol = 8)
+writeData(wb, sheet = "DE results", x = "Humanislets.com bulk RNAseq", startRow = 1, startCol = 15)
+
+saveWorkbook(wb, "Output/Table S6.xlsx", overwrite = TRUE)
+
+
+### Table S7 ### ----
 #clear environment
 rm(list = ls())
 
@@ -8794,9 +9054,9 @@ combined <- bind_rows(HIGO_F, HPAPbetascGO_F, HPAPalphascGO_F)
 combined <- combined %>% arrange(p.adjust)
 head(combined)
 
-write.csv(combined, "Output/Table S3.csv")
+write.csv(combined, "Output/Table S7.csv")
 
-### Table S4 ### ----
+### Table S8 ### ----
 #clear environment
 rm(list = ls())
 
@@ -8825,9 +9085,29 @@ combined <- bind_rows(HIGO_M, HPAPbetascGO_M, HPAPalphascGO_M)
 combined <- combined %>% arrange(p.adjust)
 head(combined)
 
-write.csv(combined, "Output/Table S4.csv")
+write.csv(combined, "Output/Table S8.csv")
 
-### Table S5 ### ----
+### Table S9 ### ----
+#clear environment
+rm(list = ls())
+
+#read in sheet
+proteomics <- read.csv("Output/Fig4/prot_dea_results_correctforage_F.csv")
+
+#write as new sheet
+write.csv(proteomics, "Output/Table S9.csv")
+
+### Table S10 ### ----
+#clear environment
+rm(list = ls())
+
+#read in sheet
+proteomics <- read.csv("Output/Fig4/prot_dea_results_correctforage_M.csv")
+
+#write as new sheet
+write.csv(proteomics, "Output/Table S10.csv")
+
+### Table S11 ### ----
 #clear environment
 rm(list = ls())
 
@@ -8838,9 +9118,9 @@ sheet_MF <- read.xlsx("Output/Fig4/GSEA_p_proteomics_F_controlvsT2D.xlsx",sheet=
 sheet <- bind_rows(sheet_CC, sheet_BP, sheet_MF)
 sheet <- sheet %>% arrange(p.adjust)
 
-write.csv(sheet, "Output/Table S5.csv")
+write.csv(sheet, "Output/Table S11.csv")
 
-### Table S6 ### ----
+### Table S12 ### ----
 #clear environment
 rm(list = ls())
 
@@ -8851,4 +9131,4 @@ sheet_MF <- read.xlsx("Output/Fig4/GSEA_p_proteomics_M_controlvsT2D.xlsx",sheet=
 sheet <- bind_rows(sheet_CC, sheet_BP, sheet_MF)
 sheet <- sheet %>% arrange(p.adjust)
 
-write.csv(sheet, "Output/Table S6.csv")
+write.csv(sheet, "Output/Table S12.csv")
