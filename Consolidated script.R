@@ -9,7 +9,7 @@ library(ggpubr)
 library(emmeans)
 library(rstatix)
 library(this.path)
-library(DESeq2)
+library(edgeR)
 library(Seurat)
 library(clusterProfiler)
 library(openxlsx)
@@ -20,13 +20,14 @@ library(readr)
 library(lubridate)
 library(MESS)
 library(zoo)
+library(MatchIt)
+source('GOrge.R')
 
 #set working directory to location of this R script
 setwd(dirname(this.path::this.path()))
 
-### Figure 1 ### ----
-## Fig 1A ## ----
-
+### Figure 1 and S2 ### ----
+# HPAP cell proportions
 #clear environment
 rm(list = ls())
 
@@ -76,7 +77,16 @@ donor_info %>%
   filter(age_years > 14, age_years < 40) %>%
   anova_test(beta.endocrine ~ age_years + sex) #p=0.112 for sex
 
-#Graphs
+donor_info <- donor_info %>%
+  mutate(nonab.endocrine = delta.endocrine + epsilon.endocrine + pp.endocrine)
+donor_info %>%
+  filter(simplified_diagnosis == "Control") %>%
+  filter(!donor_ID %in% no_cells$donor_ID) %>%
+  filter(!donor_ID %in% low_cells$donor_ID) %>%
+  filter(age_years > 14, age_years < 40) %>%
+  anova_test(nonab.endocrine ~ age_years + sex) #sig for sex
+
+## Fig 1A ## ----
 donor_info %>%
   filter(simplified_diagnosis == "Control") %>%
   filter(age_years > 14, age_years < 40) %>%
@@ -89,7 +99,7 @@ donor_info %>%
   scale_colour_manual(values = c("#50b5ad", "#dbac5a")) +
   xlab("")+
   ylab("% alpha-cells") +
-  ylim(0,120)+
+  ylim(0,105)+
   geom_bracket(xmin = 1, xmax = 2, y.position = 100, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.05))+
   theme_bw() +
   theme(legend.position = "none", panel.grid = element_blank()) +
@@ -97,13 +107,14 @@ donor_info %>%
     axis.title = element_text(size = 14, colour = "black"),
     axis.text = element_text(size = 14, colour = "black"),
     plot.title = element_text(size = 14, hjust = 0.5),
-    legend.title = element_text(size = 14),
+    legend.title = element_blank(),
     legend.text = element_text(size = 12),
     panel.border = element_blank(),  
     axis.line = element_line()       
   )
-ggsave("Output/Fig1/Fig1A alpha.tiff", width = 3, height = 3)
+ggsave("Output/Final figures/Fig1/Fig1A.tiff", width = 3, height = 3)
 
+## Fig 1C ## ----
 donor_info %>%
   filter(simplified_diagnosis == "Control") %>%
   filter(age_years > 14, age_years < 40) %>%
@@ -117,21 +128,49 @@ donor_info %>%
   scale_colour_manual(values = c("#50b5ad", "#dbac5a")) +
   xlab("")+
   ylab("% beta-cells") +
-  ylim(0,110)+
+  ylim(0,105)+
   theme_bw() +
   theme(legend.position = "none", panel.grid = element_blank()) +
   theme(
     axis.title = element_text(size = 14, colour = "black"),
     axis.text = element_text(size = 14, colour = "black"),
     plot.title = element_text(size = 14, hjust = 0.5),
-    legend.title = element_text(size = 14),
+    legend.title = element_blank(),
     legend.text = element_text(size = 12),
     panel.border = element_blank(),  
     axis.line = element_line()       
   )
-ggsave("Output/Fig1/Fig1A beta.tiff", width = 3, height = 3)
+ggsave("Output/Final figures/Fig1/Fig1C.tiff", width = 3, height = 3)
 
-## Fig 1C ## ----
+## Fig 1E ## ----
+donor_info %>%
+  filter(simplified_diagnosis == "Control") %>%
+  filter(age_years > 14, age_years < 40) %>%
+  filter(!donor_ID %in% no_cells$donor_ID) %>%
+  filter(!donor_ID %in% low_cells$donor_ID) %>%
+  ggplot(aes(x=sex, y = nonab.endocrine*100))+
+  geom_boxplot(aes(fill = sex), alpha = 0.5)+
+  geom_bracket(xmin = 1, xmax = 2, y.position = 53, label = "*", label.size = 7, size = 0.5, tip.length = c(0.6, 0.02))+
+  geom_quasirandom(size = 2, shape = 21, aes(fill = sex)) +
+  scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
+  scale_colour_manual(values = c("#50b5ad", "#dbac5a")) +
+  xlab("")+
+  ylab("% non-alpha, non-beta\nendocrine cells") +
+  ylim(0,105) +
+  theme_bw() +
+  theme(legend.position = "none", panel.grid = element_blank()) +
+  theme(
+    axis.title = element_text(size = 14, colour = "black"),
+    axis.text = element_text(size = 14, colour = "black"),
+    plot.title = element_text(size = 14, hjust = 0.5),
+    legend.title = element_blank(),
+    legend.text = element_text(size = 12),
+    panel.border = element_blank(),  
+    axis.line = element_line()       
+  )
+ggsave("Output/Final figures/Fig1/Fig1E.tiff", width = 3, height = 3)
+
+## Fig 1G ## ----
 donor_info %>%
   filter(simplified_diagnosis != "T1D") %>%
   filter(!donor_ID %in% no_cells$donor_ID) %>%
@@ -160,22 +199,22 @@ donor_info %>%
   scale_colour_manual(values = c("grey50", "#d65ac9")) +
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   xlab("")+
-  scale_y_continuous(limits = c(0,120))+
+  scale_y_continuous(limits = c(0,120), breaks = c(0,25,50,75,100))+
   ylab("% alpha-cells") +
-  labs(fill = "Condition", colour = "Condition")+
   theme_bw() +
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/Fig1/Fig1C alpha.tiff", width = 5, height = 4)
+ggsave("Output/Final figures/Fig1/Fig1G.tiff", width = 5, height = 4)
 
+## Fig 1H ## ----
 donor_info %>%
   filter(simplified_diagnosis != "T1D") %>%
   filter(!donor_ID %in% no_cells$donor_ID) %>%
@@ -197,30 +236,236 @@ donor_info %>%
   ggplot(aes(x=sex, y = beta.endocrine*100))+
   geom_boxplot(aes(fill = simplified_diagnosis), alpha = 0.5, position = position_dodge(width = 0.9))+
   geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
-  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 85, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.35))+
+  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 85, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.25))+
   geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 94, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.775, y.position = 103, label = "p=0.072", label.size = 4, size = 0.5, tip.length = c(0.02, 0.1))+
   geom_bracket(inherit.aes = FALSE, xmin = 1.225, xmax = 2.225, y.position = 115, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey50", "#d65ac9")) +
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   xlab("")+
-  scale_y_continuous(limits = c(0,120))+
+  scale_y_continuous(limits = c(0,120), breaks = c(0,25,50,75,100))+
   ylab("% beta-cells") +
-  labs(fill = "Condition", colour = "Condition")+
   theme_bw() +
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line()
   )
-ggsave("Output/Fig1/Fig1C beta.tiff", width = 5, height = 4)
+ggsave("Output/Final figures/Fig1/Fig1H beta.tiff", width = 5, height = 4)
 
-## Fig 1B ## ----
+## Fig 1I ## ----
+donor_info %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  filter(!donor_ID %in% no_cells$donor_ID) %>%
+  filter(!donor_ID %in% low_cells$donor_ID) %>%
+  anova_test(nonab.endocrine ~ age_years + sex*simplified_diagnosis) #sig for diagnosis
+model <- donor_info %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  filter(!donor_ID %in% no_cells$donor_ID) %>%
+  filter(!donor_ID %in% low_cells$donor_ID) %>%
+  lm(nonab.endocrine ~ age_years + sex*simplified_diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ sex | simplified_diagnosis)
+pairs(emmeans_res, adjust = "tukey") #0.0833 for controls
+emmeans_res <- emmeans(model, ~ simplified_diagnosis | sex)
+pairs(emmeans_res, adjust = "tukey") #sig for females
+donor_info %>%
+  filter(!donor_ID %in% no_cells$donor_ID) %>%
+  filter(!donor_ID %in% low_cells$donor_ID) %>%
+  filter(simplified_diagnosis %in% c("Control", "T2D")) %>%
+  ggplot(aes(x=sex, y = nonab.endocrine*100))+
+  geom_boxplot(aes(fill = simplified_diagnosis), alpha = 0.5, position = position_dodge(width = 0.9))+
+  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 77.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.25, 0.02))+
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 55, label = "*", label.size = 7, size = 0.5, tip.length = c(0.25, 0.02))+
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.775, y.position = 85, label = "p=0.083", label.size = 4, size = 0.5, tip.length = c(0.25, 0.02))+
+  geom_bracket(inherit.aes = FALSE, xmin = 1.225, xmax = 2.225, y.position = 100, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
+  scale_colour_manual(values = c("grey50", "#d65ac9")) +
+  scale_fill_manual(values = c("grey50", "#d65ac9")) +
+  xlab("")+
+  ylab("% non-alpha, non-beta\nendocrine cells") +
+  scale_y_continuous(limits = c(0,120), breaks = c(0,25,50,75,100))+
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line()
+  )
+ggsave("Output/Final figures/Fig1/Fig1I.tiff", width = 5, height = 4)
+
+## Fig S2A ## ----
+donor_info_matched <- donor_info %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  filter(!donor_ID %in% no_cells$donor_ID) %>%
+  filter(!donor_ID %in% low_cells$donor_ID)
+
+donor_info_matched$Group <- as.logical(donor_info_matched$simplified_diagnosis == "T2D")
+donor_info_matched <- matchit(Group ~ age_years + sex,
+                              data = donor_info_matched,
+                              method = 'nearest',
+                              ratio = 1, 
+                              exact = ~sex
+) 
+donor_info_matched <- match.data(donor_info_matched)
+
+donor_info_matched %>%
+  group_by(sex) %>%
+  t_test(age_years ~ simplified_diagnosis) #ns
+donor_info_matched %>%
+  ggplot(aes(x=sex, y=age_years))+
+  geom_boxplot(aes(fill = simplified_diagnosis), alpha = 0.5, position = position_dodge(width = 0.9))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 68, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+ 
+  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 68, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+ 
+  scale_colour_manual(values = c("grey50", "#d65ac9")) +
+  scale_fill_manual(values = c("grey50", "#d65ac9")) +
+  xlab("")+
+  ylab("Age (years)") +
+  scale_y_continuous(limits = c(25,75))+
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line() 
+  )
+ggsave("Output/Final figures/FigS2/FigS2A.tiff", width = 5, height = 4)
+
+## Fig S2B ## ----
+donor_info_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  filter(!donor_ID %in% no_cells$donor_ID) %>%
+  filter(!donor_ID %in% low_cells$donor_ID) %>%
+  anova_test(alpha.endocrine ~ age_years + sex*simplified_diagnosis) #ns
+model <- donor_info_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  filter(!donor_ID %in% no_cells$donor_ID) %>%
+  filter(!donor_ID %in% low_cells$donor_ID) %>%
+  lm(alpha.endocrine ~ age_years + sex*simplified_diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ simplified_diagnosis | sex)
+pairs(emmeans_res, adjust = "tukey") #ns
+donor_info %>%
+  filter(!donor_ID %in% no_cells$donor_ID) %>%
+  filter(!donor_ID %in% low_cells$donor_ID) %>%
+  filter(simplified_diagnosis %in% c("Control", "T2D")) %>%
+  ggplot(aes(x=sex, y = alpha.endocrine*100))+
+  geom_boxplot(aes(fill = simplified_diagnosis), alpha = 0.5, position = position_dodge(width = 0.9))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 93, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 93, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  scale_colour_manual(values = c("grey50", "#d65ac9")) +
+  scale_fill_manual(values = c("grey50", "#d65ac9")) +
+  xlab("")+
+  scale_y_continuous(limits = c(0,120), breaks = c(0,25,50,75,100))+
+  ylab("% alpha-cells") +
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line() 
+  )
+ggsave("Output/Final figures/FigS2/FigS2B.tiff", width = 5, height = 4)
+
+## Fig S2C ## ----
+donor_info_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  filter(!donor_ID %in% no_cells$donor_ID) %>%
+  filter(!donor_ID %in% low_cells$donor_ID) %>%
+  anova_test(beta.endocrine ~ age_years + sex*simplified_diagnosis) #ns
+model <- donor_info_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  filter(!donor_ID %in% no_cells$donor_ID) %>%
+  filter(!donor_ID %in% low_cells$donor_ID) %>%
+  lm(beta.endocrine ~ age_years + sex*simplified_diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ simplified_diagnosis | sex)
+pairs(emmeans_res, adjust = "tukey") #p=0.0731 for Control vs T2D in males
+donor_info %>%
+  filter(!donor_ID %in% no_cells$donor_ID) %>%
+  filter(!donor_ID %in% low_cells$donor_ID) %>%
+  filter(simplified_diagnosis %in% c("Control", "T2D")) %>%
+  ggplot(aes(x=sex, y = beta.endocrine*100))+
+  geom_boxplot(aes(fill = simplified_diagnosis), alpha = 0.5, position = position_dodge(width = 0.9))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 86, label = "p=0.073", label.size = 4, size = 0.5, tip.length = c(0.02, 0.35))+
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 96, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  scale_colour_manual(values = c("grey50", "#d65ac9")) +
+  scale_fill_manual(values = c("grey50", "#d65ac9")) +
+  xlab("")+
+  scale_y_continuous(limits = c(0,120), breaks = c(0,25,50,75,100))+
+  ylab("% beta-cells") +
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line()
+  )
+ggsave("Output/Final figures/FigS2/FigS2C.tiff", width = 5, height = 4)
+
+## Fig S2D ## ----
+donor_info_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  filter(!donor_ID %in% no_cells$donor_ID) %>%
+  filter(!donor_ID %in% low_cells$donor_ID) %>%
+  anova_test(nonab.endocrine ~ age_years + sex*simplified_diagnosis) #0.055 for diagnosis
+model <- donor_info_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  filter(!donor_ID %in% no_cells$donor_ID) %>%
+  filter(!donor_ID %in% low_cells$donor_ID) %>%
+  lm(nonab.endocrine ~ age_years + sex*simplified_diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ simplified_diagnosis | sex)
+pairs(emmeans_res, adjust = "tukey") #0.0538 for females
+donor_info %>%
+  filter(!donor_ID %in% no_cells$donor_ID) %>%
+  filter(!donor_ID %in% low_cells$donor_ID) %>%
+  filter(simplified_diagnosis %in% c("Control", "T2D")) %>%
+  ggplot(aes(x=sex, y = nonab.endocrine*100))+
+  geom_boxplot(aes(fill = simplified_diagnosis), alpha = 0.5, position = position_dodge(width = 0.9))+
+  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 80, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.35, 0.02))+
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 55, label = "p=0.054", label.size = 4, size = 0.5, tip.length = c(0.3, 0.02))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
+  scale_colour_manual(values = c("grey50", "#d65ac9")) +
+  scale_fill_manual(values = c("grey50", "#d65ac9")) +
+  scale_y_continuous(limits = c(0,120), breaks = c(0,25,50,75,100))+
+  xlab("")+
+  ylab("% non-alpha, non-beta\nendocrine cells") +
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line()
+  )
+ggsave("Output/Final figures/FigS2/FigS2D.tiff", width = 5, height = 4)
+
+
+# Humanislets.com cell proportions
 #clear environment
 rm(list = ls())
 
@@ -230,6 +475,7 @@ donor_data <- read.csv("data/Humanislets.com/donor.csv")
 
 #join metadata to data
 celltypeprop <- left_join(celltypeprop, donor_data, by = "record_id")
+unique(celltypeprop$diagnosis) #no Type1 donors in this dataset
 
 #rename groups
 celltypeprop <- celltypeprop %>%
@@ -250,7 +496,14 @@ celltypeprop %>%
   filter(simplified_diagnosis %in% c("Control")) %>%
   anova_test(beta_end ~ donorage + donorsex) #p=0.025 for sex
 
-#Graphs
+celltypeprop <- celltypeprop %>%
+  mutate(nonab_end = delta_end + gamma_end)
+celltypeprop %>%
+  filter(donorage > 14, donorage < 40) %>%
+  filter(simplified_diagnosis %in% c("Control")) %>%
+  anova_test(nonab_end ~ donorage + donorsex) #ns
+
+## Fig 1B ## ----
 celltypeprop %>%
   filter(simplified_diagnosis == "Control") %>%
   filter(donorage > 14, donorage < 40) %>%
@@ -261,21 +514,22 @@ celltypeprop %>%
   scale_colour_manual(values = c("#113ed1", "#5e4114")) +
   xlab("")+
   ylab("% alpha-cells") +
-  ylim(15,45)+
-  geom_bracket(xmin = 1, xmax = 2, y.position = 35, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.02))+
+  ylim(0,105)+
+  geom_bracket(xmin = 1, xmax = 2, y.position = 40, label = "*", label.size = 7, size = 0.5, tip.length = c(0.1, 0.2))+
   theme_bw() +
   theme(legend.position = "none", panel.grid = element_blank()) +
   theme(
     axis.title = element_text(size = 14, colour = "black"),
     axis.text = element_text(size = 14, colour = "black"),
     plot.title = element_text(size = 14, hjust = 0.5),
-    legend.title = element_text(size = 14),
+    legend.title = element_blank(),
     legend.text = element_text(size = 12),
     panel.border = element_blank(),  
     axis.line = element_line()       
   )
-ggsave("Output/Fig1/Fig1B alpha.tiff", width = 3, height = 3)
+ggsave("Output/Final figures/Fig1/Fig1B.tiff", width = 3, height = 3)
 
+## Fig 1D ## ----
 celltypeprop %>%
   filter(simplified_diagnosis == "Control") %>%
   filter(donorage > 14, donorage < 40) %>%
@@ -286,27 +540,51 @@ celltypeprop %>%
   scale_colour_manual(values = c("#113ed1", "#5e4114")) +
   xlab("")+
   ylab("% beta-cells") +
-  ylim(40,70)+
-  geom_bracket(xmin = 1, xmax = 2, y.position = 62, label = "*", label.size = 7, size = 0.5, tip.length = c(0.1, 0.02))+
+  ylim(0,105)+
+  geom_bracket(xmin = 1, xmax = 2, y.position = 65, label = "*", label.size = 7, size = 0.5, tip.length = c(0.3, 0.1))+
   theme_bw() +
   theme(legend.position = "none", panel.grid = element_blank()) +
   theme(
     axis.title = element_text(size = 14, colour = "black"),
     axis.text = element_text(size = 14, colour = "black"),
     plot.title = element_text(size = 14, hjust = 0.5),
-    legend.title = element_text(size = 14),
+    legend.title = element_blank(),
     legend.text = element_text(size = 12),
     panel.border = element_blank(),  
     axis.line = element_line()       
   )
-ggsave("Output/Fig1/Fig1B beta.tiff", width = 3, height = 3)
+ggsave("Output/Final figures/Fig1/Fig1D.tiff", width = 3, height = 3)
 
-## Fig 1D ## ----
+## Fig 1F ## ----
+celltypeprop %>%
+  filter(simplified_diagnosis == "Control") %>%
+  filter(donorage > 14, donorage < 40) %>%
+  ggplot(aes(x=donorsex, y = nonab_end*100))+
+  geom_boxplot(aes(fill = donorsex), alpha = 0.5)+
+  geom_quasirandom(size = 2, shape = 21, aes(fill = donorsex)) +
+  geom_bracket(xmin = 1, xmax = 2, y.position = 25, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.3, 0.1))+
+  scale_fill_manual(values = c("#113ed1", "#5e4114")) +
+  scale_colour_manual(values = c("#113ed1", "#5e4114")) +
+  xlab("")+
+  ylab("% non-alpha, non-beta\nendocrine cells") +
+  ylim(0,105)+
+  theme_bw() +
+  theme(legend.position = "none", panel.grid = element_blank()) +
+  theme(
+    axis.title = element_text(size = 14, colour = "black"),
+    axis.text = element_text(size = 14, colour = "black"),
+    plot.title = element_text(size = 14, hjust = 0.5),
+    legend.title = element_blank(),
+    legend.text = element_text(size = 12),
+    panel.border = element_blank(),  
+    axis.line = element_line()       
+  )
+ggsave("Output/Final figures/Fig1/Fig1F.tiff", width = 3, height = 3)
+
+## Fig 1J ## ----
 celltypeprop %>%  
-  filter(diagnosis != "T1D") %>%
   anova_test(alpha_end ~ donorage + donorsex*diagnosis) #sig for disease and interaction
 model <- celltypeprop %>%
-  filter(diagnosis != "T1D") %>%
   lm(alpha_end ~ donorage + donorsex*diagnosis, data = .)
 emmeans_res <- emmeans(model, ~ donorsex | diagnosis)
 pairs(emmeans_res, adjust = "tukey") #sig  for F-M in T2D
@@ -322,33 +600,32 @@ celltypeprop %>%
   ggplot(aes(x=donorsex, y = alpha_end*100))+
   geom_boxplot(aes(fill = diagnosis), alpha = 0.5, position = position_dodge(width = 0.9))+
   geom_quasirandom(size = 2, shape = 21, aes(group = diagnosis, fill = diagnosis), dodge.width=0.9) +
-  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 42, label = "*", label.size = 7, size = 0.5, tip.length = c(0.2, 0.02))+ 
-  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 41, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.2))+ 
-  geom_bracket(inherit.aes = FALSE, xmin = 1.225, xmax = 2.225, y.position = 43, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.05))+ 
-  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.775, y.position = 47, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+ 
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 50, label = "*", label.size = 7, size = 0.5, tip.length = c(0.2, 0.02))+ 
+  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 47, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.15))+ 
+  geom_bracket(inherit.aes = FALSE, xmin = 1.225, xmax = 2.225, y.position = 55, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.05))+ 
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.775, y.position = 70, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+ 
   scale_colour_manual(values = c("grey40", "#e04e34"))  +
   scale_fill_manual(values = c("grey40", "#e04e34"))  +
   xlab("")+
-  scale_y_continuous(limits = c(20,50))+
+  scale_y_continuous(limits = c(0,120), breaks = c(0,25,50,75,100))+
   ylab("% alpha-cells") +
-  labs(fill = "Condition", colour = "Condition")+
+  labs(fill = "Condition")+
   theme_bw() +
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line())
-ggsave("Output/Fig1/Fig1D alpha.tiff", width = 5, height = 4)
+ggsave("Output/Final figures/Fig1/Fig1J.tiff", width = 5, height = 4)
 
+## Fig 1K ## ----
 celltypeprop %>%  
-  filter(diagnosis != "T1D") %>%
   anova_test(beta_end ~ donorage + donorsex*diagnosis) #sig for disease and interaction
 model <- celltypeprop %>%
-  filter(diagnosis != "T1D") %>%
   lm(beta_end ~ donorage + donorsex*diagnosis, data = .)
 emmeans_res <- emmeans(model, ~ donorsex | diagnosis)
 pairs(emmeans_res, adjust = "tukey") #sig  for F-M in T2D
@@ -364,334 +641,348 @@ celltypeprop %>%
   ggplot(aes(x=donorsex, y = beta_end*100))+
   geom_boxplot(aes(fill = diagnosis), alpha = 0.5, position = position_dodge(width = 0.9))+
   geom_quasirandom(size = 2, shape = 21, aes(group = diagnosis, fill = diagnosis), dodge.width=0.9) +
-  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 64, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.35))+ 
-  geom_bracket(inherit.aes = FALSE, xmin = 1.225, xmax = 2.225, y.position = 69, label = "*", label.size = 7, size = 0.5, tip.length = c(0.15, 0.02))+ 
-  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 66, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.1, 0.02))+ 
-  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.775, y.position = 73, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+ 
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 70, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.2))+ 
+  geom_bracket(inherit.aes = FALSE, xmin = 1.225, xmax = 2.225, y.position = 100, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.02))+ 
+  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 72, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.1, 0.02))+ 
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.775, y.position = 85, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+ 
   scale_colour_manual(values = c("grey40", "#e04e34"))  +
   scale_fill_manual(values = c("grey40", "#e04e34"))  +
   xlab("")+
-  scale_y_continuous(limits = c(40,75))+
+  scale_y_continuous(limits = c(0,120), breaks = c(0,25,50,75,100))+
   ylab("% beta-cells") +
-  labs(fill = "Condition", colour = "Condition")+
+  labs(fill = "Condition")+
   theme_bw() +
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line())
-ggsave("Output/Fig1/Fig1D beta.tiff", width = 5, height = 4)
+ggsave("Output/Final figures/Fig1/Fig1K.tiff", width = 5, height = 4)
 
+## Fig 1L ## ----
+celltypeprop %>%  
+  anova_test(nonab_end ~ donorage + donorsex*diagnosis) #sig for diagnosis
+model <- celltypeprop %>%
+  lm(nonab_end ~ donorage + donorsex*diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ donorsex | diagnosis)
+pairs(emmeans_res, adjust = "tukey") #ns
+emmeans_res <- emmeans(model, ~ diagnosis | donorsex)
+pairs(emmeans_res, adjust = "tukey") #sig for males
+celltypeprop %>%  
+  mutate(diagnosis = case_when(
+    diagnosis == "Type2" ~ "T2D",
+    diagnosis == "Type1" ~ "T1D",
+    diagnosis == "None" ~ "Control"
+  )) %>%
+  filter(diagnosis %in% c("Control", "T2D")) %>%
+  ggplot(aes(x=donorsex, y = nonab_end*100))+
+  geom_boxplot(aes(fill = diagnosis), alpha = 0.5, position = position_dodge(width = 0.9))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = diagnosis, fill = diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 25, label = "*", label.size = 7, size = 0.5, tip.length = c(0.1, 0.02))+ 
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 25, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+ 
+  geom_bracket(inherit.aes = FALSE, xmin = 1.225, xmax = 2.225, y.position = 40, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+ 
+   geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.775, y.position = 50, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+ 
+  scale_colour_manual(values = c("grey40", "#e04e34"))  +
+  scale_fill_manual(values = c("grey40", "#e04e34"))  +
+  xlab("")+
+  scale_y_continuous(limits = c(0,120), breaks = c(0,25,50,75,100))+
+  ylab("% non-alpha, non-beta\nendocrine cells") +
+  labs(fill = "Condition")+
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line())
+ggsave("Output/Final figures/Fig1/Fig1L.tiff", width = 5, height = 4)
+
+## Fig S2E ## ----
+unique(celltypeprop$diagnosis) #no Type1 donors in this dataset
+celltypeprop$Group <- as.logical(celltypeprop$diagnosis == 'Type2')
+celltypeprop_matched <- matchit(Group ~ donorage + donorsex,
+                                data = celltypeprop,
+                                method = 'nearest',  
+                                ratio = 1, 
+                                exact = ~donorsex
+) 
+celltypeprop_matched <- match.data(celltypeprop_matched)
+head(celltypeprop_matched)
+summary(celltypeprop_matched$subclass)
+
+celltypeprop_matched %>%
+  group_by(donorsex) %>%
+  t_test(donorage ~ diagnosis) #ns
+celltypeprop_matched %>%
+  ggplot(aes(x=donorsex, y=donorage))+
+  geom_boxplot(aes(fill = diagnosis), alpha = 0.5, position = position_dodge(width = 0.9))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = diagnosis, fill = diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 68, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+ 
+  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 70, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+ 
+  scale_colour_manual(values = c("grey40", "#e04e34"))  +
+  scale_fill_manual(values = c("grey40", "#e04e34"))  +
+  xlab("")+
+  ylab("Age (years)") +
+  scale_y_continuous(limits = c(35,75))+
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line())
+ggsave("Output/Final figures/FigS2/FigS2E.tiff", width = 5, height = 4)
+
+#celltype proportion data age-matched
+celltypeprop_matched %>%  
+  anova_test(alpha_end ~ donorage + donorsex*diagnosis) #sig for disease and interaction
+model <- celltypeprop_matched %>%
+  lm(alpha_end ~ donorage + donorsex*diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ diagnosis | donorsex)
+pairs(emmeans_res, adjust = "tukey") #sig for Control vs T2D in females
+celltypeprop_matched %>%  
+  mutate(diagnosis = case_when(
+    diagnosis == "Type2" ~ "T2D",
+    diagnosis == "Type1" ~ "T1D",
+    diagnosis == "None" ~ "Control"
+  )) %>%
+  filter(diagnosis %in% c("Control", "T2D")) %>%
+  ggplot(aes(x=donorsex, y = alpha_end*100))+
+  geom_boxplot(aes(fill = diagnosis), alpha = 0.5, position = position_dodge(width = 0.9))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = diagnosis, fill = diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 45, label = "*", label.size = 7, size = 0.5, tip.length = c(0.4, 0.02))+ 
+  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 45, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.2, 0.22))+ 
+  scale_colour_manual(values = c("grey40", "#e04e34"))  +
+  scale_fill_manual(values = c("grey40", "#e04e34"))  +
+  xlab("")+
+  scale_y_continuous(limits = c(0,120), breaks = c(0,25,50,75,100))+
+  ylab("% alpha-cells") +
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line())
+ggsave("Output/Final figures/FigS2/FigS2F.tiff", width = 5, height = 4)
+
+celltypeprop_matched %>%  
+  anova_test(beta_end ~ donorage + donorsex*diagnosis) #sig for disease
+model <- celltypeprop_matched %>%
+  lm(beta_end ~ donorage + donorsex*diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ diagnosis | donorsex)
+pairs(emmeans_res, adjust = "tukey") #sig for Control in females
+celltypeprop_matched %>%  
+  mutate(diagnosis = case_when(
+    diagnosis == "Type2" ~ "T2D",
+    diagnosis == "Type1" ~ "T1D",
+    diagnosis == "None" ~ "Control"
+  )) %>%
+  filter(diagnosis %in% c("Control", "T2D")) %>%
+  ggplot(aes(x=donorsex, y = beta_end*100))+
+  geom_boxplot(aes(fill = diagnosis), alpha = 0.5, position = position_dodge(width = 0.9))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = diagnosis, fill = diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 70, label = "*", label.size = 7, size = 0.5, tip.length = c(0.1, 0.35))+ 
+  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 70, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.1, 0.1))+ 
+  scale_colour_manual(values = c("grey40", "#e04e34"))  +
+  scale_fill_manual(values = c("grey40", "#e04e34"))  +
+  xlab("")+
+  scale_y_continuous(limits = c(0,120), breaks = c(0,25,50,75,100))+
+  ylab("% beta-cells") +
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line())
+ggsave("Output/Final figures/FigS2/FigS2G.tiff", width = 5, height = 4)
+
+celltypeprop_matched %>%  
+  anova_test(nonab_end ~ donorage + donorsex*diagnosis) #sig for diagnosis
+model <- celltypeprop_matched %>%
+  lm(nonab_end ~ donorage + donorsex*diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ diagnosis | donorsex)
+pairs(emmeans_res, adjust = "tukey") #sig for males
+celltypeprop_matched %>%  
+  mutate(diagnosis = case_when(
+    diagnosis == "Type2" ~ "T2D",
+    diagnosis == "Type1" ~ "T1D",
+    diagnosis == "None" ~ "Control"
+  )) %>%
+  filter(diagnosis %in% c("Control", "T2D")) %>%
+  ggplot(aes(x=donorsex, y = nonab_end*100))+
+  geom_boxplot(aes(fill = diagnosis), alpha = 0.5, position = position_dodge(width = 0.9))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = diagnosis, fill = diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 25, label = "*", label.size = 7, size = 0.5, tip.length = c(0.3, 0.1))+ 
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 25, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.1, 0.1))+ 
+  scale_colour_manual(values = c("grey40", "#e04e34"))  +
+  scale_fill_manual(values = c("grey40", "#e04e34"))  +
+  xlab("")+
+  scale_y_continuous(limits = c(0,120), breaks = c(0,25,50,75,100))+
+  ylab("% non-alpha, non-beta\nendocrine cells") +
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line())
+ggsave("Output/Final figures/FigS2/FigS2H.tiff", width = 5, height = 4)
 
 
 ### Figure 2 ### ----
-## Fig 2A-B ## ----
+## Fig 2A ## ----
 
 #clear environment
 rm(list = ls())
 
-#Download and perform DE analysis on pseudobulked beta-cell and alpha-cell scRNAseq data from HPAP
+#Pseudobulk scRNAseq from HPAP
 dat <- readRDS("data/HPAP/T1D_T2D_20220428.rds")  #downloaded 7 January 2024
-beta <- subset(x = dat, idents = "Beta") #subset by cell type
-alpha <- subset(x = dat, idents = "Alpha")
-beta_bulk <- AggregateExpression(beta, group.by = c("hpap_id"), return.seurat = TRUE) #pseudobulk
-beta_bulk_rawcounts_df <- data.frame(beta_bulk[["RNA"]]$counts) #retrieve raw counts
-alpha_bulk <- AggregateExpression(alpha, group.by = c("hpap_id"), return.seurat = TRUE)
-alpha_bulk_rawcounts_df <- data.frame(alpha_bulk[["RNA"]]$counts)
-
-donor_all <- read_excel("data/HPAP/Donor_Summary_192.xlsx")
-donor_all$donor_ID <- gsub("-","", donor_all$donor_ID) #match donor IDs to those in the Seurat
-
-#rename groups
-donor_all <- donor_all %>%
+dat_bulk <- AggregateExpression(dat, group.by = c("hpap_id"), return.seurat = TRUE) #pseudobulk
+dat_bulk_rawcounts_df <- data.frame(dat_bulk[["RNA"]]$counts) #retrieve raw counts
+donor_HPAP <- read_excel("data/HPAP/Donor_Summary_192.xlsx")
+donor_HPAP$donor_ID <- gsub("-","", donor_HPAP$donor_ID) #match donor IDs to those in the Seurat
+donor_HPAP <- donor_HPAP %>%
   mutate(simplified_diagnosis = case_when(
     grepl("T2DM",clinical_diagnosis) == TRUE ~ "T2D",
     grepl("T1DM",clinical_diagnosis) == TRUE ~ "T1D",
     grepl("control", clinical_diagnosis) == TRUE ~ "Control"
   ))
 
-#DESeq on pseudobulked beta cell data to compare young donors without diabetes
-donorlist <- colnames(beta_bulk_rawcounts_df)
-betadonor_deseq <- donor_all %>%
-  filter(donor_ID %in% donorlist) %>% #including only donors that we have scRNAseq data for
-  filter(simplified_diagnosis=="Control") %>%
-  filter(age_years > 14, age_years < 40)
-donorlist <- betadonor_deseq$donor_ID #including only young donors without diabetes
-beta_bulk_rawcounts_df <- beta_bulk_rawcounts_df %>%
-  dplyr::select(all_of(donorlist))
-rownames(betadonor_deseq) <- betadonor_deseq$donor_ID
-all(rownames(betadonor_deseq) %in% colnames(beta_bulk_rawcounts_df)) #check the samples match
+#filter, remove anything with > 80% zeros
+dat_bulk_rawcounts_df <- dat_bulk_rawcounts_df %>%
+  tibble::rownames_to_column("Gene") %>%
+  filter(rowSums(dplyr::select(., -Gene) == 0) / (ncol(.) - 1) <= 0.8) %>%
+  tibble::column_to_rownames("Gene")
 
-#RunDEseq
-betadds <- DESeqDataSetFromMatrix(countData = beta_bulk_rawcounts_df,
-                                  colData = betadonor_deseq,
-                                  design = ~ sex + age_years) 
+#logCPM transformation
+dat_bulk_rawcounts_df <- DGEList(counts=dat_bulk_rawcounts_df)
+dat_bulk_rawcounts_df <- calcNormFactors(dat_bulk_rawcounts_df)
+dat_bulk_logCPM <- cpm(dat_bulk_rawcounts_df, log=TRUE, prior.count=2)
+dat_bulk_logCPM <- data.frame(dat_bulk_logCPM)
+dat_bulk_logCPM_long <- dat_bulk_logCPM %>%
+  mutate(Gene = rownames(dat_bulk_logCPM)) %>%
+  pivot_longer(!Gene, values_to = "logCPM", names_to = "DonorID")
+hist(dat_bulk_logCPM_long$logCPM)
 
-#remove low count genes
-table(betadonor_deseq$sex, betadonor_deseq$simplified_diagnosis) #7 females, 17 males
-smallestGroupSize <- 7
-keep <- rowSums(counts(betadds) >= 10) >= smallestGroupSize
-betadds <- betadds[keep,]
+#convert to entrez and sum those with same entrez
+dat_bulk_logCPM_long$entrez1 <- mapIds(org.Hs.eg.db, keys=c(dat_bulk_logCPM_long$Gene), column="ENTREZID", keytype="SYMBOL", multiVals="first") %>% 
+  as.character()
+dat_bulk_logCPM_long$entrez2 <- mapIds(org.Hs.eg.db, keys=c(dat_bulk_logCPM_long$Gene), column="ENTREZID", keytype="ALIAS", multiVals="first") %>% 
+  as.character()
+dat_bulk_logCPM_long <- dat_bulk_logCPM_long %>% 
+  mutate(entrez = coalesce(entrez1, entrez2), .keep = "unused")
+dat_bulk_logCPM_long <- dat_bulk_logCPM_long %>%
+  group_by(entrez, DonorID) %>%
+  summarise(entrez_summed = sum(logCPM))
 
-#make males the control for disease state for comparison
-betadds$sex <- relevel(betadds$sex, ref = "Male")
-betadds <- DESeq(betadds)
-betares <- results(betadds)
-
-#Shrinkage of effect size (LFC estimates) is useful for visualization and ranking of genes.
-resultsNames(betadds)
-betaresLFCdisease <- lfcShrink(betadds, coef="sex_Female_vs_Male", type="apeglm")
-betaresLFCdiseaseOrdered <- betaresLFCdisease[order(betaresLFCdisease$pvalue),] #reorder by p value
-dim(betaresLFCdiseaseOrdered %>% filter(padj < 0.05, log2FoldChange > 0)) #1 female-biased, GHRL
-dim(betaresLFCdiseaseOrdered %>% filter(padj < 0.05, log2FoldChange < 0)) #10 male-biased
-
-#write csv file
-write.csv(betaresLFCdiseaseOrdered, "Output/Fig2/HPAP beta scRNAseq DEseq2 ctrls 15-39.csv")
-
-#GSEA
-#GSEA function
-gsea_human <- function(df,FC_col, p_col, name){ 
-    # remove duplicated entrez
-    df <- df[order(df[[p_col]]),]
-  df <- df[!duplicated(df$entrez),]
-  df <- df[!is.na(df$entrez), ]
-  
-  #rank by signed -log10 p value
-  genelist <- sign(df[[FC_col]]) * (-log10(df[[p_col]]))
-  
-  # entrez id as names of the gene list
-  names(genelist) <- df$entrez
-  
-  genelist[genelist==Inf] <- max(genelist[is.finite(genelist)])+1
-  genelist[genelist==-Inf] <- min(genelist[is.finite(genelist)])-1
-  
-  genelist = sort(genelist, decreasing = TRUE)
-  genelist <- na.omit(genelist)
-  
-  gseGO.bp <- gseGO(
-    geneList=genelist,
-    ont = "BP",
-    OrgDb = org.Hs.eg.db,
-    minGSSize = 15, 
-    maxGSSize = 500,
-    pvalueCutoff = 1,
-    verbose = TRUE,
-    keyType = "ENTREZID"
-  )
-  gseGO.bp <- setReadable(gseGO.bp, OrgDb = org.Hs.eg.db, keyType="ENTREZID") # The geneID column is translated from EntrezID to symbol
-  gseGO.bp.df <- as.data.frame(gseGO.bp)
-  
-  gseGO.mf <- gseGO(
-    geneList=genelist,
-    ont = "MF",
-    OrgDb = org.Hs.eg.db,
-    minGSSize = 15, 
-    maxGSSize = 500,
-    pvalueCutoff = 1,
-    verbose = TRUE,
-    keyType = "ENTREZID"
-  )
-  gseGO.mf <- setReadable(gseGO.mf, OrgDb = org.Hs.eg.db, keyType="ENTREZID") # The geneID column is translated from EntrezID to symbol
-  gseGO.mf.df <- as.data.frame(gseGO.mf)
-  
-  gseGO.cc <- gseGO(
-    geneList=genelist,
-    ont = "CC",
-    OrgDb = org.Hs.eg.db,
-    minGSSize = 15, 
-    maxGSSize = 500,
-    pvalueCutoff = 1,
-    verbose = TRUE,
-    keyType = "ENTREZID"
-  )
-  gseGO.cc <- setReadable(gseGO.cc, OrgDb = org.Hs.eg.db, keyType="ENTREZID") # The geneID column is translated from EntrezID to symbol
-  gseGO.cc.df <- as.data.frame(gseGO.cc)
-  
-  
-  # Add the data frames to separate sheets
-  wb <- createWorkbook()
-  
-  addWorksheet(wb, "GO_BP")
-  writeData(wb, "GO_BP", gseGO.bp.df)
-  
-  addWorksheet(wb, "GO_MF")
-  writeData(wb, "GO_MF", gseGO.mf.df)
-  
-  addWorksheet(wb, "GO_CC")
-  writeData(wb, "GO_CC", gseGO.cc.df)
-  
-  # Save the workbook to a file
-  fpath <- paste0("Output/Fig2/GSEA_p_", name, ".xlsx")
-  saveWorkbook(wb, fpath, overwrite = TRUE)
-    cat(paste0("GSEA results saved in - ", fpath))
-  
-}
-
-betaresLFCdiseaseOrdered <- data.frame(betaresLFCdiseaseOrdered)
-betaresLFCdiseaseOrdered$Gene <- rownames(betaresLFCdiseaseOrdered)
-betaresLFCdiseaseOrdered$entrez1 <- mapIds(org.Hs.eg.db, keys=c(betaresLFCdiseaseOrdered$Gene), column="ENTREZID", keytype="SYMBOL", multiVals="first") %>% 
-  as.character()  # use gene symbol to get Entrez ID
-betaresLFCdiseaseOrdered$entrez2 <- mapIds(org.Hs.eg.db, keys=c(betaresLFCdiseaseOrdered$Gene), column="ENTREZID", keytype="ALIAS", multiVals="first") %>% 
-  as.character() # use gene symbol as alias to get Entrez ID
-
-betaresLFCdiseaseOrdered <- betaresLFCdiseaseOrdered %>% 
-  mutate(entrez = coalesce(entrez1, entrez2), .keep = "unused") 
-
-gsea_human(df = betaresLFCdiseaseOrdered,
-           FC_col = "log2FoldChange",
-           p_col = "pvalue",
-           name = "beta_scRNAseq_youngcontrols")
-
-
-#DESeq on pseudobulked alpha cell data to compare young donors without diabetes
-donorlist <- colnames(alpha_bulk_rawcounts_df)
-alphadonor_deseq <- donor_all %>%
-  filter(donor_ID %in% donorlist) %>% #including only donors that we have scRNAseq data for
-  filter(simplified_diagnosis=="Control") %>%
-  filter(age_years > 14, age_years < 40)
-donorlist <- alphadonor_deseq$donor_ID #including only young donors without diabetes
-alpha_bulk_rawcounts_df <- alpha_bulk_rawcounts_df %>%
-  dplyr::select(all_of(donorlist))
-rownames(alphadonor_deseq) <- alphadonor_deseq$donor_ID
-all(rownames(alphadonor_deseq) %in% colnames(alpha_bulk_rawcounts_df)) #check the samples match
-
-#RunDEseq
-alphadds <- DESeqDataSetFromMatrix(countData = alpha_bulk_rawcounts_df,
-                                  colData = alphadonor_deseq,
-                                  design = ~ sex + age_years) 
-
-#remove low count genes
-table(alphadonor_deseq$sex, alphadonor_deseq$simplified_diagnosis) #7 females, 17 males
-smallestGroupSize <- 7
-keep <- rowSums(counts(alphadds) >= 10) >= smallestGroupSize
-alphadds <- alphadds[keep,]
-
-#make males the control for disease state for comparison
-alphadds$sex <- relevel(alphadds$sex, ref = "Male")
-alphadds <- DESeq(alphadds)
-alphares <- results(alphadds)
-
-#Shrinkage of effect size (LFC estimates) is useful for visualization and ranking of genes.
-resultsNames(alphadds)
-alpharesLFCdisease <- lfcShrink(alphadds, coef="sex_Female_vs_Male", type="apeglm")
-alpharesLFCdiseaseOrdered <- alpharesLFCdisease[order(alpharesLFCdisease$pvalue),] #reorder by p value
-dim(alpharesLFCdiseaseOrdered %>% filter(padj < 0.05, log2FoldChange > 0)) #5 female-biased
-dim(alpharesLFCdiseaseOrdered %>% filter(padj < 0.05, log2FoldChange < 0)) #17 male-biased
-
-#write csv file
-write.csv(alpharesLFCdiseaseOrdered, "Output/Fig2/HPAP alpha scRNAseq DEseq2 ctrls 15-39.csv")
-
-#GSEA
-alpharesLFCdiseaseOrdered <- data.frame(alpharesLFCdiseaseOrdered)
-alpharesLFCdiseaseOrdered$Gene <- rownames(alpharesLFCdiseaseOrdered)
-alpharesLFCdiseaseOrdered$entrez1 <- mapIds(org.Hs.eg.db, keys=c(alpharesLFCdiseaseOrdered$Gene), column="ENTREZID", keytype="SYMBOL", multiVals="first") %>% 
-  as.character()  # use gene symbol to get Entrez ID
-alpharesLFCdiseaseOrdered$entrez2 <- mapIds(org.Hs.eg.db, keys=c(alpharesLFCdiseaseOrdered$Gene), column="ENTREZID", keytype="ALIAS", multiVals="first") %>% 
-  as.character() # use gene symbol as alias to get Entrez ID
-
-alpharesLFCdiseaseOrdered <- alpharesLFCdiseaseOrdered %>% 
-  mutate(entrez = coalesce(entrez1, entrez2), .keep = "unused") 
-
-gsea_human(df = alpharesLFCdiseaseOrdered,
-           FC_col = "log2FoldChange",
-           p_col = "pvalue",
-           name = "alpha_scRNAseq_youngcontrols")
-
-#Comparing young controls for Humanislets.com bulk RNAseq data
-
-#clear environment
-rm(list = ls())
-
-#import data downloaded 21 May 2024
+#read in bulk RNAseq from Humanislets.com
 proc_rnaseq <- read.csv("data/Humanislets.com/proc_rnaseq.csv")
-donor_data <- read.csv("data/Humanislets.com/donor.csv")
-
-#multiple ANCOVA with age as covariate + BH correction
 proc_rnaseq_long <- proc_rnaseq %>%
-  pivot_longer(!gene_id, values_to = "logCPM", names_to = "record_id")
-proc_rnaseq_long <- inner_join(proc_rnaseq_long, donor_data, by = "record_id") #join metadata
-proc_rnaseq_long_15to39 <- proc_rnaseq_long %>%
-  filter(donorage > 14, donorage < 40) %>%
-  filter(diagnosis == "None")
-table(proc_rnaseq_long_15to39$donorsex, proc_rnaseq_long_15to39$diagnosis)/length(unique(proc_rnaseq_long_15to39$gene_id))
-#8 females, 18 males
+  pivot_longer(!gene_id, names_to = "DonorID", values_to = "logCPM")
+donor_HI <- donor_data %>%
+  dplyr::select(record_id, donorage, donorsex, diagnosis) %>%
+  mutate(dataset = rep("Humanislets",nrow(donor_data)))
+donor_HPAP_select <- donor_HPAP %>%
+  dplyr::select(donor_ID, age_years, sex, simplified_diagnosis) %>%
+  mutate(dataset = rep("HPAP",nrow(donor_HPAP)))
+colnames(donor_HPAP_select) <- colnames(donor_HI)
 
-#filter out genes with NA in more than n.donors in smallest group
-smallest_group <- 8
-to_remove <- proc_rnaseq_long_15to39 %>%
-  group_by(gene_id) %>%
-  summarise(na_count = sum(is.na(logCPM))) %>%
-  filter(na_count > smallest_group)
-proc_rnaseq_long_15to39 <- proc_rnaseq_long_15to39 %>%
-  filter(!gene_id %in% to_remove$gene_id)
-ngenes <- length(unique(proc_rnaseq_long_15to39$gene_id))
+#combine metadata
+metadata_combined <- bind_rows(donor_HPAP_select, donor_HI)
+metadata_combined <-metadata_combined %>%
+  mutate(diagnosis = case_when(
+    diagnosis == "Type2" ~ "T2D",
+    diagnosis == "Type1" ~ "T1D",
+    diagnosis == "None" ~ "Control",
+    .default = diagnosis
+  ))
 
-proc_rnaseq_ancovas_15to39 <- list()
-for (i in 1:ngenes){ 
-  geneid <- unique(proc_rnaseq_long_15to39$gene_id)[i]
-  data <- proc_rnaseq_long_15to39 %>%
-    filter(gene_id == geneid)
-  test.f <- data %>% #to avoid errors in t-test for genes with not enough values
-    filter(donorsex == "Female") %>% 
-    drop_na(logCPM)
-  test.f.val <- dim(test.f)[1]
-  test.m <- data %>%
-    filter(donorsex == "Male") %>% 
-    drop_na(logCPM)
-  test.m.val <- dim(test.m)[1]
-  if (test.f.val > 1 & test.m.val >1){
-    ancova <- data %>%
-      anova_test(logCPM ~ donorage + donorsex)
-    pval <- ancova[2,5]
-    proc_rnaseq_ancovas_15to39[[i]] <- c(geneid, pval)
-  } else{
-    proc_rnaseq_ancovas_15to39[[i]] <- c(geneid, NA)
-  }
-}
-proc_rnaseq_ancovas_15to39 <- data.frame(do.call(rbind, proc_rnaseq_ancovas_15to39))
-colnames(proc_rnaseq_ancovas_15to39) <- c("gene_id","pval")
-proc_rnaseq_ancovas_15to39$gene_id <- as.character(proc_rnaseq_ancovas_15to39$gene_id)
-proc_rnaseq_ancovas_15to39$pval <- as.numeric(proc_rnaseq_ancovas_15to39$pval)
-proc_rnaseq_ancovas_15to39 <- proc_rnaseq_ancovas_15to39 %>%
-  filter(is.na(pval) == FALSE) #remove all with no pval
 
-#Benjamini-Hochberg correction for multiple t tests
-proc_rnaseq_ancovas_15to39$padj <- p.adjust(proc_rnaseq_ancovas_15to39$pval, method = "BH")
+#combine datasets
+proc_rnaseq_long <- proc_rnaseq_long %>% dplyr:: select(gene_id, DonorID, logCPM)
+dat_bulk_logCPM_long <- dat_bulk_logCPM_long %>% dplyr:: select(entrez, DonorID, entrez_summed)
+colnames(dat_bulk_logCPM_long) <- colnames(proc_rnaseq_long)
+dat_bulk_logCPM_long$gene_id <- as.numeric(dat_bulk_logCPM_long$gene_id)
+bulk_logcpm_combined <- bind_rows(proc_rnaseq_long, dat_bulk_logCPM_long)
 
-proc_rnaseq_ancovas_15to39.means <- proc_rnaseq_long_15to39 %>%
-  group_by(gene_id, donorsex) %>%
-  summarise(mean.logCPM = mean(logCPM, na.rm=TRUE))
-proc_rnaseq_ancovas_15to39.means <- proc_rnaseq_ancovas_15to39.means %>%
-  pivot_wider(names_from = donorsex, names_prefix = "meanlogCPM_", values_from = mean.logCPM)
-proc_rnaseq_ancovas_15to39.means$gene_id <- as.character(proc_rnaseq_ancovas_15to39.means$gene_id)
-proc_rnaseq_ancovas_15to39 <- inner_join(proc_rnaseq_ancovas_15to39, proc_rnaseq_ancovas_15to39.means, by = "gene_id")
-proc_rnaseq_ancovas_15to39 <- proc_rnaseq_ancovas_15to39 %>%
-  mutate(logFC = meanlogCPM_Male-meanlogCPM_Female)
-head(proc_rnaseq_ancovas_15to39)
-proc_rnaseq_ancovas_15to39 <- proc_rnaseq_ancovas_15to39 %>%
-  arrange(padj)
+#limma
+bulk_youngcontrols_feature <- bulk_logcpm_combined %>%
+  filter(is.na(gene_id)==FALSE) %>%
+  dplyr::select(gene_id, DonorID, logCPM) %>%
+  pivot_wider(names_from = "DonorID", values_from = "logCPM")
+genes_bulk_youngcontrols <- bulk_youngcontrols_feature$gene_id
+bulk_youngcontrols_feature <- data.frame(bulk_youngcontrols_feature)
+rownames(bulk_youngcontrols_feature) <- genes_bulk_youngcontrols
+bulk_youngcontrols_feature <- bulk_youngcontrols_feature[,-1] #remove the gene column
 
-#get common names
-x <- org.Hs.egSYMBOL
-mapped_genes <- mappedkeys(x)
-common.names <- as.list(x[mapped_genes])
-common.names <- unlist(common.names)
-ngenes <- length(unique(proc_rnaseq_ancovas_15to39$gene_id))
+bulk_youngcontrols_metadata <- metadata_combined %>%
+  filter(diagnosis %in% c("Control"), donorage > 14, donorage < 40) %>%
+  filter(record_id %in% colnames(bulk_youngcontrols_feature))
 
-proc_rnaseq_ancovas_15to39$common.name <- rep(NA,ngenes)
-for (i in 1:ngenes){
-  entrez <- proc_rnaseq_ancovas_15to39$gene_id[i]
-  proc_rnaseq_ancovas_15to39$common.name[i] <- common.names[entrez]
-}
-head(proc_rnaseq_ancovas_15to39)
-dim(proc_rnaseq_ancovas_15to39 %>% filter(padj < 0.05, logFC < 0)) #0 female-biased
-dim(proc_rnaseq_ancovas_15to39 %>% filter(padj < 0.05, logFC > 0)) #0 male-biased
+bulk_youngcontrols_feature <- bulk_youngcontrols_feature %>%
+  dplyr::select(bulk_youngcontrols_metadata$record_id)
 
-write.csv(proc_rnaseq_ancovas_15to39, "Output/Fig2/Humanisletscom bulk RNAseq DEseq2 ctrls 15-39.csv")
+table(bulk_youngcontrols_metadata$donorsex, bulk_youngcontrols_metadata$dataset)
+#7 F, 17 M from HPAP, 8 F, 18 M from humanislets
+
+#check order
+all(colnames(bulk_youngcontrols_feature) == bulk_youngcontrols_metadata$record_id) #TRUE
+
+#eliminate any feature with fewer than 10 observations
+feature.keep_bulk_youngcontrols <- apply(bulk_youngcontrols_feature, 1, function(x){sum(!is.na(x)) >= 9})
+bulk_youngcontrols_feature <- bulk_youngcontrols_feature[feature.keep_bulk_youngcontrols, ]
+
+# perform analysis
+# make design matrix
+grp.nms <- sort(unique(bulk_youngcontrols_metadata$donorsex))
+fixedEffects <- c("donorage","dataset") #correct for age
+all.vars <- c("donorsex", fixedEffects)
+design_bulkyoungcontrols <- model.matrix(formula(paste0("~ 0 + ", all.vars[1], paste0(" + ", all.vars[2:length(all.vars)], collapse = ""))), data = bulk_youngcontrols_metadata)
+colnames(design_bulkyoungcontrols)[1:length(grp.nms)] <- grp.nms
+
+# make contrast matrix
+myargs_bulkyoungcontrols <- list()
+ref <- "Female" #using female as reference
+contrasts <- grp.nms[grp.nms != ref]
+myargs_bulkyoungcontrols <- as.list(paste("Male", "-", ref, sep = ""))
+myargs_bulkyoungcontrols[["levels"]] <- design_bulkyoungcontrols
+contrast.matrix_bulkyoungcontrols <- do.call(makeContrasts, myargs_bulkyoungcontrols)
+
+# get results
+fit_bulkyoungcontrols <- lmFit(bulk_youngcontrols_feature, design_bulkyoungcontrols, trend = TRUE, robust = TRUE)
+fit_bulkyoungcontrols <- contrasts.fit(fit_bulkyoungcontrols, contrast.matrix_bulkyoungcontrols)
+fit_bulkyoungcontrols <- eBayes(fit_bulkyoungcontrols)
+res.table_bulkyoungcontrols <- topTable(fit_bulkyoungcontrols, number = Inf)
+
+# Remove results rows with NAs
+res.table_bulkyoungcontrols <- res.table_bulkyoungcontrols[!is.na(res.table_bulkyoungcontrols$P.Value), ]
+
+# Save output
+res.table_bulkyoungcontrols$entrez <- rownames(res.table_bulkyoungcontrols)
+res.table_bulkyoungcontrols$Gene <- mapIds(org.Hs.eg.db, keys=c(res.table_bulkyoungcontrols$entrez), column="SYMBOL", keytype="ENTREZID", multiVals="first") %>% 
+  as.character() 
+write.csv(res.table_bulkyoungcontrols, "Output/Final figures/Fig2/BulkHI and pbHPAP_combined_youngcontrols_dea_results_correctforage_dataset.csv", row.names = FALSE)
 
 #GSEA
 gsea_human <- function(df,FC_col, p_col, name){ 
@@ -765,56 +1056,28 @@ gsea_human <- function(df,FC_col, p_col, name){
   writeData(wb, "GO_CC", gseGO.cc.df)
   
   # Save the workbook to a file
-  fpath <- paste0("Output/Fig2/GSEA_p_", name, ".xlsx")
+  fpath <- paste0("Output/Final figures/Fig2/GSEA_p_", name, ".xlsx")
   saveWorkbook(wb, fpath, overwrite = TRUE)
   cat(paste0("GSEA results saved in - ", fpath))
   
 }
 
-proc_rnaseq_ancovas_15to39$entrez1 <- mapIds(org.Hs.eg.db, keys=c(proc_rnaseq_ancovas_15to39$common.name), column="ENTREZID", keytype="SYMBOL", multiVals="first") %>% 
-  as.character()  # use gene symbol to get Entrez ID
-proc_rnaseq_ancovas_15to39$entrez2 <- mapIds(org.Hs.eg.db, keys=c(proc_rnaseq_ancovas_15to39$common.name), column="ENTREZID", keytype="ALIAS", multiVals="first") %>% 
-  as.character() # use gene symbol as alias to get Entrez ID
-
-proc_rnaseq_ancovas_15to39 <- proc_rnaseq_ancovas_15to39 %>% 
-  mutate(entrez = coalesce(entrez1, entrez2), .keep = "unused") 
-
-gsea_human(df = proc_rnaseq_ancovas_15to39,
+gsea_human(df = res.table_bulkyoungcontrols,
            FC_col = "logFC",
-           p_col = "pval",
-           name = "bulk_RNAseq_youngcontrols")
+           p_col = "P.Value",
+           name = "BulkHI and pbHPAP_youngcontrols")
 
-#Combining GSEA results to graph together
-HIGO_CC <- read_excel("Output/Fig2/GSEA_p_bulk_RNAseq_youngcontrols.xlsx",sheet="GO_CC")
-HIGO_BP <- read_excel("Output/Fig2/GSEA_p_bulk_RNAseq_youngcontrols.xlsx",sheet="GO_BP")
-HIGO_MF <- read_excel("Output/Fig2/GSEA_p_bulk_RNAseq_youngcontrols.xlsx",sheet="GO_MF")
-HIGO <- bind_rows(HIGO_CC, HIGO_BP, HIGO_MF)
-HIGO$NES <- -HIGO$NES #reverse sign to change direction so positive is up in females
-HIGO <- HIGO %>% filter(p.adjust < 0.05) #significant only
+## Fig 2A ## ----
+GO_CC <- read_excel("Output/Final figures/Fig2/GSEA_p_BulkHI and pbHPAP_youngcontrols.xlsx",sheet="GO_CC")
+GO_MF <- read_excel("Output/Final figures/Fig2/GSEA_p_BulkHI and pbHPAP_youngcontrols.xlsx",sheet="GO_MF")
+GO_BP <- read_excel("Output/Final figures/Fig2/GSEA_p_BulkHI and pbHPAP_youngcontrols.xlsx",sheet="GO_BP")
+GO_combined <- bind_rows(GO_CC, GO_MF, GO_BP) %>%
+  arrange(pvalue)
+GO_combined$NES <- -GO_combined$NES #make direction such that positive = female-biased
+GO_combined <-GO_combined %>% filter(p.adjust < 0.05)
 
-HPAPbetascGO_CC <- read_excel("Output/Fig2/GSEA_p_beta_scRNAseq_youngcontrols.xlsx",sheet="GO_CC")
-HPAPbetascGO_BP <- read_excel("Output/Fig2/GSEA_p_beta_scRNAseq_youngcontrols.xlsx",sheet="GO_BP")
-HPAPbetascGO_MF <- read_excel("Output/Fig2/GSEA_p_beta_scRNAseq_youngcontrols.xlsx",sheet="GO_MF")
-HPAPbetascGO <- bind_rows(HPAPbetascGO_CC, HPAPbetascGO_BP, HPAPbetascGO_MF)
-HPAPbetascGO <- HPAPbetascGO %>% filter(p.adjust < 0.05) #significant only
-
-HPAPalphascGO_CC <- read_excel("Output/Fig2/GSEA_p_alpha_scRNAseq_youngcontrols.xlsx",sheet="GO_CC")
-HPAPalphascGO_BP <- read_excel("Output/Fig2/GSEA_p_alpha_scRNAseq_youngcontrols.xlsx",sheet="GO_BP")
-HPAPalphascGO_MF <- read_excel("Output/Fig2/GSEA_p_alpha_scRNAseq_youngcontrols.xlsx",sheet="GO_MF")
-HPAPalphascGO <- bind_rows(HPAPalphascGO_CC, HPAPalphascGO_BP, HPAPalphascGO_MF)
-HPAPalphascGO <- HPAPalphascGO %>% filter(p.adjust < 0.05) #significant only
-
-#Check that column names are consistent
-all(colnames(HIGO) == colnames(HPAPbetascGO)) #TRUE
-all(colnames(HIGO) == colnames(HPAPalphascGO)) #TRUE
-
-#combine into single dataframe
-GO_all <- bind_rows(HIGO, HPAPbetascGO, HPAPalphascGO)
-GO_all$dataset <- c(rep("Humanislets.com\nbulk RNAseq",nrow(HIGO)), rep("HPAP beta-cell\nscRNAseq", nrow(HPAPbetascGO)), rep("HPAP alpha-cell\nscRNAseq", nrow(HPAPalphascGO)))
-head(GO_all)
-
-#identify redundant pathways
-genes_in_pathway <- str_split(GO_all$core_enrichment, pattern = "/") #returns a list where each list contains a vector of the genes in that pathway
+#remove redundant pathways
+genes_in_pathway <- str_split(GO_combined$core_enrichment, pattern = "/") #returns a list where each list contains a vector of the genes in that pathway
 jaccard_similarity <- function(vec1, vec2) {
   intersection <- length(intersect(vec1, vec2))
   union <- length(union(vec1, vec2))
@@ -825,48 +1088,41 @@ jaccard_similarity <- function(vec1, vec2) {
 threshold <- 0.6
 n <- length(genes_in_pathway)
 
-GO_all_refined <- GO_all
 repeat_indices <- c()
 for (i in 1:(n-1)) {
   for (j in (i+1):n) {
     sim <- jaccard_similarity(genes_in_pathway[[i]], genes_in_pathway[[j]])
     if (sim > threshold) {
-      if(GO_all_refined$dataset[[i]] == GO_all_refined$dataset[[j]]){
-        if(length(genes_in_pathway[[i]]) < length(genes_in_pathway[[j]])){ #if similar pathways are from same dataset, keep one with more genes
-          repeat_indices <- c(repeat_indices,i)} else {repeat_indices <- c(repeat_indices,j)}
-      } else{
-        if(nchar(GO_all_refined$Description[[i]]) > nchar(GO_all_refined$Description[[j]])){ #if similar pathways are from different dataset, count as one and keep the shorter name
-          GO_all_refined$Description[[i]] <- GO_all_refined$Description[[j]]
-        } else{GO_all_refined$Description[[j]] <- GO_all_refined$Description[[i]]}
-      }
+      if(length(genes_in_pathway[[i]]) < length(genes_in_pathway[[j]])){
+        repeat_indices <- c(repeat_indices,i)} else {repeat_indices <- c(repeat_indices,j)} #keep the one with more genes in it
     }
   }
 }
 
-#remove pathways that are >threshold similarity index to another pathway in list
-GO_all_refined <- GO_all_refined[-repeat_indices,]
+GO_combined_refined <- GO_combined[-repeat_indices,]
+dim(GO_combined_refined) #39
 
-#visualise
-#female-biased
-GO_Fbiased <- GO_all_refined %>%
-  filter(NES > 0) %>%
-  arrange(pvalue)
-GO_Fbiased_top40 <- GO_Fbiased$Description[1:40] #top 40 pathways
-GO_Fbiased <- GO_Fbiased %>%
-  filter(Description %in% GO_Fbiased_top40)
-GO_Fbiased$Description[32] <- "oxidoreductase activity, acting on NAD(P)H,\nquinone or similar compound as acceptor"
-GO_Fbiased$Description <- factor(GO_Fbiased$Description, levels = unique(GO_Fbiased$Description))
-summary(GO_Fbiased$NES)
-GO_Fbiased %>%
-  ggplot(aes(x=dataset, y=Description, size = NES, colour = p.adjust))+
+GO_combined_refined$direction <- ifelse(GO_combined_refined$NES>0,-1,1)
+GO_combined_refined$directionlogpadj <- GO_combined_refined$direction * log10(GO_combined_refined$p.adjust)
+
+#get pathway order
+GO_combined_refined_F <- GO_combined_refined %>% filter(NES>0) %>%
+  arrange(directionlogpadj)
+GO_combined_refined_M <- GO_combined_refined %>% filter(NES<0) %>%
+  arrange(directionlogpadj)
+pathway_order <- c(unique(GO_combined_refined_M$Description), unique(GO_combined_refined_F$Description))
+
+GO_combined_refined$Description <- factor(GO_combined_refined$Description, levels=pathway_order)
+summary(GO_combined_refined$NES)
+GO_combined_refined %>%
+  ggplot(aes(x=directionlogpadj, y=Description, size = abs(NES), colour = NES))+
   geom_point() +
-  scale_y_discrete(limits=rev) +
   theme_bw() +
-  labs(x = "", y = "", 
-       title = "Female-biased GO pathways", colour = "Adjusted P-value", size = "NES") +
-  scale_color_gradient2(low = "darkred", mid = "red", high = "white", midpoint = 0.025, limits = c(0,0.05)) +
-  scale_size_continuous(range = c(1,7), limits = c(1,3), breaks = c(1,3)) +
-  scale_x_discrete(position = "top")+
+  labs(x = "Direction signed -log10(p.adjust)", y = "", 
+       title = "", colour = "NES", size = "NES") +
+  scale_color_gradient2(low = "darkblue", mid = "white", high = "darkred", midpoint = 0) +
+  scale_size_continuous(range = c(1,7), limits = c(1,3.5), breaks = c(1,3.5)) +
+  geom_vline(xintercept = 0, linetype = "dashed") +
   theme(legend.position = "right",
         panel.grid = element_blank(),
         axis.text = element_text(size = 10, colour = "black"),
@@ -874,36 +1130,9 @@ GO_Fbiased %>%
         plot.title = element_text(size = 12, hjust = 0.5),
         legend.title = element_text(size = 11),
         legend.text = element_text(size = 10))
-ggsave("Output/Fig2/Fig2A.tiff", width = 8.5, height = 9)
+ggsave("Output/Final figures/Fig2/Fig2A.tiff", width = 8.5, height = 8)
 
-#male-biased
-GO_Mbiased <- GO_all_refined %>%
-  filter(NES < 0) %>%
-  arrange(p.adjust)
-GO_Mbiased$Description <- factor(GO_Mbiased$Description, levels = unique(GO_Mbiased$Description))
-summary(GO_Mbiased$NES)
-GO_Mbiased %>%
-  mutate(NES = -NES) %>%
-  ggplot(aes(x=dataset, y=Description, size = NES, colour = p.adjust))+
-  geom_point() +
-  scale_y_discrete(limits=rev) +
-  theme_bw() +
-  labs(x = "", y = "", 
-       title = "Male-biased GO pathways", colour = "Adjusted P-value", size = "NES") +
-  scale_color_gradient2(low = "darkblue", mid = "blue", high = "white", midpoint = 0.025, limits = c(0,0.05)) +
-  scale_size_continuous(range = c(1,7), limits = c(1.5,2.75), breaks = c(1.5,2.75)) +
-  scale_x_discrete(position = "top")+
-  theme(legend.position = "right",
-        panel.grid = element_blank(),
-        axis.text = element_text(size = 10, colour = "black"),
-        axis.text.x = element_text(hjust = 0.5),
-        plot.title = element_text(size = 12, hjust = 0.5),
-        legend.title = element_text(size = 11),
-        legend.text = element_text(size = 10))
-ggsave("Output/Fig2/Fig2B.tiff", width = 6.9, height = 1.75)
-
-
-## Fig 2C ##----
+## Fig 2B ##----
 #clear environment
 rm(list = ls())
 
@@ -995,7 +1224,7 @@ colnames(res.table)[7] <- "GeneID"
 dim(res.table %>% filter(Adjusted.p_value < 0.05, logFC > 0)) #0 female-biased
 dim(res.table %>% filter(Adjusted.p_value < 0.05, logFC < 0)) #0 male-biased
 
-write.csv(res.table, "Output/Fig2/prot_dea_results_correctforage_controls_15to39.csv", row.names = FALSE)
+write.csv(res.table, "Output/Final figures/Fig2/prot_dea_results_correctforage_controls_15to39.csv", row.names = FALSE)
 
 gsea_human <- function(df,FC_col, p_col, name){ 
   # remove duplicated entrez
@@ -1068,7 +1297,7 @@ gsea_human <- function(df,FC_col, p_col, name){
   writeData(wb, "GO_CC", gseGO.cc.df)
   
   # Save the workbook to a file
-  fpath <- paste0("Output/Fig2/GSEA_p_", name, ".xlsx")
+  fpath <- paste0("Output/Final figures/Fig2/GSEA_p_", name, ".xlsx")
   saveWorkbook(wb, fpath, overwrite = TRUE)
   cat(paste0("GSEA results saved in - ", fpath))
   
@@ -1087,9 +1316,9 @@ gsea_human(df = res.table,
            name = "proteomics_youngcontrols")
 
 #Graph
-GO_CC <- read_excel("Output/Fig2/GSEA_p_proteomics_youngcontrols.xlsx",sheet="GO_CC")
-GO_MF <- read_excel("Output/Fig2/GSEA_p_proteomics_youngcontrols.xlsx",sheet="GO_MF")
-GO_BP <- read_excel("Output/Fig2/GSEA_p_proteomics_youngcontrols.xlsx",sheet="GO_BP")
+GO_CC <- read_excel("Output/Final figures/Fig2/GSEA_p_proteomics_youngcontrols.xlsx",sheet="GO_CC")
+GO_MF <- read_excel("Output/Final figures/Fig2/GSEA_p_proteomics_youngcontrols.xlsx",sheet="GO_MF")
+GO_BP <- read_excel("Output/Final figures/Fig2/GSEA_p_proteomics_youngcontrols.xlsx",sheet="GO_BP")
 GO_combined <- bind_rows(GO_CC, GO_MF, GO_BP) %>%
   arrange(pvalue)
 GO_combined$NES <- -GO_combined$NES #make direction consistent with RNAseq, positive = female-biased
@@ -1147,14 +1376,9 @@ GO_combined_top60 %>%
         plot.title = element_text(size = 12, hjust = 0.5),
         legend.title = element_text(size = 11),
         legend.text = element_text(size = 10))
-ggsave("Output/Fig2/Fig2C.tiff", width = 8, height = 11.5)
+ggsave("Output/Final figures/Fig2/Fig2B.tiff", width = 8, height = 11.5)
 
-###Figure 3 ### ----
-#clear environment
-rm(list = ls())
-
-#import data to compare control and T2D donors of all ages in HPAP scRNAseq datasets
-dat <- readRDS("data/HPAP/T1D_T2D_20220428.rds")  #downloaded 7 January 2024
+### Figure S3 ### ----
 beta <- subset(x = dat, idents = "Beta") #subset by cell type
 alpha <- subset(x = dat, idents = "Alpha")
 beta_bulk <- AggregateExpression(beta, group.by = c("hpap_id"), return.seurat = TRUE) #pseudobulk
@@ -1162,59 +1386,454 @@ beta_bulk_rawcounts_df <- data.frame(beta_bulk[["RNA"]]$counts) #retrieve raw co
 alpha_bulk <- AggregateExpression(alpha, group.by = c("hpap_id"), return.seurat = TRUE)
 alpha_bulk_rawcounts_df <- data.frame(alpha_bulk[["RNA"]]$counts)
 
-donor_all <- read_excel("data/HPAP/Donor_Summary_192.xlsx")
-donor_all$donor_ID <- gsub("-","", donor_all$donor_ID) #match donor IDs to those in the Seurat
+#filter
+beta_bulk_rawcounts_df <- beta_bulk_rawcounts_df %>%
+  tibble::rownames_to_column("Gene") %>%
+  filter(rowSums(dplyr::select(., -Gene) == 0) / (ncol(.) - 1) <= 0.8) %>%
+  tibble::column_to_rownames("Gene")
+alpha_bulk_rawcounts_df <- alpha_bulk_rawcounts_df %>%
+  tibble::rownames_to_column("Gene") %>%
+  filter(rowSums(dplyr::select(., -Gene) == 0) / (ncol(.) - 1) <= 0.8) %>%
+  tibble::column_to_rownames("Gene")
 
-#rename groups
-donor_all <- donor_all %>%
-  mutate(simplified_diagnosis = case_when(
-    grepl("T2DM",clinical_diagnosis) == TRUE ~ "T2D",
-    grepl("T1DM",clinical_diagnosis) == TRUE ~ "T1D",
-    grepl("control", clinical_diagnosis) == TRUE ~ "Control"
+#transform to logCPM
+beta_bulk_rawcounts_df <- DGEList(counts=beta_bulk_rawcounts_df)
+beta_bulk_rawcounts_df <- calcNormFactors(beta_bulk_rawcounts_df) # Defaults to TMM normalization
+beta_bulk_logCPM <- cpm(beta_bulk_rawcounts_df, log=TRUE, prior.count=2)
+beta_bulk_logCPM <- data.frame(beta_bulk_logCPM)
+beta_bulk_logCPM_long <- beta_bulk_logCPM %>%
+  mutate(Gene = rownames(beta_bulk_logCPM)) %>%
+  pivot_longer(!Gene, values_to = "logCPM", names_to = "DonorID")
+hist(beta_bulk_logCPM_long$logCPM)
+
+alpha_bulk_rawcounts_df <- DGEList(counts=alpha_bulk_rawcounts_df)
+alpha_bulk_rawcounts_df <- calcNormFactors(alpha_bulk_rawcounts_df) # Defaults to TMM normalization
+alpha_bulk_logCPM <- cpm(alpha_bulk_rawcounts_df, log=TRUE, prior.count=2)
+alpha_bulk_logCPM <- data.frame(alpha_bulk_logCPM)
+alpha_bulk_logCPM_long <- alpha_bulk_logCPM %>%
+  mutate(Gene = rownames(alpha_bulk_logCPM)) %>%
+  pivot_longer(!Gene, values_to = "logCPM", names_to = "DonorID")
+hist(alpha_bulk_logCPM_long$logCPM)
+
+#convert to entrez and sum those with same entrez
+beta_bulk_logCPM_long$entrez1 <- mapIds(org.Hs.eg.db, keys=c(beta_bulk_logCPM_long$Gene), column="ENTREZID", keytype="SYMBOL", multiVals="first") %>% 
+  as.character()  # use gene symbol to get Entrez ID
+beta_bulk_logCPM_long$entrez2 <- mapIds(org.Hs.eg.db, keys=c(beta_bulk_logCPM_long$Gene), column="ENTREZID", keytype="ALIAS", multiVals="first") %>% 
+  as.character() # use gene symbol as alias to get Entrez ID
+beta_bulk_logCPM_long <- beta_bulk_logCPM_long %>% 
+  mutate(entrez = coalesce(entrez1, entrez2), .keep = "unused")
+beta_bulk_logCPM_long <- beta_bulk_logCPM_long %>%
+  group_by(entrez, DonorID) %>%
+  summarise(entrez_summed = sum(logCPM))
+
+alpha_bulk_logCPM_long$entrez1 <- mapIds(org.Hs.eg.db, keys=c(alpha_bulk_logCPM_long$Gene), column="ENTREZID", keytype="SYMBOL", multiVals="first") %>% 
+  as.character()  # use gene symbol to get Entrez ID
+alpha_bulk_logCPM_long$entrez2 <- mapIds(org.Hs.eg.db, keys=c(alpha_bulk_logCPM_long$Gene), column="ENTREZID", keytype="ALIAS", multiVals="first") %>% 
+  as.character() # use gene symbol as alias to get Entrez ID
+alpha_bulk_logCPM_long <- alpha_bulk_logCPM_long %>% 
+  mutate(entrez = coalesce(entrez1, entrez2), .keep = "unused") 
+alpha_bulk_logCPM_long <- alpha_bulk_logCPM_long %>%
+  group_by(entrez, DonorID) %>%
+  summarise(entrez_summed = sum(logCPM))
+
+#limma
+beta_youngcontrols_feature_HPAP <- beta_bulk_logCPM_long %>%
+  filter(is.na(gene_id)==FALSE) %>%
+  dplyr::select(gene_id, DonorID, logCPM) %>%
+  pivot_wider(names_from = "DonorID", values_from = "logCPM")
+genes_beta_youngcontrols_HPAP <- beta_youngcontrols_feature_HPAP$gene_id
+beta_youngcontrols_feature_HPAP <- data.frame(beta_youngcontrols_feature_HPAP)
+rownames(beta_youngcontrols_feature_HPAP) <- genes_beta_youngcontrols_HPAP
+beta_youngcontrols_feature_HPAP <- beta_youngcontrols_feature_HPAP[,-1] #remove the gene column
+
+beta_youngcontrols_metadata_HPAP <- donor_HPAP_select %>%
+  filter(diagnosis %in% c("Control"), donorage > 14, donorage < 40) %>%
+  filter(record_id %in% colnames(beta_youngcontrols_feature_HPAP))
+
+beta_youngcontrols_feature_HPAP <- beta_youngcontrols_feature_HPAP %>%
+  dplyr::select(beta_youngcontrols_metadata_HPAP$record_id)
+
+table(beta_youngcontrols_metadata_HPAP$donorsex, beta_youngcontrols_metadata_HPAP$dataset)
+#7 F, 17 M
+
+#check order
+all(colnames(beta_youngcontrols_feature_HPAP) == beta_youngcontrols_metadata_HPAP$record_id) #TRUE
+
+#eliminate any feature with fewer than 10 observations
+feature.keep_beta_youngcontrols_HPAP <- apply(beta_youngcontrols_feature_HPAP, 1, function(x){sum(!is.na(x)) >= 9})
+beta_youngcontrols_feature_HPAP <- beta_youngcontrols_feature_HPAP[feature.keep_beta_youngcontrols_HPAP, ]
+
+# perform analysis
+# make design matrix
+grp.nms <- sort(unique(beta_youngcontrols_metadata_HPAP$donorsex))
+fixedEffects <- c("donorage") #correct for age
+all.vars <- c("donorsex", fixedEffects)
+design_betayoungcontrols_HPAP <- model.matrix(formula(paste0("~ 0 + ", all.vars[1], paste0(" + ", all.vars[2:length(all.vars)], collapse = ""))), data = beta_youngcontrols_metadata_HPAP)
+colnames(design_betayoungcontrols_HPAP)[1:length(grp.nms)] <- grp.nms
+
+# make contrast matrix
+myargs_betayoungcontrols_HPAP <- list()
+ref <- "Female" #using female as reference
+contrasts <- grp.nms[grp.nms != ref]
+myargs_betayoungcontrols_HPAP <- as.list(paste("Male", "-", ref, sep = ""))
+myargs_betayoungcontrols_HPAP[["levels"]] <- design_betayoungcontrols_HPAP
+contrast.matrix_betayoungcontrols_HPAP <- do.call(makeContrasts, myargs_betayoungcontrols_HPAP)
+
+# get results
+fit_betayoungcontrols_HPAP <- lmFit(beta_youngcontrols_feature_HPAP, design_betayoungcontrols_HPAP, trend = TRUE, robust = TRUE)
+fit_betayoungcontrols_HPAP <- contrasts.fit(fit_betayoungcontrols_HPAP, contrast.matrix_betayoungcontrols_HPAP)
+fit_betayoungcontrols_HPAP <- eBayes(fit_betayoungcontrols_HPAP)
+res.table_betayoungcontrols_HPAP <- topTable(fit_betayoungcontrols_HPAP, number = Inf)
+
+# Remove results rows with NAs
+res.table_betayoungcontrols_HPAP <- res.table_betayoungcontrols_HPAP[!is.na(res.table_betayoungcontrols_HPAP$P.Value), ]
+
+# Save output
+res.table_betayoungcontrols_HPAP$entrez <- rownames(res.table_betayoungcontrols_HPAP)
+res.table_betayoungcontrols_HPAP$Gene <- mapIds(org.Hs.eg.db, keys=c(res.table_betayoungcontrols_HPAP$entrez), column="SYMBOL", keytype="ENTREZID", multiVals="first") %>% 
+  as.character() 
+write.csv(res.table_betayoungcontrols_HPAP, "Output/Final figures/FigS3/pbBeta_HPAPonly_youngcontrols_dea_results_correctforage_dataset.csv", row.names = FALSE)
+
+# GSEA
+gsea_human <- function(df,FC_col, p_col, name){ 
+  # remove duplicated entrez
+  df <- df[order(df[[p_col]]),]
+  df <- df[!duplicated(df$entrez),]
+  df <- df[!is.na(df$entrez), ]
+  
+  #rank by signed -log10 p value
+  genelist <- sign(df[[FC_col]]) * (-log10(df[[p_col]]))
+  
+  # entrez id as names of the gene list
+  names(genelist) <- df$entrez
+  
+  genelist[genelist==Inf] <- max(genelist[is.finite(genelist)])+1
+  genelist[genelist==-Inf] <- min(genelist[is.finite(genelist)])-1
+  
+  genelist = sort(genelist, decreasing = TRUE)
+  genelist <- na.omit(genelist)
+  
+  gseGO.bp <- gseGO(
+    geneList=genelist,
+    ont = "BP",
+    OrgDb = org.Hs.eg.db,
+    minGSSize = 15, 
+    maxGSSize = 500,
+    pvalueCutoff = 1,
+    verbose = TRUE,
+    keyType = "ENTREZID"
+  )
+  gseGO.bp <- setReadable(gseGO.bp, OrgDb = org.Hs.eg.db, keyType="ENTREZID") # The geneID column is translated from EntrezID to symbol
+  gseGO.bp.df <- as.data.frame(gseGO.bp)
+  
+  gseGO.mf <- gseGO(
+    geneList=genelist,
+    ont = "MF",
+    OrgDb = org.Hs.eg.db,
+    minGSSize = 15, 
+    maxGSSize = 500,
+    pvalueCutoff = 1,
+    verbose = TRUE,
+    keyType = "ENTREZID"
+  )
+  gseGO.mf <- setReadable(gseGO.mf, OrgDb = org.Hs.eg.db, keyType="ENTREZID") # The geneID column is translated from EntrezID to symbol
+  gseGO.mf.df <- as.data.frame(gseGO.mf)
+  
+  gseGO.cc <- gseGO(
+    geneList=genelist,
+    ont = "CC",
+    OrgDb = org.Hs.eg.db,
+    minGSSize = 15, 
+    maxGSSize = 500,
+    pvalueCutoff = 1,
+    verbose = TRUE,
+    keyType = "ENTREZID"
+  )
+  gseGO.cc <- setReadable(gseGO.cc, OrgDb = org.Hs.eg.db, keyType="ENTREZID") # The geneID column is translated from EntrezID to symbol
+  gseGO.cc.df <- as.data.frame(gseGO.cc)
+  
+  
+  # Add the data frames to separate sheets
+  wb <- createWorkbook()
+  
+  addWorksheet(wb, "GO_BP")
+  writeData(wb, "GO_BP", gseGO.bp.df)
+  
+  addWorksheet(wb, "GO_MF")
+  writeData(wb, "GO_MF", gseGO.mf.df)
+  
+  addWorksheet(wb, "GO_CC")
+  writeData(wb, "GO_CC", gseGO.cc.df)
+  
+  # Save the workbook to a file
+  fpath <- paste0("Output/Final figures/FigS3/GSEA_p_", name, ".xlsx")
+  saveWorkbook(wb, fpath, overwrite = TRUE)
+  cat(paste0("GSEA results saved in - ", fpath))
+  
+}
+gsea_human(df = res.table_betayoungcontrols_HPAP,
+           FC_col = "logFC",
+           p_col = "P.Value",
+           name = "HPAPonly_pbBeta_youngcontrols")
+
+#same for alpha-cells
+alpha_youngcontrols_feature_HPAP <- alpha_bulk_logCPM_long %>%
+  filter(is.na(gene_id)==FALSE) %>%
+  dplyr::select(gene_id, DonorID, logCPM) %>%
+  pivot_wider(names_from = "DonorID", values_from = "logCPM")
+genes_alpha_youngcontrols_HPAP <- alpha_youngcontrols_feature_HPAP$gene_id
+alpha_youngcontrols_feature_HPAP <- data.frame(alpha_youngcontrols_feature_HPAP)
+rownames(alpha_youngcontrols_feature_HPAP) <- genes_alpha_youngcontrols_HPAP
+alpha_youngcontrols_feature_HPAP <- alpha_youngcontrols_feature_HPAP[,-1] #remove the gene column
+
+alpha_youngcontrols_metadata_HPAP <- donor_HPAP_select %>%
+  filter(diagnosis %in% c("Control"), donorage > 14, donorage < 40) %>%
+  filter(record_id %in% colnames(alpha_youngcontrols_feature_HPAP))
+
+alpha_youngcontrols_feature_HPAP <- alpha_youngcontrols_feature_HPAP %>%
+  dplyr::select(alpha_youngcontrols_metadata_HPAP$record_id)
+
+table(alpha_youngcontrols_metadata_HPAP$donorsex, alpha_youngcontrols_metadata_HPAP$dataset)
+#7 F, 17 M
+
+#check order
+all(colnames(alpha_youngcontrols_feature_HPAP) == alpha_youngcontrols_metadata_HPAP$record_id) #TRUE
+
+#eliminate any feature with fewer than 10 observations
+feature.keep_alpha_youngcontrols_HPAP <- apply(alpha_youngcontrols_feature_HPAP, 1, function(x){sum(!is.na(x)) >= 9})
+alpha_youngcontrols_feature_HPAP <- alpha_youngcontrols_feature_HPAP[feature.keep_alpha_youngcontrols_HPAP, ]
+
+# perform analysis
+# make design matrix
+grp.nms <- sort(unique(alpha_youngcontrols_metadata_HPAP$donorsex))
+fixedEffects <- c("donorage") #correct for age
+all.vars <- c("donorsex", fixedEffects)
+design_alphayoungcontrols_HPAP <- model.matrix(formula(paste0("~ 0 + ", all.vars[1], paste0(" + ", all.vars[2:length(all.vars)], collapse = ""))), data = alpha_youngcontrols_metadata_HPAP)
+colnames(design_alphayoungcontrols_HPAP)[1:length(grp.nms)] <- grp.nms
+
+# make contrast matrix
+myargs_alphayoungcontrols_HPAP <- list()
+ref <- "Female" #using female as reference
+contrasts <- grp.nms[grp.nms != ref]
+myargs_alphayoungcontrols_HPAP <- as.list(paste("Male", "-", ref, sep = ""))
+myargs_alphayoungcontrols_HPAP[["levels"]] <- design_alphayoungcontrols_HPAP
+contrast.matrix_alphayoungcontrols_HPAP <- do.call(makeContrasts, myargs_alphayoungcontrols_HPAP)
+
+# get results
+fit_alphayoungcontrols_HPAP <- lmFit(alpha_youngcontrols_feature_HPAP, design_alphayoungcontrols_HPAP, trend = TRUE, robust = TRUE)
+fit_alphayoungcontrols_HPAP <- contrasts.fit(fit_alphayoungcontrols_HPAP, contrast.matrix_alphayoungcontrols_HPAP)
+fit_alphayoungcontrols_HPAP <- eBayes(fit_alphayoungcontrols_HPAP)
+res.table_alphayoungcontrols_HPAP <- topTable(fit_alphayoungcontrols_HPAP, number = Inf)
+
+# Remove results rows with NAs
+res.table_alphayoungcontrols_HPAP <- res.table_alphayoungcontrols_HPAP[!is.na(res.table_alphayoungcontrols_HPAP$P.Value), ]
+
+# Save output
+res.table_alphayoungcontrols_HPAP$entrez <- rownames(res.table_alphayoungcontrols_HPAP)
+res.table_alphayoungcontrols_HPAP$Gene <- mapIds(org.Hs.eg.db, keys=c(res.table_alphayoungcontrols_HPAP$entrez), column="SYMBOL", keytype="ENTREZID", multiVals="first") %>% 
+  as.character() 
+write.csv(res.table_alphayoungcontrols_HPAP, "Output/Revisions/pbAlpha_HPAPonly_youngcontrols_dea_results_correctforage_dataset.csv", row.names = FALSE)
+
+# GSEA
+gsea_human(df = res.table_betayoungcontrols_HPAP,
+           FC_col = "logFC",
+           p_col = "P.Value",
+           name = "HPAPonly_pbAlpha_youngcontrols")
+
+## Fig S3A ## ----
+GO_CC <- read_excel("Output/Revisions/GSEA_p_HPAPonly_pbBeta_youngcontrols.xlsx",sheet="GO_CC")
+GO_MF <- read_excel("Output/Revisions/GSEA_p_HPAPonly_pbBeta_youngcontrols.xlsx",sheet="GO_MF")
+GO_BP <- read_excel("Output/Revisions/GSEA_p_HPAPonly_pbBeta_youngcontrols.xlsx",sheet="GO_BP")
+GO_combined <- bind_rows(GO_CC, GO_MF, GO_BP) %>%
+  arrange(pvalue)
+GO_combined$NES <- -GO_combined$NES #make direction such that positive = female-biased
+GO_combined <-GO_combined %>% filter(p.adjust < 0.05)
+
+#remove redundant pathways
+genes_in_pathway <- str_split(GO_combined$core_enrichment, pattern = "/") #returns a list where each list contains a vector of the genes in that pathway
+
+threshold <- 0.6
+n <- length(genes_in_pathway)
+
+repeat_indices <- c()
+for (i in 1:(n-1)) {
+  for (j in (i+1):n) {
+    sim <- jaccard_similarity(genes_in_pathway[[i]], genes_in_pathway[[j]])
+    if (sim > threshold) {
+      if(length(genes_in_pathway[[i]]) < length(genes_in_pathway[[j]])){
+        repeat_indices <- c(repeat_indices,i)} else {repeat_indices <- c(repeat_indices,j)} #keep the one with more genes in it
+    }
+  }
+}
+
+GO_combined_refined <- GO_combined[-repeat_indices,]
+dim(GO_combined_refined) #14
+
+GO_combined_refined$direction <- ifelse(GO_combined_refined$NES>0,-1,1)
+GO_combined_refined$directionlogpadj <- GO_combined_refined$direction * log10(GO_combined_refined$p.adjust)
+
+#get pathway order
+GO_combined_refined_F <- GO_combined_refined %>% filter(NES>0) %>%
+  arrange(directionlogpadj)
+GO_combined_refined_M <- GO_combined_refined %>% filter(NES<0) %>%
+  arrange(directionlogpadj)
+pathway_order <- c(unique(GO_combined_refined_M$Description), unique(GO_combined_refined_F$Description))
+
+GO_combined_refined$Description <- factor(GO_combined_refined$Description, levels=pathway_order)
+summary(GO_combined_refined$NES)
+#make long pathway name two lines
+GO_combined_refined <- GO_combined_refined %>%
+  mutate(Description = case_when(
+    Description == "oxidoreductase activity, acting on paired donors, with incorporation or reduction of molecular oxygen" ~ "oxidoreductase activity, acting on paired donors,\nwith incorporation or reduction of molecular oxygen",
+    .default = Description
   ))
+pathway_order <- gsub("oxidoreductase activity, acting on paired donors, with incorporation or reduction of molecular oxygen", "oxidoreductase activity, acting on paired donors,\nwith incorporation or reduction of molecular oxygen", pathway_order)
+GO_combined_refined$Description <- factor(GO_combined_refined$Description, levels=pathway_order)
 
-#DESeq on pseudobulked beta cell data to compare donors without diabetes to donors with T2D
-#just females
-donorlist <- colnames(beta_bulk_rawcounts_df)
-betadonor_deseq_F <- donor_all %>%
-  filter(donor_ID %in% donorlist) %>% #including only donors that we have scRNAseq data for
-  filter(simplified_diagnosis!="T1D") %>%
-  filter(sex == "Female")
-donorlist <- betadonor_deseq_F$donor_ID #make the donorlist just the females, excluding donors with T1D
-betacounts_deseq_F <- beta_bulk_rawcounts_df %>%
-  dplyr::select(all_of(donorlist))
-rownames(betadonor_deseq_F) <- betadonor_deseq_F$donor_ID
-all(rownames(betadonor_deseq_F) %in% colnames(betacounts_deseq_F)) #check the samples match
+GO_combined_refined %>%
+  ggplot(aes(x=directionlogpadj, y=Description, size = abs(NES), colour = NES))+
+  geom_point() +
+  theme_bw() +
+  labs(x = "Direction signed -log10(p.adjust)", y = "", 
+       title = "", colour = "NES", size = "NES") +
+  scale_color_gradient2(low = "darkblue", mid = "white", high = "darkred", midpoint = 0) +
+  scale_size_continuous(range = c(1,7), limits = c(1,2.5), breaks = c(1,2.5)) +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  theme(legend.position = "right",
+        panel.grid = element_blank(),
+        axis.text = element_text(size = 10, colour = "black"),
+        axis.text.x = element_text(hjust = 0.5),
+        plot.title = element_text(size = 12, hjust = 0.5),
+        legend.title = element_text(size = 11),
+        legend.text = element_text(size = 10))
+ggsave("Output/Final figures/FigS3/FigS3A.tiff", width = 6.5, height = 4.5)
 
-#RunDEseq
-betadds_F <- DESeqDataSetFromMatrix(countData = betacounts_deseq_F,
-                                  colData = betadonor_deseq_F,
-                                  design = ~ simplified_diagnosis + age_years) 
+## Fig S3B ## ----
+GO_CC <- read_excel("Output/Revisions/GSEA_p_HPAPonly_pbAlpha_youngcontrols.xlsx",sheet="GO_CC")
+GO_MF <- read_excel("Output/Revisions/GSEA_p_HPAPonly_pbAlpha_youngcontrols.xlsx",sheet="GO_MF")
+GO_BP <- read_excel("Output/Revisions/GSEA_p_HPAPonly_pbAlpha_youngcontrols.xlsx",sheet="GO_BP")
+GO_combined <- bind_rows(GO_CC, GO_MF, GO_BP) %>%
+  arrange(pvalue)
+GO_combined$NES <- -GO_combined$NES #make direction such that positive = female-biased
+GO_combined <-GO_combined %>% filter(p.adjust < 0.05)
 
-#remove low count genes
-table(betadonor_deseq_F$simplified_diagnosis) #16 Control, 11 T2D
-smallestGroupSize <- 11
-keep_F <- rowSums(counts(betadds_F) >= 10) >= smallestGroupSize
-betadds_F <- betadds_F[keep_F,]
+#remove redundant pathways
+genes_in_pathway <- str_split(GO_combined$core_enrichment, pattern = "/") #returns a list where each list contains a vector of the genes in that pathway
+threshold <- 0.6
+n <- length(genes_in_pathway)
 
-#make non-diabetic the control for disease state for comparison
-betadds_F$simplified_diagnosis <- relevel(betadds_F$simplified_diagnosis, ref = "Control")
-betadds_F <- DESeq(betadds_F)
-betares_F <- results(betadds_F)
-betaresOrdered_F <- betares_F[order(betares_F$pvalue),] #reorder by p value
+repeat_indices <- c()
+for (i in 1:(n-1)) {
+  for (j in (i+1):n) {
+    sim <- jaccard_similarity(genes_in_pathway[[i]], genes_in_pathway[[j]])
+    if (sim > threshold) {
+      if(length(genes_in_pathway[[i]]) < length(genes_in_pathway[[j]])){
+        repeat_indices <- c(repeat_indices,i)} else {repeat_indices <- c(repeat_indices,j)} #keep the one with more genes in it
+    }
+  }
+}
 
-#Shrinkage of effect size (LFC estimates) is useful for visualization and ranking of genes.
-resultsNames(betadds_F)
-betaresLFCdisease_F <- lfcShrink(betadds_F, coef="simplified_diagnosis_T2D_vs_Control", type="apeglm")
-betaresLFCdiseaseOrdered_F <- betaresLFCdisease_F[order(betaresLFCdisease_F$pvalue),] #reorder by p value
+GO_combined_refined <- GO_combined[-repeat_indices,]
+dim(GO_combined_refined) #14
 
-betaresLFCdiseaseOrdered_F <- data.frame(betaresLFCdiseaseOrdered_F)
-betaresLFCdiseaseOrdered_F$Gene <- rownames(betaresLFCdiseaseOrdered_F)
-dim(betaresLFCdiseaseOrdered_F %>% filter(padj < 0.05, log2FoldChange > 0)) #7 increased with T2D
-dim(betaresLFCdiseaseOrdered_F %>% filter(padj < 0.05, log2FoldChange < 0)) #6 increased with T2D
+GO_combined_refined$direction <- ifelse(GO_combined_refined$NES>0,-1,1)
+GO_combined_refined$directionlogpadj <- GO_combined_refined$direction * log10(GO_combined_refined$p.adjust)
 
-#write csv file
-write.csv(betaresLFCdiseaseOrdered_F, "Output/Fig3/Female ctrl vs T2D beta scRNAseq.csv")
+#get pathway order
+GO_combined_refined_F <- GO_combined_refined %>% filter(NES>0) %>%
+  arrange(directionlogpadj)
+GO_combined_refined_M <- GO_combined_refined %>% filter(NES<0) %>%
+  arrange(directionlogpadj)
+pathway_order <- c(unique(GO_combined_refined_M$Description), unique(GO_combined_refined_F$Description))
+
+GO_combined_refined$Description <- factor(GO_combined_refined$Description, levels=pathway_order)
+summary(GO_combined_refined$NES)
+#make long pathway name two lines
+GO_combined_refined <- GO_combined_refined %>%
+  mutate(Description = case_when(
+    Description == "oxidoreductase activity, acting on paired donors, with incorporation or reduction of molecular oxygen" ~ "oxidoreductase activity, acting on paired donors,\nwith incorporation or reduction of molecular oxygen",
+    .default = Description
+  ))
+pathway_order <- gsub("oxidoreductase activity, acting on paired donors, with incorporation or reduction of molecular oxygen", "oxidoreductase activity, acting on paired donors,\nwith incorporation or reduction of molecular oxygen", pathway_order)
+GO_combined_refined$Description <- factor(GO_combined_refined$Description, levels=pathway_order)
+
+GO_combined_refined %>%
+  ggplot(aes(x=directionlogpadj, y=Description, size = abs(NES), colour = NES))+
+  geom_point() +
+  theme_bw() +
+  labs(x = "Direction signed -log10(p.adjust)", y = "", 
+       title = "", colour = "NES", size = "NES") +
+  scale_color_gradient2(low = "darkblue", mid = "white", high = "darkred", midpoint = 0) +
+  scale_size_continuous(range = c(1,7), limits = c(1,2.5), breaks = c(1,2.5)) +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  theme(legend.position = "right",
+        panel.grid = element_blank(),
+        axis.text = element_text(size = 10, colour = "black"),
+        axis.text.x = element_text(hjust = 0.5),
+        plot.title = element_text(size = 12, hjust = 0.5),
+        legend.title = element_text(size = 11),
+        legend.text = element_text(size = 10))
+ggsave("Output/Final figures/FigS3/FigS3B.tiff", width = 6.5, height = 4.5)
+
+###Figure 3-4 ### ----
+#Combined transcriptomics for Control vs T2D
+#Females
+bulk_F_feature <- bulk_logcpm_combined %>%
+  filter(is.na(gene_id)==FALSE) %>%
+  dplyr::select(gene_id, DonorID, logCPM) %>%
+  pivot_wider(names_from = "DonorID", values_from = "logCPM")
+genes_bulk_F <- bulk_F_feature$gene_id
+bulk_F_feature <- data.frame(bulk_F_feature)
+rownames(bulk_F_feature) <- genes_bulk_F
+bulk_F_feature <- bulk_F_feature[,-1] #remove the gene column
+
+bulk_F_metadata <- metadata_combined %>%
+  filter(diagnosis %in% c("Control","T2D"), donorsex == "Female") %>%
+  filter(record_id %in% colnames(bulk_F_feature))
+
+bulk_F_feature <- bulk_F_feature %>%
+  dplyr::select(bulk_F_metadata$record_id)
+
+table(bulk_F_metadata$diagnosis, bulk_F_metadata$dataset)
+#16 Control, 11 T2D from HPAP, 36 Control, 5 T2D from humanislets.com
+
+#check order
+all(colnames(bulk_F_feature) == bulk_F_metadata$record_id) #TRUE
+
+#eliminate any feature with fewer than 10 observations
+feature.keep_bulk_F <- apply(bulk_F_feature, 1, function(x){sum(!is.na(x)) >= 9})
+bulk_F_feature <- bulk_F_feature[feature.keep_bulk_F, ]
+
+# perform analysis
+# make design matrix
+grp.nms <- sort(unique(bulk_F_metadata$diagnosis))
+fixedEffects <- c("donorage","dataset") #correct for age
+all.vars <- c("diagnosis", fixedEffects)
+design_bulkF <- model.matrix(formula(paste0("~ 0 + ", all.vars[1], paste0(" + ", all.vars[2:length(all.vars)], collapse = ""))), data = bulk_F_metadata)
+colnames(design_bulkF)[1:length(grp.nms)] <- grp.nms
+
+# make contrast matrix
+myargs_bulkF <- list()
+ref <- "Control" #using control as reference
+contrasts <- grp.nms[grp.nms != ref]
+myargs_bulkF <- as.list(paste("T2D", "-", ref, sep = ""))
+myargs_bulkF[["levels"]] <- design_bulkF
+contrast.matrix_bulkF <- do.call(makeContrasts, myargs_bulkF)
+
+# get results
+fit_bulkF <- lmFit(bulk_F_feature, design_bulkF, trend = TRUE, robust = TRUE)
+fit_bulkF <- contrasts.fit(fit_bulkF, contrast.matrix_bulkF)
+fit_bulkF <- eBayes(fit_bulkF)
+res.table_bulkF <- topTable(fit_bulkF, number = Inf)
+
+# Remove results rows with NAs
+res.table_bulkF <- res.table_bulkF[!is.na(res.table_bulkF$P.Value), ]
+
+# Save output
+res.table_bulkF$entrez <- rownames(res.table_bulkF)
+res.table_bulkF$Gene <- mapIds(org.Hs.eg.db, keys=c(res.table_bulkF$entrez), column="SYMBOL", keytype="ENTREZID", multiVals="first") %>% 
+  as.character() 
+write.csv(res.table_bulkF, "Output/Final figures/Fig3-4/BulkHI and pbHPAP_combined_F_dea_results_correctforage_dataset.csv", row.names = FALSE)
 
 #GSEA
 gsea_human <- function(df,FC_col, p_col, name){ 
@@ -1288,667 +1907,82 @@ gsea_human <- function(df,FC_col, p_col, name){
   writeData(wb, "GO_CC", gseGO.cc.df)
   
   # Save the workbook to a file
-  fpath <- paste0("Output/Fig3/GSEA_p_", name, ".xlsx")
+  fpath <- paste0("Output/Final figures/Fig3-4/GSEA_p_", name, ".xlsx")
   saveWorkbook(wb, fpath, overwrite = TRUE)
   cat(paste0("GSEA results saved in - ", fpath))
   
 }
 
-betaresLFCdiseaseOrdered_F$entrez1 <- mapIds(org.Hs.eg.db, keys=c(betaresLFCdiseaseOrdered_F$Gene), column="ENTREZID", keytype="SYMBOL", multiVals="first") %>% 
-  as.character()  # use gene symbol to get Entrez ID
-betaresLFCdiseaseOrdered_F$entrez2 <- mapIds(org.Hs.eg.db, keys=c(betaresLFCdiseaseOrdered_F$Gene), column="ENTREZID", keytype="ALIAS", multiVals="first") %>% 
-  as.character() # use gene symbol as alias to get Entrez ID
-
-betaresLFCdiseaseOrdered_F <- betaresLFCdiseaseOrdered_F %>% 
-  mutate(entrez = coalesce(entrez1, entrez2), .keep = "unused") 
-
-gsea_human(df = betaresLFCdiseaseOrdered_F,
-           FC_col = "log2FoldChange",
-           p_col = "pvalue",
-           name = "beta_scRNAseq_F_ctrlvsT2D")
-
-#same comparison for males
-donorlist <- colnames(beta_bulk_rawcounts_df)
-betadonor_deseq_M <- donor_all %>%
-  filter(donor_ID %in% donorlist) %>% #including only donors that we have scRNAseq data for
-  filter(simplified_diagnosis!="T1D") %>%
-  filter(sex == "Male")
-donorlist <- betadonor_deseq_M$donor_ID #make the donorlist just the females, excluding donors with T1D
-betacounts_deseq_M <- beta_bulk_rawcounts_df %>%
-  dplyr::select(all_of(donorlist))
-rownames(betadonor_deseq_M) <- betadonor_deseq_M$donor_ID
-all(rownames(betadonor_deseq_M) %in% colnames(betacounts_deseq_M)) #check the samples match
-
-#RunDEseq
-betadds_M <- DESeqDataSetFromMatrix(countData = betacounts_deseq_M,
-                                    colData = betadonor_deseq_M,
-                                    design = ~ simplified_diagnosis + age_years) 
-
-#remove low count genes
-table(betadonor_deseq_M$simplified_diagnosis) #24 control, 7 T2D
-smallestGroupSize <- 7
-keep_M <- rowSums(counts(betadds_M) >= 10) >= smallestGroupSize
-betadds_M <- betadds_M[keep_M,]
-
-#make non-diabetic the control for disease state for comparison
-betadds_M$simplified_diagnosis <- relevel(betadds_M$simplified_diagnosis, ref = "Control")
-betadds_M <- DESeq(betadds_M)
-betares_M <- results(betadds_M)
-betaresOrdered_M <- betares_M[order(betares_M$pvalue),] #reorder by p value
-
-#Shrinkage of effect size (LFC estimates) is useful for visualization and ranking of genes.
-resultsNames(betadds_M)
-betaresLFCdisease_M <- lfcShrink(betadds_M, coef="simplified_diagnosis_T2D_vs_Control", type="apeglm")
-betaresLFCdiseaseOrdered_M <- betaresLFCdisease_M[order(betaresLFCdisease_M$pvalue),] #reorder by p value
-
-betaresLFCdiseaseOrdered_M <- data.frame(betaresLFCdiseaseOrdered_M)
-betaresLFCdiseaseOrdered_M$Gene <- rownames(betaresLFCdiseaseOrdered_M)
-dim(betaresLFCdiseaseOrdered_M %>% filter(padj < 0.05, log2FoldChange > 0)) #8 increased with T2D
-dim(betaresLFCdiseaseOrdered_M %>% filter(padj < 0.05, log2FoldChange < 0)) #26 increased with T2D
-
-#write csv file
-write.csv(betaresLFCdiseaseOrdered_M, "Output/Fig3/Male ctrl vs T2D beta scRNAseq.csv")
-
-#GSEA
-betaresLFCdiseaseOrdered_M$entrez1 <- mapIds(org.Hs.eg.db, keys=c(betaresLFCdiseaseOrdered_M$Gene), column="ENTREZID", keytype="SYMBOL", multiVals="first") %>% 
-  as.character()  # use gene symbol to get Entrez ID
-betaresLFCdiseaseOrdered_M$entrez2 <- mapIds(org.Hs.eg.db, keys=c(betaresLFCdiseaseOrdered_M$Gene), column="ENTREZID", keytype="ALIAS", multiVals="first") %>% 
-  as.character() # use gene symbol as alias to get Entrez ID
-
-betaresLFCdiseaseOrdered_M <- betaresLFCdiseaseOrdered_M %>% 
-  mutate(entrez = coalesce(entrez1, entrez2), .keep = "unused") 
-
-gsea_human(df = betaresLFCdiseaseOrdered_M,
-           FC_col = "log2FoldChange",
-           p_col = "pvalue",
-           name = "beta_scRNAseq_M_ctrlvsT2D")
-
-#alpha-cell scRNAseq females ctrl vs T2D
-donorlist <- colnames(alpha_bulk_rawcounts_df)
-alphadonor_deseq_F <- donor_all %>%
-  filter(donor_ID %in% donorlist) %>% #including only donors that we have scRNAseq data for
-  filter(simplified_diagnosis!="T1D") %>%
-  filter(sex == "Female")
-donorlist <- alphadonor_deseq_F$donor_ID #make the donorlist just the females, excluding donors with T1D
-alphacounts_deseq_F <- alpha_bulk_rawcounts_df %>%
-  dplyr::select(all_of(donorlist))
-rownames(alphadonor_deseq_F) <- alphadonor_deseq_F$donor_ID
-all(rownames(alphadonor_deseq_F) %in% colnames(alphacounts_deseq_F)) #check the samples match
-
-#RunDEseq
-alphadds_F <- DESeqDataSetFromMatrix(countData = alphacounts_deseq_F,
-                                    colData = alphadonor_deseq_F,
-                                    design = ~ simplified_diagnosis + age_years) 
-
-#remove low count genes
-table(alphadonor_deseq_F$simplified_diagnosis)
-smallestGroupSize <- 11
-keep_F <- rowSums(counts(alphadds_F) >= 10) >= smallestGroupSize
-alphadds_F <- alphadds_F[keep_F,]
-
-#make non-diabetic the control for disease state for comparison
-alphadds_F$simplified_diagnosis <- relevel(alphadds_F$simplified_diagnosis, ref = "Control")
-alphadds_F <- DESeq(alphadds_F)
-alphares_F <- results(alphadds_F)
-alpharesOrdered_F <- alphares_F[order(alphares_F$pvalue),] #reorder by p value
-
-#Shrinkage of effect size (LFC estimates) is useful for visualization and ranking of genes.
-resultsNames(alphadds_F)
-alpharesLFCdisease_F <- lfcShrink(alphadds_F, coef="simplified_diagnosis_T2D_vs_Control", type="apeglm")
-alpharesLFCdiseaseOrdered_F <- alpharesLFCdisease_F[order(alpharesLFCdisease_F$pvalue),] #reorder by p value
-
-alpharesLFCdiseaseOrdered_F <- data.frame(alpharesLFCdiseaseOrdered_F)
-alpharesLFCdiseaseOrdered_F$Gene <- rownames(alpharesLFCdiseaseOrdered_F)
-dim(alpharesLFCdiseaseOrdered_F %>% filter(padj < 0.05, log2FoldChange > 0)) #0 increased with T2D
-dim(alpharesLFCdiseaseOrdered_F %>% filter(padj < 0.05, log2FoldChange < 0)) #1 increased with T2D
-
-#write csv file
-write.csv(alpharesLFCdiseaseOrdered_F, "Output/Fig3/Female ctrl vs T2D alpha scRNAseq.csv")
-
-#GSEA
-alpharesLFCdiseaseOrdered_F$entrez1 <- mapIds(org.Hs.eg.db, keys=c(alpharesLFCdiseaseOrdered_F$Gene), column="ENTREZID", keytype="SYMBOL", multiVals="first") %>% 
-  as.character()  # use gene symbol to get Entrez ID
-alpharesLFCdiseaseOrdered_F$entrez2 <- mapIds(org.Hs.eg.db, keys=c(alpharesLFCdiseaseOrdered_F$Gene), column="ENTREZID", keytype="ALIAS", multiVals="first") %>% 
-  as.character() # use gene symbol as alias to get Entrez ID
-
-alpharesLFCdiseaseOrdered_F <- alpharesLFCdiseaseOrdered_F %>% 
-  mutate(entrez = coalesce(entrez1, entrez2), .keep = "unused") 
-
-gsea_human(df = alpharesLFCdiseaseOrdered_F,
-           FC_col = "log2FoldChange",
-           p_col = "pvalue",
-           name = "alpha_scRNAseq_F_ctrlvsT2D")
-
-#alpha-cell scRNAseq males ctrl vs T2D
-donorlist <- colnames(alpha_bulk_rawcounts_df)
-alphadonor_deseq_M <- donor_all %>%
-  filter(donor_ID %in% donorlist) %>% #including only donors that we have scRNAseq data for
-  filter(simplified_diagnosis!="T1D") %>%
-  filter(sex == "Male")
-donorlist <- alphadonor_deseq_M$donor_ID #make the donorlist just the females, excluding donors with T1D
-alphacounts_deseq_M <- alpha_bulk_rawcounts_df %>%
-  dplyr::select(all_of(donorlist))
-rownames(alphadonor_deseq_M) <- alphadonor_deseq_M$donor_ID
-all(rownames(alphadonor_deseq_M) %in% colnames(alphacounts_deseq_M)) #check the samples match
-
-#RunDEseq
-alphadds_M <- DESeqDataSetFromMatrix(countData = alphacounts_deseq_M,
-                                     colData = alphadonor_deseq_M,
-                                     design = ~ simplified_diagnosis + age_years) 
-
-#remove low count genes
-table(alphadonor_deseq_M$simplified_diagnosis)
-smallestGroupSize <- 7
-keep_M <- rowSums(counts(alphadds_M) >= 10) >= smallestGroupSize
-alphadds_M <- alphadds_M[keep_M,]
-
-#make non-diabetic the control for disease state for comparison
-alphadds_M$simplified_diagnosis <- relevel(alphadds_M$simplified_diagnosis, ref = "Control")
-alphadds_M <- DESeq(alphadds_M)
-alphares_M <- results(alphadds_M)
-alpharesOrdered_M <- alphares_M[order(alphares_M$pvalue),] #reorder by p value
-
-#Shrinkage of effect size (LFC estimates) is useful for visualization and ranking of genes.
-resultsNames(alphadds_M)
-alpharesLFCdisease_M <- lfcShrink(alphadds_M, coef="simplified_diagnosis_T2D_vs_Control", type="apeglm")
-alpharesLFCdiseaseOrdered_M <- alpharesLFCdisease_M[order(alpharesLFCdisease_M$pvalue),] #reorder by p value
-
-alpharesLFCdiseaseOrdered_M <- data.frame(alpharesLFCdiseaseOrdered_M)
-alpharesLFCdiseaseOrdered_M$Gene <- rownames(alpharesLFCdiseaseOrdered_M)
-dim(alpharesLFCdiseaseOrdered_M %>% filter(padj < 0.05, log2FoldChange > 0)) #0 increased with T2D
-dim(alpharesLFCdiseaseOrdered_M %>% filter(padj < 0.05, log2FoldChange < 0)) #0 increased with T2D
-
-#write csv file
-write.csv(alpharesLFCdiseaseOrdered_M, "Output/Fig3/Male ctrl vs T2D alpha scRNAseq.csv")
-
-#GSEA
-alpharesLFCdiseaseOrdered_M$entrez1 <- mapIds(org.Hs.eg.db, keys=c(alpharesLFCdiseaseOrdered_M$Gene), column="ENTREZID", keytype="SYMBOL", multiVals="first") %>% 
-  as.character()  # use gene symbol to get Entrez ID
-alpharesLFCdiseaseOrdered_M$entrez2 <- mapIds(org.Hs.eg.db, keys=c(alpharesLFCdiseaseOrdered_M$Gene), column="ENTREZID", keytype="ALIAS", multiVals="first") %>% 
-  as.character() # use gene symbol as alias to get Entrez ID
-
-alpharesLFCdiseaseOrdered_M <- alpharesLFCdiseaseOrdered_M %>% 
-  mutate(entrez = coalesce(entrez1, entrez2), .keep = "unused") 
-
-gsea_human(df = alpharesLFCdiseaseOrdered_M,
-           FC_col = "log2FoldChange",
-           p_col = "pvalue",
-           name = "alpha_scRNAseq_M_ctrlvsT2D")
-
-#Humanislets.com bulk RNAseq data to compare control vs T2D
-#import data downloaded 21 May 2024
-proc_rnaseq <- read.csv("data/Humanislets.com/proc_rnaseq.csv")
-donor_data <- read.csv("data/Humanislets.com/donor.csv")
-proc_rnaseq_long <- proc_rnaseq %>%
-  pivot_longer(!gene_id, values_to = "logCPM", names_to = "record_id")
-proc_rnaseq_long <- inner_join(proc_rnaseq_long, donor_data, by = "record_id")
-
-#Comparing non-diabetic with T2D for females
-proc_rnaseq_long_FctrlvsT2D <- proc_rnaseq_long %>%
-  filter(donorsex == "Female")
-table(proc_rnaseq_long_FctrlvsT2D$diagnosis)/length(unique(proc_rnaseq_long_FctrlvsT2D$gene_id))
-#36 Control, 5 T2D
-
-#remove low count genes
-smallest_group <- 5
-proc_rnaseq_wide_FctrlvsT2D <- proc_rnaseq_long_FctrlvsT2D %>%
-  pivot_wider(names_from = "gene_id", values_from = "logCPM")
-proc_rnaseq_wide_FctrlvsT2D_na_counts <- proc_rnaseq_wide_FctrlvsT2D %>%
-  summarise_all(~ sum(is.na(.)))
-proc_rnaseq_wide_FctrlvsT2D_na_counts <- t(proc_rnaseq_wide_FctrlvsT2D_na_counts)
-colnames(proc_rnaseq_wide_FctrlvsT2D_na_counts) <- "NAcount"
-proc_rnaseq_wide_FctrlvsT2D_na_counts <- data.frame(proc_rnaseq_wide_FctrlvsT2D_na_counts)
-proc_rnaseq_wide_FctrlvsT2D_na_counts <- proc_rnaseq_wide_FctrlvsT2D_na_counts %>%
-  filter(NAcount<smallest_group)
-proc_rnaseq_long_FctrlvsT2D <- proc_rnaseq_long_FctrlvsT2D %>%
-  filter(gene_id %in% rownames(proc_rnaseq_wide_FctrlvsT2D_na_counts))
-
-#multiple ANCOVAs
-proc_rnaseq_ancovas_FctrlvsT2D <- list()
-for (i in 1:length(unique(proc_rnaseq_long_FctrlvsT2D$gene_id))){ 
-  geneid <- unique(proc_rnaseq_long_FctrlvsT2D$gene_id)[i]
-  data <- proc_rnaseq_long_FctrlvsT2D %>%
-    filter(gene_id == geneid)
-  test.c <- data %>% #to avoid errors for genes with not enough values
-    filter(diagnosis == "None") %>% 
-    drop_na(logCPM)
-  test.c.val <- dim(test.c)[1]
-  test.d <- data %>%
-    filter(diagnosis == "Type2") %>% 
-    drop_na(logCPM)
-  test.d.val <- dim(test.d)[1]
-  if (test.c.val > 1 & test.d.val >1){
-    ancova <- data %>%
-      anova_test(logCPM ~ donorage + diagnosis)
-    pval <- ancova[2,5]
-    proc_rnaseq_ancovas_FctrlvsT2D[[i]] <- c(geneid, pval)
-  } else{
-    proc_rnaseq_ancovas_FctrlvsT2D[[i]] <- c(geneid, NA)
-  }
-}
-proc_rnaseq_ancovas_FctrlvsT2D <- data.frame(do.call(rbind, proc_rnaseq_ancovas_FctrlvsT2D))
-colnames(proc_rnaseq_ancovas_FctrlvsT2D) <- c("gene_id","pval")
-proc_rnaseq_ancovas_FctrlvsT2D$gene_id <- as.character(proc_rnaseq_ancovas_FctrlvsT2D$gene_id)
-proc_rnaseq_ancovas_FctrlvsT2D$pval <- as.numeric(proc_rnaseq_ancovas_FctrlvsT2D$pval)
-proc_rnaseq_ancovas_FctrlvsT2D <- proc_rnaseq_ancovas_FctrlvsT2D %>%
-  filter(is.na(pval) == FALSE) #remove all with no pval
-head(proc_rnaseq_ancovas_FctrlvsT2D)
-
-#Benjamini-Hochberg correction for multiple t tests
-proc_rnaseq_ancovas_FctrlvsT2D$padj <- p.adjust(proc_rnaseq_ancovas_FctrlvsT2D$pval, method = "BH")
-
-#get direction of change
-proc_rnaseq_ancovas_FctrlvsT2D.means <- proc_rnaseq_long_FctrlvsT2D %>%
-  group_by(gene_id, diagnosis) %>%
-  summarise(mean.logCPM = mean(logCPM, na.rm=TRUE))
-proc_rnaseq_ancovas_FctrlvsT2D.means <- proc_rnaseq_ancovas_FctrlvsT2D.means %>%
-  pivot_wider(names_from = diagnosis, names_prefix = "meanlogCPM_", values_from = mean.logCPM)
-proc_rnaseq_ancovas_FctrlvsT2D.means$gene_id <- as.character(proc_rnaseq_ancovas_FctrlvsT2D.means$gene_id)
-proc_rnaseq_ancovas_FctrlvsT2D <- inner_join(proc_rnaseq_ancovas_FctrlvsT2D, proc_rnaseq_ancovas_FctrlvsT2D.means, by = "gene_id")
-proc_rnaseq_ancovas_FctrlvsT2D <- proc_rnaseq_ancovas_FctrlvsT2D %>%
-  mutate(logFC = meanlogCPM_None-meanlogCPM_Type2)
-head(proc_rnaseq_ancovas_FctrlvsT2D)
-proc_rnaseq_ancovas_FctrlvsT2D <- proc_rnaseq_ancovas_FctrlvsT2D %>%
-  arrange(padj)
-
-#get common names
-x <- org.Hs.egSYMBOL
-mapped_genes <- mappedkeys(x)
-common.names <- as.list(x[mapped_genes])
-common.names <- unlist(common.names)
-
-proc_rnaseq_ancovas_FctrlvsT2D$common.name <- rep(NA,nrow(proc_rnaseq_ancovas_FctrlvsT2D))
-for (i in 1:length(proc_rnaseq_ancovas_FctrlvsT2D$gene_id)){
-  entrez <- proc_rnaseq_ancovas_FctrlvsT2D$gene_id[i]
-  proc_rnaseq_ancovas_FctrlvsT2D$common.name[i] <- common.names[entrez]
-}
-
-dim(proc_rnaseq_ancovas_FctrlvsT2D %>% filter(padj < 0.05, logFC < 0)) #0 increased with T2D
-dim(proc_rnaseq_ancovas_FctrlvsT2D %>% filter(padj < 0.05, logFC > 0)) #0 increased with T2D
-
-write.csv(proc_rnaseq_ancovas_FctrlvsT2D, "Output/Fig3/Humanisletscom bulkRNAseq F Ctrl vs F T2D.csv")
-
-#GSEA
-proc_rnaseq_ancovas_FctrlvsT2D$entrez1 <- mapIds(org.Hs.eg.db, keys=c(proc_rnaseq_ancovas_FctrlvsT2D$common.name), column="ENTREZID", keytype="SYMBOL", multiVals="first") %>% 
-  as.character()  # use gene symbol to get Entrez ID
-proc_rnaseq_ancovas_FctrlvsT2D$entrez2 <- mapIds(org.Hs.eg.db, keys=c(proc_rnaseq_ancovas_FctrlvsT2D$common.name), column="ENTREZID", keytype="ALIAS", multiVals="first") %>% 
-  as.character() # use gene symbol as alias to get Entrez ID
-
-proc_rnaseq_ancovas_FctrlvsT2D <- proc_rnaseq_ancovas_FctrlvsT2D %>% 
-  mutate(entrez = coalesce(entrez1, entrez2), .keep = "unused")
-
-gsea_human(df = proc_rnaseq_ancovas_FctrlvsT2D,
+gsea_human(df = res.table_bulkF,
            FC_col = "logFC",
-           p_col = "pval",
-           name = "bulkRNAseq_FCtrlvsT2D")
+           p_col = "P.Value",
+           name = "BulkHI and pbHPAP_F")
 
-#same comparison in males
-proc_rnaseq_long_MctrlvsT2D <- proc_rnaseq_long %>%
-  filter(donorsex == "Male")
-table(proc_rnaseq_long_MctrlvsT2D$diagnosis)/length(unique(proc_rnaseq_long_MctrlvsT2D$gene_id))
-#66 Control, 10 T2D
+#Males
+bulk_M_feature <- bulk_logcpm_combined %>%
+  filter(is.na(gene_id)==FALSE) %>%
+  dplyr::select(gene_id, DonorID, logCPM) %>%
+  pivot_wider(names_from = "DonorID", values_from = "logCPM")
+genes_bulk_F <- bulk_M_feature$gene_id
+bulk_M_feature <- data.frame(bulk_M_feature)
+rownames(bulk_M_feature) <- genes_bulk_F
+bulk_M_feature <- bulk_M_feature[,-1] #remove the gene column
 
-#remove low count genes
-smallest_group <- 10
-proc_rnaseq_wide_MctrlvsT2D <- proc_rnaseq_long_MctrlvsT2D %>%
-  pivot_wider(names_from = "gene_id", values_from = "logCPM")
-proc_rnaseq_wide_MctrlvsT2D_na_counts <- proc_rnaseq_wide_MctrlvsT2D %>%
-  summarise_all(~ sum(is.na(.)))
-proc_rnaseq_wide_MctrlvsT2D_na_counts <- t(proc_rnaseq_wide_MctrlvsT2D_na_counts)
-colnames(proc_rnaseq_wide_MctrlvsT2D_na_counts) <- "NAcount"
-proc_rnaseq_wide_MctrlvsT2D_na_counts <- data.frame(proc_rnaseq_wide_MctrlvsT2D_na_counts)
-proc_rnaseq_wide_MctrlvsT2D_na_counts <- proc_rnaseq_wide_MctrlvsT2D_na_counts %>%
-  filter(NAcount<smallest_group)
-proc_rnaseq_long_MctrlvsT2D <- proc_rnaseq_long_MctrlvsT2D %>%
-  filter(gene_id %in% rownames(proc_rnaseq_wide_MctrlvsT2D_na_counts))
+bulk_M_metadata <- metadata_combined %>%
+  filter(diagnosis %in% c("Control","T2D"), donorsex == "Male") %>%
+  filter(record_id %in% colnames(bulk_M_feature))
 
-#multiple ANCOVAs
-proc_rnaseq_ancovas_MctrlvsT2D <- list()
-for (i in 1:length(unique(proc_rnaseq_long_MctrlvsT2D$gene_id))){ 
-  geneid <- unique(proc_rnaseq_long_MctrlvsT2D$gene_id)[i]
-  data <- proc_rnaseq_long_MctrlvsT2D %>%
-    filter(gene_id == geneid)
-  test.c <- data %>% #to avoid errors for genes with not enough values
-    filter(diagnosis == "None") %>% 
-    drop_na(logCPM)
-  test.c.val <- dim(test.c)[1]
-  test.d <- data %>%
-    filter(diagnosis == "Type2") %>% 
-    drop_na(logCPM)
-  test.d.val <- dim(test.d)[1]
-  if (test.c.val > 1 & test.d.val >1){
-    ancova <- data %>%
-      anova_test(logCPM ~ donorage + diagnosis)
-    pval <- ancova[2,5]
-    proc_rnaseq_ancovas_MctrlvsT2D[[i]] <- c(geneid, pval)
-  } else{
-    proc_rnaseq_ancovas_MctrlvsT2D[[i]] <- c(geneid, NA)
-  }
-}
-proc_rnaseq_ancovas_MctrlvsT2D <- data.frame(do.call(rbind, proc_rnaseq_ancovas_MctrlvsT2D))
-colnames(proc_rnaseq_ancovas_MctrlvsT2D) <- c("gene_id","pval")
-proc_rnaseq_ancovas_MctrlvsT2D$gene_id <- as.character(proc_rnaseq_ancovas_MctrlvsT2D$gene_id)
-proc_rnaseq_ancovas_MctrlvsT2D$pval <- as.numeric(proc_rnaseq_ancovas_MctrlvsT2D$pval)
-proc_rnaseq_ancovas_MctrlvsT2D <- proc_rnaseq_ancovas_MctrlvsT2D %>%
-  filter(is.na(pval) == FALSE) #remove all with no pval
-head(proc_rnaseq_ancovas_MctrlvsT2D)
+bulk_M_feature <- bulk_M_feature %>%
+  dplyr::select(bulk_M_metadata$record_id)
 
-#Benjamini-Hochberg correction for multiple t tests
-proc_rnaseq_ancovas_MctrlvsT2D$padj <- p.adjust(proc_rnaseq_ancovas_MctrlvsT2D$pval, method = "BH")
+table(bulk_M_metadata$diagnosis, bulk_M_metadata$dataset)
+#24 Control, 7 T2D from HPAP, 66 Control, 10 T2D from humanislets.com
 
-#get direction of change
-proc_rnaseq_ancovas_MctrlvsT2D.means <- proc_rnaseq_long_MctrlvsT2D %>%
-  group_by(gene_id, diagnosis) %>%
-  summarise(mean.logCPM = mean(logCPM, na.rm=TRUE))
-proc_rnaseq_ancovas_MctrlvsT2D.means <- proc_rnaseq_ancovas_MctrlvsT2D.means %>%
-  pivot_wider(names_from = diagnosis, names_prefix = "meanlogCPM_", values_from = mean.logCPM)
-proc_rnaseq_ancovas_MctrlvsT2D.means$gene_id <- as.character(proc_rnaseq_ancovas_MctrlvsT2D.means$gene_id)
-proc_rnaseq_ancovas_MctrlvsT2D <- inner_join(proc_rnaseq_ancovas_MctrlvsT2D, proc_rnaseq_ancovas_MctrlvsT2D.means, by = "gene_id")
-proc_rnaseq_ancovas_MctrlvsT2D <- proc_rnaseq_ancovas_MctrlvsT2D %>%
-  mutate(logFC = meanlogCPM_None-meanlogCPM_Type2)
-head(proc_rnaseq_ancovas_MctrlvsT2D)
-proc_rnaseq_ancovas_MctrlvsT2D <- proc_rnaseq_ancovas_MctrlvsT2D %>%
-  arrange(padj)
+#check order
+all(colnames(bulk_M_feature) == bulk_M_metadata$record_id) #TRUE
 
-#get common names
-proc_rnaseq_ancovas_MctrlvsT2D$common.name <- rep(NA,nrow(proc_rnaseq_ancovas_MctrlvsT2D))
-for (i in 1:length(proc_rnaseq_ancovas_MctrlvsT2D$gene_id)){
-  entrez <- proc_rnaseq_ancovas_MctrlvsT2D$gene_id[i]
-  proc_rnaseq_ancovas_MctrlvsT2D$common.name[i] <- common.names[entrez]
-}
+#eliminate any feature with fewer than 10 observations
+feature.keep_bulk_F <- apply(bulk_M_feature, 1, function(x){sum(!is.na(x)) >= 9})
+bulk_M_feature <- bulk_M_feature[feature.keep_bulk_F, ]
 
-dim(proc_rnaseq_ancovas_MctrlvsT2D %>% filter(padj < 0.05, logFC < 0)) #375 increased with T2D
-dim(proc_rnaseq_ancovas_MctrlvsT2D %>% filter(padj < 0.05, logFC > 0)) #209 increased with T2D
+# perform analysis
+# make design matrix
+grp.nms <- sort(unique(bulk_M_metadata$diagnosis))
+fixedEffects <- c("donorage","dataset") #correct for age
+all.vars <- c("diagnosis", fixedEffects)
+design_bulkM <- model.matrix(formula(paste0("~ 0 + ", all.vars[1], paste0(" + ", all.vars[2:length(all.vars)], collapse = ""))), data = bulk_M_metadata)
+colnames(design_bulkM)[1:length(grp.nms)] <- grp.nms
 
-write.csv(proc_rnaseq_ancovas_MctrlvsT2D, "Output/Fig3/Humanisletscom bulkRNAseq M Ctrl vs M T2D.csv")
+# make contrast matrix
+myargs_bulkM <- list()
+ref <- "Control" #using control as reference
+contrasts <- grp.nms[grp.nms != ref]
+myargs_bulkM <- as.list(paste("T2D", "-", ref, sep = ""))
+myargs_bulkM[["levels"]] <- design_bulkM
+contrast.matrix_bulkM <- do.call(makeContrasts, myargs_bulkM)
+
+# get results
+fit_bulkM <- lmFit(bulk_M_feature, design_bulkM, trend = TRUE, robust = TRUE)
+fit_bulkM <- contrasts.fit(fit_bulkM, contrast.matrix_bulkM)
+fit_bulkM <- eBayes(fit_bulkM)
+res.table_bulkM <- topTable(fit_bulkM, number = Inf)
+
+# Remove results rows with NAs
+res.table_bulkM <- res.table_bulkM[!is.na(res.table_bulkM$P.Value), ]
+
+# Save output
+res.table_bulkM$entrez <- rownames(res.table_bulkM)
+res.table_bulkM$Gene <- mapIds(org.Hs.eg.db, keys=c(res.table_bulkM$entrez), column="SYMBOL", keytype="ENTREZID", multiVals="first") %>% 
+  as.character() 
+write.csv(res.table_bulkM, "Output/Final figures/Fig3-4/BulkHI and pbHPAP_combined_M_dea_results_correctforage_dataset.csv", row.names = FALSE)
 
 #GSEA
-proc_rnaseq_ancovas_MctrlvsT2D$entrez1 <- mapIds(org.Hs.eg.db, keys=c(proc_rnaseq_ancovas_MctrlvsT2D$common.name), column="ENTREZID", keytype="SYMBOL", multiVals="first") %>% 
-  as.character()  # use gene symbol to get Entrez ID
-proc_rnaseq_ancovas_MctrlvsT2D$entrez2 <- mapIds(org.Hs.eg.db, keys=c(proc_rnaseq_ancovas_MctrlvsT2D$common.name), column="ENTREZID", keytype="ALIAS", multiVals="first") %>% 
-  as.character() # use gene symbol as alias to get Entrez ID
-
-proc_rnaseq_ancovas_MctrlvsT2D <- proc_rnaseq_ancovas_MctrlvsT2D %>% 
-  mutate(entrez = coalesce(entrez1, entrez2), .keep = "unused")
-
-gsea_human(df = proc_rnaseq_ancovas_MctrlvsT2D,
+gsea_human(df = res.table_bulkM,
            FC_col = "logFC",
-           p_col = "pval",
-           name = "bulkRNAseq_MCtrlvsT2D")
+           p_col = "P.Value",
+           name = "BulkHI and pbHPAP_M")
 
-#Make figures
-#females
-#Combining GSEA results to graph together
-HIGO_F_CC <- read_excel("Output/Fig3/GSEA_p_bulkRNAseq_FCtrlvsT2D.xlsx",sheet="GO_CC")
-HIGO_F_BP <- read_excel("Output/Fig3/GSEA_p_bulkRNAseq_FCtrlvsT2D.xlsx",sheet="GO_BP")
-HIGO_F_MF <- read_excel("Output/Fig3/GSEA_p_bulkRNAseq_FCtrlvsT2D.xlsx",sheet="GO_MF")
-HIGO_F <- bind_rows(HIGO_F_CC, HIGO_F_BP, HIGO_F_MF)
-HIGO_F$NES <- -HIGO_F$NES #make it so that negative means down with T2D
-HIGO_F <- HIGO_F %>% filter(p.adjust < 0.05) #significant only
-dim(HIGO_F %>% filter(NES > 0)) #54 significant pathways up with T2D
-dim(HIGO_F %>% filter(NES < 0)) #84 significant pathways down with T2D
-
-HPAPbetascGO_F_CC <- read_excel("Output/Fig3/GSEA_p_beta_scRNAseq_F_ctrlvsT2D.xlsx",sheet="GO_CC")
-HPAPbetascGO_F_BP <- read_excel("Output/Fig3/GSEA_p_beta_scRNAseq_F_ctrlvsT2D.xlsx",sheet="GO_BP")
-HPAPbetascGO_F_MF <- read_excel("Output/Fig3/GSEA_p_beta_scRNAseq_F_ctrlvsT2D.xlsx",sheet="GO_MF")
-HPAPbetascGO_F <- bind_rows(HPAPbetascGO_F_CC, HPAPbetascGO_F_BP, HPAPbetascGO_F_MF)
-HPAPbetascGO_F <- HPAPbetascGO_F %>% filter(p.adjust < 0.05) #significant only
-dim(HPAPbetascGO_F %>% filter(NES > 0)) #251 significant pathways up with T2D
-dim(HPAPbetascGO_F %>% filter(NES < 0)) #196 significant pathways down with T2D
-
-HPAPalphascGO_F_CC <- read_excel("Output/Fig3/GSEA_p_alpha_scRNAseq_F_ctrlvsT2D.xlsx",sheet="GO_CC")
-HPAPalphascGO_F_BP <- read_excel("Output/Fig3/GSEA_p_alpha_scRNAseq_F_ctrlvsT2D.xlsx",sheet="GO_BP")
-HPAPalphascGO_F_MF <- read_excel("Output/Fig3/GSEA_p_alpha_scRNAseq_F_ctrlvsT2D.xlsx",sheet="GO_MF")
-HPAPalphascGO_F <- bind_rows(HPAPalphascGO_F_CC, HPAPalphascGO_F_BP, HPAPalphascGO_F_MF)
-HPAPalphascGO_F <- HPAPalphascGO_F %>% filter(p.adjust < 0.05) #significant only
-dim(HPAPalphascGO_F %>% filter(NES > 0)) #90 significant pathways up with T2D
-dim(HPAPalphascGO_F %>% filter(NES < 0)) #255 significant pathways down with T2D
-
-#Check that column names are consistent
-all(colnames(HIGO_F) == colnames(HPAPbetascGO_F)) #TRUE
-all(colnames(HIGO_F) == colnames(HPAPalphascGO_F)) #TRUE
-
-#combine into single dataframe
-GO_all_F <- bind_rows(HIGO_F, HPAPbetascGO_F, HPAPalphascGO_F)
-GO_all_F$dataset <- c(rep("Humanislets.com\nbulk RNAseq",nrow(HIGO_F)), rep("HPAP beta-cell\nscRNAseq", nrow(HPAPbetascGO_F)), rep("HPAP alpha-cell\nscRNAseq", nrow(HPAPalphascGO_F)))
-head(GO_all_F)
-
-#identify redundant pathways
-genes_in_pathway <- str_split(GO_all_F$core_enrichment, pattern = "/") #returns a list where each list contains a vector of the genes in that pathway
-jaccard_similarity <- function(vec1, vec2) {
-  intersection <- length(intersect(vec1, vec2))
-  union <- length(union(vec1, vec2))
-  if (union == 0) return(0)
-  return(intersection / union)
-}
-
-threshold <- 0.6
-n <- length(genes_in_pathway)
-
-repeat_indices <- c()
-for (i in 1:(n-1)) {
-  for (j in (i+1):n) {
-    sim <- jaccard_similarity(genes_in_pathway[[i]], genes_in_pathway[[j]])
-    if (sim > threshold) {
-      if(GO_all_F$dataset[[i]] == GO_all_F$dataset[[j]]){
-        if(length(genes_in_pathway[[i]]) < length(genes_in_pathway[[j]])){ #if similar pathways are from same dataset, keep one with more genes
-          repeat_indices <- c(repeat_indices,i)} else {repeat_indices <- c(repeat_indices,j)}
-      } else{
-        if(nchar(GO_all_F$Description[[i]]) > nchar(GO_all_F$Description[[j]])){ #if similar pathways are from different dataset, count as one and keep the shorter name
-          GO_all_F$Description[[i]] <- GO_all_F$Description[[j]]
-        } else{GO_all_F$Description[[j]] <- GO_all_F$Description[[i]]}
-      }
-    }
-  }
-}
-
-#remove pathways that are >threshold similarity index to another pathway in list
-GO_all_F <- GO_all_F[-repeat_indices,]
-
-#visualise
-#ctrl-biased
-GO_F_Ctrlbiased <- GO_all_F %>%
-  filter(NES < 0) %>%
-  arrange(pvalue)
-GO_F_Ctrlbiased_top30 <- unique(GO_F_Ctrlbiased$Description)[1:30] #top 30 pathways
-GO_F_Ctrlbiased <- GO_F_Ctrlbiased %>%
-  filter(Description %in% GO_F_Ctrlbiased_top30)
-GO_F_Ctrlbiased$Description <- factor(GO_F_Ctrlbiased$Description, levels = unique(GO_F_Ctrlbiased$Description))
-GO_F_Ctrlbiased %>%
-  mutate(NES = -NES) %>%
-  ggplot(aes(x=dataset, y=Description, size = NES, colour = p.adjust))+
-  geom_point() +
-  scale_y_discrete(limits=rev) +
-  theme_bw() +
-  labs(x = "", y = "", 
-       title = "GO pathways decreased\nwith T2D in females", colour = "Adjusted P-value", size = "NES") +
-  scale_color_gradient2(low = "#55066b", mid = "#C337EB", high = "white", midpoint = 2e-2, limits = c(0,4e-2)) +
-  scale_size_continuous(range = c(1,7), limits = c(1.5,3), breaks = c(1.5,3)) +
-  scale_x_discrete(position = "top")+
-  theme(legend.position = "right",
-        panel.grid = element_blank(),
-        axis.text = element_text(size = 10, colour = "black"),
-        axis.text.x = element_text(hjust = 0.5),
-        plot.title = element_text(size = 12, hjust = 0.5),
-        legend.title = element_text(size = 11),
-        legend.text = element_text(size = 10))
-ggsave("Output/Fig3/Fig3C.tiff", width = 8.5, height = 7)
-
-#T2D-biased
-GO_F_T2Dbiased <- GO_all_F %>%
-  filter(NES > 0) %>%
-  arrange(pvalue)
-GO_F_T2Dbiased_top30 <- unique(GO_F_T2Dbiased$Description)[1:30] #top 30 pathways
-GO_F_T2Dbiased <- GO_F_T2Dbiased %>%
-  filter(Description %in% GO_F_T2Dbiased_top30)
-GO_F_T2Dbiased$Description <- factor(GO_F_T2Dbiased$Description, levels = unique(GO_F_T2Dbiased$Description))
-GO_F_T2Dbiased %>%
-  ggplot(aes(x=dataset, y=Description, size = NES, colour = p.adjust))+
-  geom_point() +
-  scale_y_discrete(limits=rev) +
-  theme_bw() +
-  labs(x = "", y = "", 
-       title = "GO pathways increased\nwith T2D in females", colour = "Adjusted P-value", size = "NES") +
-  scale_color_gradient2(low = "#992002", mid = "#E05A38", high = "white", midpoint = 0.025, limits = c(0,0.05)) +
-  scale_size_continuous(range = c(1,7), limits = c(1,2.5), breaks = c(1,2.5)) +
-  scale_x_discrete(position = "top")+
-  theme(legend.position = "right",
-        panel.grid = element_blank(),
-        axis.text = element_text(size = 10, colour = "black"),
-        axis.text.x = element_text(hjust = 0.5),
-        plot.title = element_text(size = 12, hjust = 0.5),
-        legend.title = element_text(size = 11),
-        legend.text = element_text(size = 10))
-ggsave("Output/Fig3/Fig3A.tiff", width = 9.9, height = 7)
-
-#males
-#Combining GSEA results to graph together
-HIGO_M_CC <- read_excel("Output/Fig3/GSEA_p_bulkRNAseq_MCtrlvsT2D.xlsx",sheet="GO_CC")
-HIGO_M_BP <- read_excel("Output/Fig3/GSEA_p_bulkRNAseq_MCtrlvsT2D.xlsx",sheet="GO_BP")
-HIGO_M_MF <- read_excel("Output/Fig3/GSEA_p_bulkRNAseq_MCtrlvsT2D.xlsx",sheet="GO_MF")
-HIGO_M <- bind_rows(HIGO_M_CC, HIGO_M_BP, HIGO_M_MF)
-HIGO_M$NES <- -HIGO_M$NES #make it so that negative means down with T2D
-HIGO_M <- HIGO_M %>% filter(p.adjust < 0.05) #significant only
-dim(HIGO_M %>% filter(NES > 0)) #557 significant pathways up with T2D
-dim(HIGO_M %>% filter(NES < 0)) #178 significant pathways down with T2D
-
-HPAPbetascGO_M_CC <- read_excel("Output/Fig3/GSEA_p_beta_scRNAseq_M_ctrlvsT2D.xlsx",sheet="GO_CC")
-HPAPbetascGO_M_BP <- read_excel("Output/Fig3/GSEA_p_beta_scRNAseq_M_ctrlvsT2D.xlsx",sheet="GO_BP")
-HPAPbetascGO_M_MF <- read_excel("Output/Fig3/GSEA_p_beta_scRNAseq_M_ctrlvsT2D.xlsx",sheet="GO_MF")
-HPAPbetascGO_M <- bind_rows(HPAPbetascGO_M_CC, HPAPbetascGO_M_BP, HPAPbetascGO_M_MF)
-HPAPbetascGO_M <- HPAPbetascGO_M %>% filter(p.adjust < 0.05) #significant only
-dim(HPAPbetascGO_M %>% filter(NES > 0)) #176 significant pathways up with T2D
-dim(HPAPbetascGO_M %>% filter(NES < 0)) #379 significant pathways down with T2D
-
-HPAPalphascGO_M_CC <- read_excel("Output/Fig3/GSEA_p_alpha_scRNAseq_M_ctrlvsT2D.xlsx",sheet="GO_CC")
-HPAPalphascGO_M_BP <- read_excel("Output/Fig3/GSEA_p_alpha_scRNAseq_M_ctrlvsT2D.xlsx",sheet="GO_BP")
-HPAPalphascGO_M_MF <- read_excel("Output/Fig3/GSEA_p_alpha_scRNAseq_M_ctrlvsT2D.xlsx",sheet="GO_MF")
-HPAPalphascGO_M <- bind_rows(HPAPalphascGO_M_CC, HPAPalphascGO_M_BP, HPAPalphascGO_M_MF)
-HPAPalphascGO_M <- HPAPalphascGO_M %>% filter(p.adjust < 0.05) #significant only
-dim(HPAPalphascGO_M %>% filter(NES > 0)) #23 significant pathways up with T2D
-dim(HPAPalphascGO_M %>% filter(NES < 0)) #52 significant pathways down with T2D
-
-#Check that column names are consistent
-all(colnames(HIGO_M) == colnames(HPAPbetascGO_M)) #TRUE
-all(colnames(HIGO_M) == colnames(HPAPalphascGO_M)) #TRUE
-
-#combine into single dataframe
-GO_all_M <- bind_rows(HIGO_M, HPAPbetascGO_M, HPAPalphascGO_M)
-GO_all_M$dataset <- c(rep("Humanislets.com\nbulk RNAseq",nrow(HIGO_M)), rep("HPAP beta-cell\nscRNAseq", nrow(HPAPbetascGO_M)), rep("HPAP alpha-cell\nscRNAseq", nrow(HPAPalphascGO_M)))
-head(GO_all_M)
-
-#identify redundant pathways
-genes_in_pathway <- str_split(GO_all_M$core_enrichment, pattern = "/") #returns a list where each list contains a vector of the genes in that pathway
-jaccard_similarity <- function(vec1, vec2) {
-  intersection <- length(intersect(vec1, vec2))
-  union <- length(union(vec1, vec2))
-  if (union == 0) return(0)
-  return(intersection / union)
-}
-
-threshold <- 0.6
-n <- length(genes_in_pathway)
-
-repeat_indices <- c()
-for (i in 1:(n-1)) {
-  for (j in (i+1):n) {
-    sim <- jaccard_similarity(genes_in_pathway[[i]], genes_in_pathway[[j]])
-    if (sim > threshold) {
-      if(GO_all_M$dataset[[i]] == GO_all_M$dataset[[j]]){
-        if(length(genes_in_pathway[[i]]) < length(genes_in_pathway[[j]])){ #if similar pathways are from same dataset, keep one with more genes
-          repeat_indices <- c(repeat_indices,i)} else {repeat_indices <- c(repeat_indices,j)}
-      } else{
-        if(nchar(GO_all_M$Description[[i]]) > nchar(GO_all_M$Description[[j]])){ #if similar pathways are from different dataset, count as one and keep the shorter name
-          GO_all_M$Description[[i]] <- GO_all_M$Description[[j]]
-        } else{GO_all_M$Description[[j]] <- GO_all_M$Description[[i]]}
-      }
-    }
-  }
-}
-
-#remove pathways that are >threshold similarity index to another pathway in list
-GO_all_M <- GO_all_M[-repeat_indices,]
-
-#visualise
-#ctrl-biased
-GO_M_Ctrlbiased <- GO_all_M %>%
-  filter(NES < 0) %>%
-  arrange(pvalue)
-GO_M_Ctrlbiased_top30 <- unique(GO_M_Ctrlbiased$Description)[1:30] #top 30 pathways
-GO_M_Ctrlbiased <- GO_M_Ctrlbiased %>%
-  filter(Description %in% GO_M_Ctrlbiased_top30)
-GO_M_Ctrlbiased$Description <- factor(GO_M_Ctrlbiased$Description, levels = unique(GO_M_Ctrlbiased$Description))
-GO_M_Ctrlbiased %>%
-  mutate(NES = -NES) %>%
-  ggplot(aes(x=dataset, y=Description, size = NES, colour = p.adjust))+
-  geom_point() +
-  scale_y_discrete(limits=rev) +
-  theme_bw() +
-  labs(x = "", y = "", 
-       title = "GO pathways decreased\nwith T2D in males", colour = "Adjusted P-value", size = "NES") +
-  scale_color_gradient2(low = "#0a735b", mid = "#3EDBB8", high = "white", midpoint = 0.025, limits = c(0,0.05)) +
-  scale_size_continuous(range = c(1,7), limits = c(1.5,2.5), breaks = c(1.5,2.5)) +
-  scale_x_discrete(position = "top")+
-  theme(legend.position = "right",
-        panel.grid = element_blank(),
-        axis.text = element_text(size = 10, colour = "black"),
-        axis.text.x = element_text(hjust = 0.5),
-        plot.title = element_text(size = 12, hjust = 0.5),
-        legend.title = element_text(size = 11),
-        legend.text = element_text(size = 10))
-ggsave("Output/Fig3/Fig3D.tiff", width = 9.1, height = 7)
-
-GO_M_T2Dbiased <- GO_all_M %>%
-  filter(NES > 0) %>%
-  arrange(pvalue)
-GO_M_T2Dbiased_top30 <- unique(GO_M_T2Dbiased$Description)[1:30] #top 30 pathways
-GO_M_T2Dbiased <- GO_M_T2Dbiased %>%
-  filter(Description %in% GO_M_T2Dbiased_top30)
-GO_M_T2Dbiased$Description <- factor(GO_M_T2Dbiased$Description, levels = unique(GO_M_T2Dbiased$Description))
-GO_M_T2Dbiased %>%
-  ggplot(aes(x=dataset, y=Description, size = NES, colour = p.adjust))+
-  geom_point() +
-  scale_y_discrete(limits=rev) +
-  theme_bw() +
-  labs(x = "", y = "", 
-       title = "GO pathways increased\nwith T2D in males", colour = "Adjusted P-value", size = "NES") +
-  scale_color_gradient2(low = "#9c6b05", mid = "#DBA126", high = "white", midpoint = 0.025, limits = c(0,0.05)) +
-  scale_size_continuous(range = c(1,7), limits = c(1,2.5), breaks = c(1,2.5)) +
-  scale_x_discrete(position = "top")+
-  theme(legend.position = "right",
-        panel.grid = element_blank(),
-        axis.text = element_text(size = 10, colour = "black"),
-        axis.text.x = element_text(hjust = 0.5),
-        plot.title = element_text(size = 12, hjust = 0.5),
-        legend.title = element_text(size = 11),
-        legend.text = element_text(size = 10))
-ggsave("Output/Fig3/Fig3B.tiff", width = 8.65, height = 7)
-
-### Figure 4 ### ----
-
-#clear environment
-rm(list = ls())
-
-#import proteomics data from Humanislets.com (downloaded 21 May 2024)
-prot <- read.csv("data/Humanislets.com/proc_prot.csv")
-donor_data <- read.csv("data/Humanislets.com/donor.csv")
-isolation_data <- read.csv("data/Humanislets.com/isolation.csv")
-
-#join donor info with proteomics data
-donor_isolation <- inner_join(donor_data, isolation_data, by = "record_id")
-prot_long <- pivot_longer(prot, !gene_id, values_to = "Abundance", names_to = "record_id")
-prot_data <- inner_join(prot_long, donor_isolation, by = "record_id")
-
-#get protein names from gene id
-x <- org.Hs.egSYMBOL
-mapped_genes <- mappedkeys(x)
-common.names <- as.list(x[mapped_genes])
-common.names <- unlist(common.names)
-map <- data.frame(names(common.names), common.names)
-colnames(map) <- c("gene_id","common_name")
-map$gene_id <- as.numeric(map$gene_id)
-prot_data <- left_join(prot_data, map, by = "gene_id")
-
+#Proteomics
 #Comparing control to T2D among females
 prot_F <- prot_data %>%
   filter(donorsex == "Female")
@@ -2006,92 +2040,15 @@ res.table_F <- res.table_F[!is.na(res.table_F$P.Value), ]
 res.table_F <- merge(res.table_F, map, by.x = "row.names", by.y = "gene_id")
 res.table_F <- res.table_F[,-7]
 
-write.csv(res.table_F, "Output/Fig4/prot_dea_results_correctforage_F.csv", row.names = FALSE)
+write.csv(res.table_F, "Output/Final figures/Fig3-4/prot_dea_results_correctforage_F.csv", row.names = FALSE)
 
 #GSEA
 res.table_F$entrez1 <- mapIds(org.Hs.eg.db, keys=c(res.table_F$common_name), column="ENTREZID", keytype="SYMBOL", multiVals="first") %>% 
-  as.character()  # use gene symbol to get Entrez ID
+  as.character() 
 res.table_F$entrez2 <- mapIds(org.Hs.eg.db, keys=c(res.table_F$common_name), column="ENTREZID", keytype="ALIAS", multiVals="first") %>% 
-  as.character() # use gene symbol as alias to get Entrez ID
+  as.character() 
 res.table_F <- res.table_F %>% 
   mutate(entrez = coalesce(entrez1, entrez2), .keep = "unused") 
-
-gsea_human <- function(df,FC_col, p_col, name){ 
-  # remove duplicated entrez
-  df <- df[order(df[[p_col]]),]
-  df <- df[!duplicated(df$entrez),]
-  df <- df[!is.na(df$entrez), ]
-  
-  #rank by signed -log10 p value
-  genelist <- sign(df[[FC_col]]) * (-log10(df[[p_col]]))
-  
-  # entrez id as names of the gene list
-  names(genelist) <- df$entrez
-  
-  genelist[genelist==Inf] <- max(genelist[is.finite(genelist)])+1
-  genelist[genelist==-Inf] <- min(genelist[is.finite(genelist)])-1
-  
-  genelist = sort(genelist, decreasing = TRUE)
-  genelist <- na.omit(genelist)
-  
-  gseGO.bp <- gseGO(
-    geneList=genelist,
-    ont = "BP",
-    OrgDb = org.Hs.eg.db,
-    minGSSize = 15, 
-    maxGSSize = 500,
-    pvalueCutoff = 1,
-    verbose = TRUE,
-    keyType = "ENTREZID"
-  )
-  gseGO.bp <- setReadable(gseGO.bp, OrgDb = org.Hs.eg.db, keyType="ENTREZID") # The geneID column is translated from EntrezID to symbol
-  gseGO.bp.df <- as.data.frame(gseGO.bp)
-  
-  gseGO.mf <- gseGO(
-    geneList=genelist,
-    ont = "MF",
-    OrgDb = org.Hs.eg.db,
-    minGSSize = 15, 
-    maxGSSize = 500,
-    pvalueCutoff = 1,
-    verbose = TRUE,
-    keyType = "ENTREZID"
-  )
-  gseGO.mf <- setReadable(gseGO.mf, OrgDb = org.Hs.eg.db, keyType="ENTREZID") # The geneID column is translated from EntrezID to symbol
-  gseGO.mf.df <- as.data.frame(gseGO.mf)
-  
-  gseGO.cc <- gseGO(
-    geneList=genelist,
-    ont = "CC",
-    OrgDb = org.Hs.eg.db,
-    minGSSize = 15, 
-    maxGSSize = 500,
-    pvalueCutoff = 1,
-    verbose = TRUE,
-    keyType = "ENTREZID"
-  )
-  gseGO.cc <- setReadable(gseGO.cc, OrgDb = org.Hs.eg.db, keyType="ENTREZID") # The geneID column is translated from EntrezID to symbol
-  gseGO.cc.df <- as.data.frame(gseGO.cc)
-  
-  
-  # Add the data frames to separate sheets
-  wb <- createWorkbook()
-  
-  addWorksheet(wb, "GO_BP")
-  writeData(wb, "GO_BP", gseGO.bp.df)
-  
-  addWorksheet(wb, "GO_MF")
-  writeData(wb, "GO_MF", gseGO.mf.df)
-  
-  addWorksheet(wb, "GO_CC")
-  writeData(wb, "GO_CC", gseGO.cc.df)
-  
-  # Save the workbook to a file
-  fpath <- paste0("Output/Fig4/GSEA_p_", name, ".xlsx")
-  saveWorkbook(wb, fpath, overwrite = TRUE)
-  cat(paste0("GSEA results saved in - ", fpath))
-  
-}
 
 gsea_human(df = res.table_F,
            FC_col = "logFC",
@@ -2155,7 +2112,7 @@ res.table_M <- res.table_M[!is.na(res.table_M$P.Value), ]
 res.table_M <- merge(res.table_M, map, by.x = "row.names", by.y = "gene_id")
 res.table_M <- res.table_M[,-7]
 
-write.csv(res.table_M, "Output/Fig4/prot_dea_results_correctforage_M.csv", row.names = FALSE)
+write.csv(res.table_M, "Output/Final figures/Fig3-4/prot_dea_results_correctforage_M.csv", row.names = FALSE)
 
 #GSEA
 res.table_M$entrez1 <- mapIds(org.Hs.eg.db, keys=c(res.table_M$common_name), column="ENTREZID", keytype="SYMBOL", multiVals="first") %>% 
@@ -2170,147 +2127,618 @@ gsea_human(df = res.table_M,
            p_col = "P.Value",
            name = "proteomics_M_controlvsT2D")
 
-#Make graphs
-#UpSet plot
-de_results_F_proteomics <- read.csv("Output/Fig4/prot_dea_results_correctforage_F.csv")
-de_results_M_proteomics <- read.csv("Output/Fig4/prot_dea_results_correctforage_M.csv")
+#Refine pathways for visualisation
+GO_CC_RNA_F <- read_excel("Output/Final figures/Fig3-4/GSEA_p_BulkHI and pbHPAP_F.xlsx",sheet="GO_CC")
+GO_MF_RNA_F <- read_excel("Output/Final figures/Fig3-4/GSEA_p_BulkHI and pbHPAP_F.xlsx",sheet="GO_MF")
+GO_BP_RNA_F <- read_excel("Output/Final figures/Fig3-4/GSEA_p_BulkHI and pbHPAP_F.xlsx",sheet="GO_BP")
+GO_combined_RNA_F <- bind_rows(GO_CC_RNA_F, GO_MF_RNA_F, GO_BP_RNA_F) %>%
+  arrange(pvalue)
+GO_combined_RNA_F <-GO_combined_RNA_F %>% filter(p.adjust < 0.05)
 
-colnames(de_results_F_proteomics) <- c("entrez","logFC_F","AveExpr_F","t_F","P.Value_F","adj.P.Val_F","Gene")
-colnames(de_results_M_proteomics) <- c("entrez","logFC_M","AveExpr_M","t_M","P.Value_M","adj.P.Val_M","Gene")
+#remove redundant pathways
+genes_in_pathway <- str_split(GO_combined_RNA_F$core_enrichment, pattern = "/") #returns a list where each list contains a vector of the genes in that pathway
+threshold <- 0.6
+n <- length(genes_in_pathway)
 
-de_results_proteomics_all <- full_join(de_results_F_proteomics, de_results_M_proteomics, by = c("entrez","Gene"))
+repeat_indices <- c()
+for (i in 1:(n-1)) {
+  for (j in (i+1):n) {
+    sim <- jaccard_similarity(genes_in_pathway[[i]], genes_in_pathway[[j]])
+    if (sim > threshold) {
+      if(length(genes_in_pathway[[i]]) < length(genes_in_pathway[[j]])){
+        repeat_indices <- c(repeat_indices,i)} else {repeat_indices <- c(repeat_indices,j)} #keep the one with more genes in it
+    }
+  }
+}
+
+GO_combined_refined_RNA_F <- GO_combined_RNA_F[-repeat_indices,]
+dim(GO_combined_refined_RNA_F) #424
+
+GO_CC_Protein_F <- read_excel("Output/Final figures/Fig3-4/GSEA_p_proteomics_F_controlvsT2D.xlsx",sheet="GO_CC")
+GO_MF_Protein_F <- read_excel("Output/Final figures/Fig3-4/GSEA_p_proteomics_F_controlvsT2D.xlsx",sheet="GO_MF")
+GO_BP_Protein_F <- read_excel("Output/Final figures/Fig3-4/GSEA_p_proteomics_F_controlvsT2D.xlsx",sheet="GO_BP")
+GO_combined_Protein_F <- bind_rows(GO_CC_Protein_F, GO_MF_Protein_F, GO_BP_Protein_F) %>%
+  arrange(pvalue)
+GO_combined_Protein_F <-GO_combined_Protein_F %>% filter(p.adjust < 0.05)
+
+#remove redundant pathways
+genes_in_pathway <- str_split(GO_combined_Protein_F$core_enrichment, pattern = "/") #returns a list where each list contains a vector of the genes in that pathway
+threshold <- 0.6
+n <- length(genes_in_pathway)
+
+repeat_indices <- c()
+for (i in 1:(n-1)) {
+  for (j in (i+1):n) {
+    sim <- jaccard_similarity(genes_in_pathway[[i]], genes_in_pathway[[j]])
+    if (sim > threshold) {
+      if(length(genes_in_pathway[[i]]) < length(genes_in_pathway[[j]])){
+        repeat_indices <- c(repeat_indices,i)} else {repeat_indices <- c(repeat_indices,j)} #keep the one with more genes in it
+    }
+  }
+}
+
+GO_combined_refined_Protein_F <- GO_combined_Protein_F[-repeat_indices,]
+dim(GO_combined_refined_Protein_F) #419
+
+length(intersect(GO_combined_refined_RNA_F$Description, GO_combined_refined_Protein_F$Description)) #55 common
+hist(GO_combined_refined_RNA_F$p.adjust)
+hist(GO_combined_refined_Protein_F$p.adjust)
+
+#make more stringent
+GO_combined_refined_RNA_F <- GO_combined_refined_RNA_F %>%
+  filter(p.adjust < 0.0001)
+dim(GO_combined_refined_RNA_F) #59
+GO_combined_refined_Protein_F <- GO_combined_refined_Protein_F %>%
+  filter(p.adjust < 0.0001) 
+dim(GO_combined_refined_Protein_F) #45
+length(intersect(GO_combined_refined_RNA_F$Description, GO_combined_refined_Protein_F$Description)) #4 common
+intersect(GO_combined_refined_RNA_F$Description, GO_combined_refined_Protein_F$Description) #mito things and RNP complex biogenesis
+
+#combine into one dataframe
+GO_combined_refined_RNA_Protein_F <- bind_rows(GO_combined_refined_RNA_F, GO_combined_refined_Protein_F)
+GO_combined_refined_RNA_Protein_F$dataset <- c(rep("RNA", nrow(GO_combined_refined_RNA_F)), rep("Protein",nrow(GO_combined_refined_Protein_F)))
+length(unique(GO_combined_refined_RNA_Protein_F$Description)) #100
+
+GO_combined_refined_RNA_Protein_F_up <- GO_combined_refined_RNA_Protein_F %>% filter(NES > 0)
+GO_combined_refined_RNA_Protein_F_down <- GO_combined_refined_RNA_Protein_F %>% filter(NES < 0)
+
+## Fig 3A ## ----
+#reorder pathways
+org.Hs.eg.db::org.Hs.egGO2ALLEGS |> as.list() -> GO2ALLEGS
+GO_combined_refined_RNA_Protein_F_up$ID -> sigGOs
+length(sigGOs)
+CreateGOrge(
+  gene_sets = GO2ALLEGS[sigGOs], 
+  recursive = T, iter_max = 1
+) -> GOrged
+GOrged@cluster_n #4 clusters
+
+GO_combined_refined_RNA_Protein_F_up_clusters <- list()
+cluster_list <- c()
+for (i in 1:GOrged@cluster_n){
+  cluster <- GO_combined_refined_RNA_Protein_F_up %>% 
+    filter(ID %in% GOrged@cluster_list[[i]])
+  GO_combined_refined_RNA_Protein_F_up_clusters[[i]] <- cluster
+  cluster_list <- c(cluster_list, rep(i,nrow(cluster)))
+}
+GO_combined_refined_RNA_Protein_F_up_clusters <- do.call(bind_rows, GO_combined_refined_RNA_Protein_F_up_clusters)
+GO_combined_refined_RNA_Protein_F_up_clusters <- data.frame(GO_combined_refined_RNA_Protein_F_up_clusters)
+GO_combined_refined_RNA_Protein_F_up_clusters$Cluster <- cluster_list
+
+#use clusters to get order of pathways
+GO_combined_refined_RNA_Protein_F_up_clusters <- GO_combined_refined_RNA_Protein_F_up_clusters %>% arrange(desc(Cluster))
+GO_combined_refined_RNA_Protein_F_up_clusters$Description <- factor(GO_combined_refined_RNA_Protein_F_up_clusters$Description, levels = unique(GO_combined_refined_RNA_Protein_F_up_clusters$Description))
+
+#graph
+summary(GO_combined_refined_RNA_Protein_F_up_clusters$NES)
+GO_combined_refined_RNA_Protein_F_up_clusters$dataset <- factor(GO_combined_refined_RNA_Protein_F_up_clusters$dataset, levels = c("RNA","Protein"))
+GO_combined_refined_RNA_Protein_F_up_clusters %>%
+  ggplot(aes(x=dataset, y=Description, size = NES, colour = p.adjust))+
+  geom_point() +
+  scale_y_discrete(limits=rev) +
+  theme_bw() +
+  labs(x = "", y = "", 
+       title = "GO pathways up with T2D", colour = "Adjusted P-value", size = "NES") +
+  scale_color_gradient2(low = "#992002", mid = "#E05A38", high = "white", midpoint = 0.00005, limits = c(0,0.0001)) +
+  scale_size_continuous(range = c(1,7), limits = c(1.5,2.5), breaks = c(1.5,2.5)) +
+  scale_x_discrete(position = "top")+
+  theme(legend.position = "right",
+        panel.grid = element_blank(),
+        axis.text = element_text(size = 10, colour = "black"),
+        axis.text.x = element_text(hjust = 0.5),
+        plot.title = element_text(size = 12, hjust = 0.5),
+        legend.title = element_text(size = 11),
+        legend.text = element_text(size = 10))
+ggsave("Output/Revisions/Fig3A.tiff", width = 8, height = 7)
+
+## Fig 4A ## ----
+GO_combined_refined_RNA_Protein_F_down$ID -> sigGOs
+length(sigGOs)
+CreateGOrge(
+  gene_sets = GO2ALLEGS[sigGOs], 
+  recursive = T, iter_max = 1
+) -> GOrged
+GOrged@cluster_n #6 clusters
+
+GO_combined_refined_RNA_Protein_F_down_clusters <- list()
+cluster_list <- c()
+for (i in 1:GOrged@cluster_n){
+  cluster <- GO_combined_refined_RNA_Protein_F_down %>% 
+    filter(ID %in% GOrged@cluster_list[[i]])
+  GO_combined_refined_RNA_Protein_F_down_clusters[[i]] <- cluster
+  cluster_list <- c(cluster_list, rep(i,nrow(cluster)))
+}
+GO_combined_refined_RNA_Protein_F_down_clusters <- do.call(bind_rows, GO_combined_refined_RNA_Protein_F_down_clusters)
+GO_combined_refined_RNA_Protein_F_down_clusters <- data.frame(GO_combined_refined_RNA_Protein_F_down_clusters)
+GO_combined_refined_RNA_Protein_F_down_clusters$Cluster <- cluster_list
+
+#use clusters to get order of pathways
+GO_combined_refined_RNA_Protein_F_down_clusters <- GO_combined_refined_RNA_Protein_F_down_clusters %>% arrange(desc(Cluster))
+GO_combined_refined_RNA_Protein_F_down_clusters$Description <- factor(GO_combined_refined_RNA_Protein_F_down_clusters$Description, levels = unique(GO_combined_refined_RNA_Protein_F_down_clusters$Description))
+
+#graph
+summary(GO_combined_refined_RNA_Protein_F_down_clusters$NES)
+GO_combined_refined_RNA_Protein_F_down_clusters$dataset <- factor(GO_combined_refined_RNA_Protein_F_down_clusters$dataset, levels = c("RNA","Protein"))
+GO_combined_refined_RNA_Protein_F_down_clusters %>%
+  ggplot(aes(x=dataset, y=Description, size = -NES, colour = p.adjust))+
+  geom_point() +
+  scale_y_discrete(limits=rev) +
+  theme_bw() +
+  labs(x = "", y = "", 
+       title = "GO pathways down with T2D", colour = "Adjusted P-value", size = "NES") +
+  scale_color_gradient2(low = "#55066b", mid = "#C337EB", high = "white", midpoint = 0.00005, limits = c(0,0.0001)) +
+  scale_size_continuous(range = c(1,7), limits = c(1.5,3), breaks = c(1.5,3)) +
+  scale_x_discrete(position = "top")+
+  theme(legend.position = "right",
+        panel.grid = element_blank(),
+        axis.text = element_text(size = 10, colour = "black"),
+        axis.text.x = element_text(hjust = 0.5),
+        plot.title = element_text(size = 12, hjust = 0.5),
+        legend.title = element_text(size = 11),
+        legend.text = element_text(size = 10))
+ggsave("Output/Final figures/Fig3-4/Fig4A.tiff", width = 7.6, height = 7.5)
+
+## Fig 3B ## ----
+GO_CC_RNA_M <- read_excel("Output/Final figures/Fig3-4/GSEA_p_BulkHI and pbHPAP_M.xlsx",sheet="GO_CC")
+GO_MF_RNA_M <- read_excel("Output/Final figures/Fig3-4/GSEA_p_BulkHI and pbHPAP_M.xlsx",sheet="GO_MF")
+GO_BP_RNA_M <- read_excel("Output/Final figures/Fig3-4/GSEA_p_BulkHI and pbHPAP_M.xlsx",sheet="GO_BP")
+GO_combined_RNA_M <- bind_rows(GO_CC_RNA_M, GO_MF_RNA_M, GO_BP_RNA_M) %>%
+  arrange(pvalue)
+GO_combined_RNA_M <-GO_combined_RNA_M %>% filter(p.adjust < 0.05)
+
+#remove redundant pathways
+genes_in_pathway <- str_split(GO_combined_RNA_M$core_enrichment, pattern = "/") #returns a list where each list contains a vector of the genes in that pathway
+threshold <- 0.6
+n <- length(genes_in_pathway)
+
+repeat_indices <- c()
+for (i in 1:(n-1)) {
+  for (j in (i+1):n) {
+    sim <- jaccard_similarity(genes_in_pathway[[i]], genes_in_pathway[[j]])
+    if (sim > threshold) {
+      if(length(genes_in_pathway[[i]]) < length(genes_in_pathway[[j]])){
+        repeat_indices <- c(repeat_indices,i)} else {repeat_indices <- c(repeat_indices,j)} #keep the one with more genes in it
+    }
+  }
+}
+
+GO_combined_refined_RNA_M <- GO_combined_RNA_M[-repeat_indices,]
+dim(GO_combined_refined_RNA_M) 925
+
+GO_CC_Protein_M <- read_excel("Output/Final figures/Fig3-4/GSEA_p_proteomics_M_controlvsT2D.xlsx",sheet="GO_CC")
+GO_MF_Protein_M <- read_excel("Output/Final figures/Fig3-4/GSEA_p_proteomics_M_controlvsT2D.xlsx",sheet="GO_MF")
+GO_BP_Protein_M <- read_excel("Output/Final figures/Fig3-4/GSEA_p_proteomics_M_controlvsT2D.xlsx",sheet="GO_BP")
+GO_combined_Protein_M <- bind_rows(GO_CC_Protein_M, GO_MF_Protein_M, GO_BP_Protein_M) %>%
+  arrange(pvalue)
+GO_combined_Protein_M <-GO_combined_Protein_M %>% filter(p.adjust < 0.05)
+
+#remove redundant pathways
+genes_in_pathway <- str_split(GO_combined_Protein_M$core_enrichment, pattern = "/") #returns a list where each list contains a vector of the genes in that pathway
+threshold <- 0.6
+n <- length(genes_in_pathway)
+
+repeat_indices <- c()
+for (i in 1:(n-1)) {
+  for (j in (i+1):n) {
+    sim <- jaccard_similarity(genes_in_pathway[[i]], genes_in_pathway[[j]])
+    if (sim > threshold) {
+      if(length(genes_in_pathway[[i]]) < length(genes_in_pathway[[j]])){
+        repeat_indices <- c(repeat_indices,i)} else {repeat_indices <- c(repeat_indices,j)} #keep the one with more genes in it
+    }
+  }
+}
+
+GO_combined_refined_Protein_M <- GO_combined_Protein_M[-repeat_indices,]
+dim(GO_combined_refined_Protein_M) #324
+
+length(intersect(GO_combined_refined_RNA_M$Description, GO_combined_refined_Protein_M$Description)) #109 common
+hist(GO_combined_refined_RNA_M$p.adjust)
+hist(GO_combined_refined_Protein_M$p.adjust)
+
+#make more stringent
+GO_combined_refined_RNA_M <- GO_combined_refined_RNA_M %>%
+  filter(p.adjust < 0.0001)
+dim(GO_combined_refined_RNA_M) #144
+GO_combined_refined_Protein_M <- GO_combined_refined_Protein_M %>%
+  filter(p.adjust < 0.0001) 
+dim(GO_combined_refined_Protein_M) #42
+length(intersect(GO_combined_refined_RNA_M$Description, GO_combined_refined_Protein_M$Description)) #7 common
+intersect(GO_combined_refined_RNA_M$Description, GO_combined_refined_Protein_M$Description) #ribosome, virus, junction, vesicle
+
+#combined into one dataframe
+GO_combined_refined_RNA_Protein_M <- bind_rows(GO_combined_refined_RNA_M, GO_combined_refined_Protein_M)
+GO_combined_refined_RNA_Protein_M$dataset <- c(rep("RNA", nrow(GO_combined_refined_RNA_M)), rep("Protein",nrow(GO_combined_refined_Protein_M)))
+length(unique(GO_combined_refined_RNA_Protein_M$Description)) #180
+
+GO_combined_refined_RNA_Protein_M_up <- GO_combined_refined_RNA_Protein_M %>% filter(NES > 0)
+dim(GO_combined_refined_RNA_Protein_M_up) #148
+#take top 60
+GO_combined_refined_RNA_Protein_M_up <- GO_combined_refined_RNA_Protein_M_up %>% arrange(pvalue)
+GO_combined_refined_RNA_Protein_M_up <- GO_combined_refined_RNA_Protein_M_up[1:60,]
+
+GO_combined_refined_RNA_Protein_M_down <- GO_combined_refined_RNA_Protein_M %>% filter(NES < 0)
+dim(GO_combined_refined_RNA_Protein_M_down)#39
+
+#cluster for pathway order
+GO_combined_refined_RNA_Protein_M_up$ID -> sigGOs
+length(sigGOs)
+CreateGOrge(
+  gene_sets = GO2ALLEGS[sigGOs], 
+  recursive = T, iter_max = 1
+) -> GOrged
+GOrged@cluster_n #4 clusters
+
+GO_combined_refined_RNA_Protein_M_up_clusters <- list()
+cluster_list <- c()
+for (i in 1:GOrged@cluster_n){
+  cluster <- GO_combined_refined_RNA_Protein_M_up %>% 
+    filter(ID %in% GOrged@cluster_list[[i]])
+  GO_combined_refined_RNA_Protein_M_up_clusters[[i]] <- cluster
+  cluster_list <- c(cluster_list, rep(i,nrow(cluster)))
+}
+GO_combined_refined_RNA_Protein_M_up_clusters <- do.call(bind_rows, GO_combined_refined_RNA_Protein_M_up_clusters)
+GO_combined_refined_RNA_Protein_M_up_clusters <- data.frame(GO_combined_refined_RNA_Protein_M_up_clusters)
+GO_combined_refined_RNA_Protein_M_up_clusters$Cluster <- cluster_list
+
+#use clusters to get order of pathways
+GO_combined_refined_RNA_Protein_M_up_clusters <- GO_combined_refined_RNA_Protein_M_up_clusters %>% arrange(desc(Cluster))
+GO_combined_refined_RNA_Protein_M_up_clusters$Description <- factor(GO_combined_refined_RNA_Protein_M_up_clusters$Description, levels = unique(GO_combined_refined_RNA_Protein_M_up_clusters$Description))
+
+#graph
+summary(GO_combined_refined_RNA_Protein_M_up_clusters$NES)
+GO_combined_refined_RNA_Protein_M_up_clusters$dataset <- factor(GO_combined_refined_RNA_Protein_M_up_clusters$dataset, levels = c("RNA","Protein"))
+GO_combined_refined_RNA_Protein_M_up_clusters %>%
+  ggplot(aes(x=dataset, y=Description, size = NES, colour = p.adjust))+
+  geom_point() +
+  scale_y_discrete(limits=rev) +
+  theme_bw() +
+  labs(x = "", y = "", 
+       title = "GO pathways up with T2D", colour = "Adjusted P-value", size = "NES") +
+  scale_color_gradient2(low = "#9c6b05", mid = "#DBA126", high = "white", midpoint = 0.00005, limits = c(0,0.0001)) +
+  scale_size_continuous(range = c(1,7), limits = c(1.5,3), breaks = c(1.5,3)) +
+  scale_x_discrete(position = "top")+
+  theme(legend.position = "right",
+        panel.grid = element_blank(),
+        axis.text = element_text(size = 10, colour = "black"),
+        axis.text.x = element_text(hjust = 0.5),
+        plot.title = element_text(size = 12, hjust = 0.5),
+        legend.title = element_text(size = 11),
+        legend.text = element_text(size = 10))
+ggsave("Output/Final figures/Fig3-4/Fig3B.tiff", width = 8, height = 7.5)
 
 
-#label directions for each direction
-de_results_proteomics_all$F_CtrlvsT2D.direction <- ifelse(!de_results_proteomics_all$adj.P.Val_F<0.05, 
-                                                          "NS",
-                                                          ifelse(de_results_proteomics_all$logFC_F>0,
-                                                                 "Up", "Down"))
-de_results_proteomics_all$M_CtrlvsT2D.direction <- ifelse(!de_results_proteomics_all$adj.P.Val_M<0.05, 
-                                                          "NS",
-                                                          ifelse(de_results_proteomics_all$logFC_M>0,
-                                                                 "Up", "Down"))
+## Fig 4B ## ----
+GO_combined_refined_RNA_Protein_M_down$ID -> sigGOs
+length(sigGOs)
+CreateGOrge(
+  gene_sets = GO2ALLEGS[sigGOs], 
+  recursive = T, iter_max = 1
+) -> GOrged
+GOrged@cluster_n #4 clusters
 
-# Label the overall direction of change of both comparisons. If all non NS directions are Up or Down, write "Up" or "Down", otherwise write "Different direction"
-de_results_proteomics_all$Intersect_direction <- ifelse(rowSums(de_results_proteomics_all[, c(13:14)] =="Down", na.rm = TRUE) == rowSums(!de_results_proteomics_all[, c(13:14)] == "NS"), 
-                                                        "Down", 
-                                                        ifelse(rowSums(de_results_proteomics_all[, c(13:14)] =="Up", na.rm = TRUE) == rowSums(!de_results_proteomics_all[, c(13:14)] == "NS"), "Up", "Different direction"))
+GO_combined_refined_RNA_Protein_M_down_clusters <- list()
+cluster_list <- c()
+for (i in 1:GOrged@cluster_n){
+  cluster <- GO_combined_refined_RNA_Protein_M_down %>% 
+    filter(ID %in% GOrged@cluster_list[[i]])
+  GO_combined_refined_RNA_Protein_M_down_clusters[[i]] <- cluster
+  cluster_list <- c(cluster_list, rep(i,nrow(cluster)))
+}
+GO_combined_refined_RNA_Protein_M_down_clusters <- do.call(bind_rows, GO_combined_refined_RNA_Protein_M_down_clusters)
+GO_combined_refined_RNA_Protein_M_down_clusters <- data.frame(GO_combined_refined_RNA_Protein_M_down_clusters)
+GO_combined_refined_RNA_Protein_M_down_clusters$Cluster <- cluster_list
 
+#use clusters to get order of pathways
+GO_combined_refined_RNA_Protein_M_down_clusters <- GO_combined_refined_RNA_Protein_M_down_clusters %>% arrange(desc(Cluster))
+GO_combined_refined_RNA_Protein_M_down_clusters$Description <- factor(GO_combined_refined_RNA_Protein_M_down_clusters$Description, levels = unique(GO_combined_refined_RNA_Protein_M_down_clusters$Description))
 
-# Make the overall direction factors. And their levels should be in the order of Up, Down, Different direction.
-de_results_proteomics_all$Intersect_direction <- factor(de_results_proteomics_all$Intersect_direction, 
-                                                        levels = c("Up","Down","Different direction"))
+#graph
+summary(GO_combined_refined_RNA_Protein_M_down_clusters$NES)
+GO_combined_refined_RNA_Protein_M_down_clusters$dataset <- factor(GO_combined_refined_RNA_Protein_M_down_clusters$dataset, levels = c("RNA","Protein"))
+GO_combined_refined_RNA_Protein_M_down_clusters %>%
+  ggplot(aes(x=dataset, y=Description, size = -NES, colour = p.adjust))+
+  geom_point() +
+  scale_y_discrete(limits=rev) +
+  theme_bw() +
+  labs(x = "", y = "", 
+       title = "GO pathways down with T2D", colour = "Adjusted P-value", size = "NES") +
+  scale_color_gradient2(low = "#0a735b", mid = "#3EDBB8", high = "white", midpoint = 0.00005, limits = c(0,0.0001)) +
+  scale_size_continuous(range = c(1,7), limits = c(1.5,2.5), breaks = c(1.5,2.5)) +
+  scale_x_discrete(position = "top")+
+  theme(legend.position = "right",
+        panel.grid = element_blank(),
+        axis.text = element_text(size = 10, colour = "black"),
+        axis.text.x = element_text(hjust = 0.5),
+        plot.title = element_text(size = 12, hjust = 0.5),
+        legend.title = element_text(size = 11),
+        legend.text = element_text(size = 10))
+ggsave("Output/Final figures/Fig3-4/Fig4B.tiff", width = 6.65, height = 6.75)
 
-#label comparisons as significant or not
-de_results_proteomics_all$F_CtrlvsT2D <- de_results_proteomics_all$adj.P.Val_F < 0.05
-de_results_proteomics_all$M_CtrlvsT2D <- de_results_proteomics_all$adj.P.Val_M < 0.05
+#Venn diagrams
+GO_combined_RNA_F_up <- GO_combined_RNA_F %>% filter(NES > 0)
+GO_combined_RNA_F_down <- GO_combined_RNA_F %>% filter(NES < 0)
+GO_combined_RNA_M_up <- GO_combined_RNA_M %>% filter(NES > 0)
+GO_combined_RNA_M_down <- GO_combined_RNA_M %>% filter(NES < 0)
+GO_combined_Protein_F_up <- GO_combined_Protein_F %>% filter(NES > 0)
+GO_combined_Protein_F_down <- GO_combined_Protein_F %>% filter(NES < 0)
+GO_combined_Protein_M_up <- GO_combined_Protein_M %>% filter(NES > 0)
+GO_combined_Protein_M_down <- GO_combined_Protein_M %>% filter(NES < 0)
 
-# Plot UpSet
-data.sets.proteomics <- colnames(de_results_proteomics_all)[16:17]
-
-theme_intersection <- theme(
-  axis.title.y = element_text(margin = margin(r = -10), colour = "black"),
-  axis.text.y = element_text(colour = "black"),
-  axis.text.x = element_blank(),
-  axis.title.x = element_blank(),
-  legend.title = element_blank(),
-  panel.grid.major = element_blank(),
-  panel.grid.minor = element_blank(),
-  axis.ticks = element_blank(),
-  legend.position = "none"
+venn.diagram(
+  x = list(GO_combined_RNA_F_up$Description, GO_combined_Protein_F_up$Description),
+  category.names = c("RNA" , "Protein"),
+  filename = "Output/Final figures/Fig3-4/Fig3A Venn.tiff",
+  output=TRUE,
+  # Output features
+  imagetype="tiff" ,
+  height = 480 , 
+  width = 480 , 
+  resolution = 300,
+  compression = "lzw",
+  fill = c("tomato","steelblue"),
+  # Numbers
+  cex = .6,
+  fontface = "bold",
+  fontfamily = "sans",
+  # Set names
+  cat.cex = 0.6,
+  cat.fontface = "bold",
+  cat.default.pos = "outer",
+  cat.pos = c(-27, 27),
+  cat.dist = c(0.055, 0.055),
+  cat.fontfamily = "sans"
 )
-theme_direction <- theme(
-  axis.title.y = element_text(margin = margin(r = -10)),
-  axis.text.x = element_blank(),
-  axis.text.y = element_text(colour = "black"),
-  axis.title.x = element_blank(),
-  legend.title = element_blank(),
-  legend.position = "top",
-  panel.grid.major = element_blank(),
-  panel.grid.minor = element_blank(),
-  axis.ticks = element_blank()
+
+
+venn.diagram(
+  x = list(GO_combined_RNA_F_down$Description, GO_combined_Protein_F_down$Description),
+  category.names = c("RNA" , "Protein"),
+  filename = "Output/Final figures/Fig3-4/Fig4A Venn.tiff",
+  output=TRUE,
+  # Output features
+  imagetype="tiff" ,
+  height = 480 , 
+  width = 480 , 
+  resolution = 300,
+  compression = "lzw",
+  fill = c("tomato","steelblue"),
+  # Numbers
+  cex = .6,
+  fontface = "bold",
+  fontfamily = "sans",
+  # Set names
+  cat.cex = 0.6,
+  cat.fontface = "bold",
+  cat.default.pos = "outer",
+  cat.pos = c(-27, 27),
+  cat.dist = c(0.055, 0.055),
+  cat.fontfamily = "sans"
 )
-theme_set_sizes <- theme(
-  axis.title.y = element_blank(),
-  axis.text.y = element_blank(),
-  axis.title.x = element_text(margin = margin(t = -15)),
-  axis.text.x = element_blank(),
-  panel.grid.major = element_blank(),
-  panel.grid.minor = element_blank(),
-  axis.ticks = element_blank()
+
+venn.diagram(
+  x = list(GO_combined_RNA_M_up$Description, GO_combined_Protein_M_up$Description),
+  category.names = c("RNA" , "Protein"),
+  filename = "Output/Final figures/Fig3-4/FigBA Venn.tiff",
+  output=TRUE,
+  # Output features
+  imagetype="tiff" ,
+  height = 480 , 
+  width = 480 , 
+  resolution = 300,
+  compression = "lzw",
+  fill = c("tomato","steelblue"),
+  # Numbers
+  cex = .6,
+  fontface = "bold",
+  fontfamily = "sans",
+  # Set names
+  cat.cex = 0.6,
+  cat.fontface = "bold",
+  cat.default.pos = "outer",
+  cat.pos = c(-27, 27),
+  cat.dist = c(0.055, 0.055),
+  cat.fontfamily = "sans"
 )
 
 
-upset(
-  de_results_proteomics_all,
-  data.sets.proteomics,
-  name = '',
-  width_ratio = 0.25,
-  height_ratio = 0.5,
-  min_size = 1,
-  min_degree = 1,
-  base_annotations = list(
-    'Intersection size' = (
-      intersection_size(aes(fill = Intersect_direction)) +
-        scale_fill_manual(values = c("tomato", "cornflowerblue", "grey"))+
-        theme_intersection
-    )
-  ),
-  annotations = list(
-    'Direction' = (
-      ggplot(mapping = aes(fill = Intersect_direction)) +
-        geom_bar(stat = 'count', position = 'fill') +
-        scale_y_continuous(labels = scales::percent_format()) +
-        scale_fill_manual(values = c("tomato", "cornflowerblue", "grey")) +
-        ylab('Direction') +
-        theme_direction
-    )
-  ),
-  set_sizes = (
-    upset_set_size() +
-      ylab('') +
-      geom_text(aes(label = ..count..), hjust = 1.1, stat = 'count') +
-      expand_limits(y = 2020) +
-      theme_set_sizes
-  ),
-  stripes = c("white"),
-  themes = list(intersections_matrix = theme(axis.title.y = element_blank()))
-) +
-  theme(
-    panel.grid = element_blank(),
-    text = element_text(size = 12),
-    axis.ticks.x = element_blank(),
-    axis.text.x = element_blank(),
-    axis.text.y = element_text(colour = "black")
-  ) +
-  patchwork::plot_layout(heights = c(0.5, 1, 0.5))
+venn.diagram(
+  x = list(GO_combined_RNA_M_down$Description, GO_combined_Protein_M_down$Description),
+  category.names = c("RNA" , "Protein"),
+  filename = "Output/Final figures/Fig3-4/Fig4B Venn.tiff",
+  output=TRUE,
+  # Output features
+  imagetype="tiff" ,
+  height = 480 , 
+  width = 480 , 
+  resolution = 300,
+  compression = "lzw",
+  fill = c("tomato","steelblue"),
+  # Numbers
+  cex = .6,
+  fontface = "bold",
+  fontfamily = "sans",
+  # Set names
+  cat.cex = 0.6,
+  cat.fontface = "bold",
+  cat.default.pos = "outer",
+  cat.pos = c(-27, 27),
+  cat.dist = c(0.055, 0.055),
+  cat.fontfamily = "sans"
+)
 
-ggsave("Output/Fig4/Fig4A.tiff", width = 2.75, height = 4)
+### Figure S4 ### ----
+## Fig S4A ## ----
+beta_F_feature <- beta_bulk_logCPM_long %>%
+  filter(is.na(gene_id)==FALSE) %>%
+  dplyr::select(gene_id, DonorID, logCPM) %>%
+  pivot_wider(names_from = "DonorID", values_from = "logCPM")
+genes_beta_F <- beta_F_feature$gene_id
+beta_F_feature <- data.frame(beta_F_feature)
+rownames(beta_F_feature) <- genes_beta_F
+beta_F_feature <- beta_F_feature[,-1] #remove the gene column
 
+beta_F_metadata <- metadata_combined %>%
+  filter(diagnosis %in% c("Control","T2D"), donorsex == "Female") %>%
+  filter(record_id %in% colnames(beta_F_feature))
 
-#Pathways
-GO_BP_F <- read_excel("Output/Fig4/GSEA_p_proteomics_F_controlvsT2D.xlsx", sheet = "GO_BP")
-GO_BP_M <- read_excel("Output/Fig4/GSEA_p_proteomics_M_controlvsT2D.xlsx", sheet = "GO_BP")
-GO_MF_F <- read_excel("Output/Fig4/GSEA_p_proteomics_F_controlvsT2D.xlsx", sheet = "GO_MF")
-GO_MF_M <- read_excel("Output/Fig4/GSEA_p_proteomics_M_controlvsT2D.xlsx", sheet = "GO_MF")
-GO_CC_F <- read_excel("Output/Fig4/GSEA_p_proteomics_F_controlvsT2D.xlsx", sheet = "GO_CC")
-GO_CC_M <- read_excel("Output/Fig4/GSEA_p_proteomics_M_controlvsT2D.xlsx", sheet = "GO_CC")
+beta_F_feature <- beta_F_feature %>%
+  dplyr::select(beta_F_metadata$record_id)
 
-GO_combined_F <- bind_rows(GO_BP_F, GO_MF_F, GO_CC_F)
-GO_combined_M <- bind_rows(GO_BP_M, GO_MF_M, GO_CC_M)
+table(beta_F_metadata$diagnosis, beta_F_metadata$dataset)
+#16 Control, 11 T2D from HPAP
 
-dim(GO_combined_F %>% filter(p.adjust < 0.05) %>% filter(NES > 0)) #544 significant pathways up with T2D
-dim(GO_combined_F %>% filter(p.adjust < 0.05) %>% filter(NES < 0)) #225 significant pathways down with T2D
-dim(GO_combined_M %>% filter(p.adjust < 0.05) %>% filter(NES > 0)) #269 significant pathways up with T2D
-dim(GO_combined_M %>% filter(p.adjust < 0.05) %>% filter(NES < 0)) #332 significant pathways down with T2D
+#check order
+all(colnames(beta_F_feature) == beta_F_metadata$record_id) #TRUE
 
+#eliminate any feature with fewer than 10 observations
+feature.keep_beta_F <- apply(beta_F_feature, 1, function(x){sum(!is.na(x)) >= 9})
+beta_F_feature <- beta_F_feature[feature.keep_beta_F, ]
 
-#Females
-GO_combined_F <- GO_combined_F %>%
-  arrange(pvalue) %>%
-  filter(p.adjust < 0.05)
+# perform analysis
+# make design matrix
+grp.nms <- sort(unique(beta_F_metadata$diagnosis))
+fixedEffects <- c("donorage") #correct for age
+all.vars <- c("diagnosis", fixedEffects)
+design_betaF <- model.matrix(formula(paste0("~ 0 + ", all.vars[1], paste0(" + ", all.vars[2:length(all.vars)], collapse = ""))), data = beta_F_metadata)
+colnames(design_betaF)[1:length(grp.nms)] <- grp.nms
 
-genes_in_pathway <- str_split(GO_combined_F$core_enrichment, pattern = "/") #returns a list where each list contains a vector of the genes in that pathway
+# make contrast matrix
+myargs_betaF <- list()
+ref <- "Control" #using control as reference
+contrasts <- grp.nms[grp.nms != ref]
+myargs_betaF <- as.list(paste("T2D", "-", ref, sep = ""))
+myargs_betaF[["levels"]] <- design_betaF
+contrast.matrix_betaF <- do.call(makeContrasts, myargs_betaF)
+
+# get results
+fit_betaF <- lmFit(beta_F_feature, design_betaF, trend = TRUE, robust = TRUE)
+fit_betaF <- contrasts.fit(fit_betaF, contrast.matrix_betaF)
+fit_betaF <- eBayes(fit_betaF)
+res.table_betaF <- topTable(fit_betaF, number = Inf)
+
+# Remove results rows with NAs
+res.table_betaF <- res.table_betaF[!is.na(res.table_betaF$P.Value), ]
+
+# Save output
+res.table_betaF$entrez <- rownames(res.table_betaF)
+res.table_betaF$Gene <- mapIds(org.Hs.eg.db, keys=c(res.table_betaF$entrez), column="SYMBOL", keytype="ENTREZID", multiVals="first") %>% 
+  as.character() 
+write.csv(res.table_betaF, "Output/Final figures/FigS4/beta HPAP only_F_dea_results_correctforage_dataset.csv", row.names = FALSE)
+
+#GSEA
+gsea_human <- function(df,FC_col, p_col, name){ 
+  # remove duplicated entrez
+  df <- df[order(df[[p_col]]),]
+  df <- df[!duplicated(df$entrez),]
+  df <- df[!is.na(df$entrez), ]
+  
+  #rank by signed -log10 p value
+  genelist <- sign(df[[FC_col]]) * (-log10(df[[p_col]]))
+  
+  # entrez id as names of the gene list
+  names(genelist) <- df$entrez
+  
+  genelist[genelist==Inf] <- max(genelist[is.finite(genelist)])+1
+  genelist[genelist==-Inf] <- min(genelist[is.finite(genelist)])-1
+  
+  genelist = sort(genelist, decreasing = TRUE)
+  genelist <- na.omit(genelist)
+  
+  gseGO.bp <- gseGO(
+    geneList=genelist,
+    ont = "BP",
+    OrgDb = org.Hs.eg.db,
+    minGSSize = 15, 
+    maxGSSize = 500,
+    pvalueCutoff = 1,
+    verbose = TRUE,
+    keyType = "ENTREZID"
+  )
+  gseGO.bp <- setReadable(gseGO.bp, OrgDb = org.Hs.eg.db, keyType="ENTREZID") # The geneID column is translated from EntrezID to symbol
+  gseGO.bp.df <- as.data.frame(gseGO.bp)
+  
+  gseGO.mf <- gseGO(
+    geneList=genelist,
+    ont = "MF",
+    OrgDb = org.Hs.eg.db,
+    minGSSize = 15, 
+    maxGSSize = 500,
+    pvalueCutoff = 1,
+    verbose = TRUE,
+    keyType = "ENTREZID"
+  )
+  gseGO.mf <- setReadable(gseGO.mf, OrgDb = org.Hs.eg.db, keyType="ENTREZID") # The geneID column is translated from EntrezID to symbol
+  gseGO.mf.df <- as.data.frame(gseGO.mf)
+  
+  gseGO.cc <- gseGO(
+    geneList=genelist,
+    ont = "CC",
+    OrgDb = org.Hs.eg.db,
+    minGSSize = 15, 
+    maxGSSize = 500,
+    pvalueCutoff = 1,
+    verbose = TRUE,
+    keyType = "ENTREZID"
+  )
+  gseGO.cc <- setReadable(gseGO.cc, OrgDb = org.Hs.eg.db, keyType="ENTREZID") # The geneID column is translated from EntrezID to symbol
+  gseGO.cc.df <- as.data.frame(gseGO.cc)
+  
+  
+  # Add the data frames to separate sheets
+  wb <- createWorkbook()
+  
+  addWorksheet(wb, "GO_BP")
+  writeData(wb, "GO_BP", gseGO.bp.df)
+  
+  addWorksheet(wb, "GO_MF")
+  writeData(wb, "GO_MF", gseGO.mf.df)
+  
+  addWorksheet(wb, "GO_CC")
+  writeData(wb, "GO_CC", gseGO.cc.df)
+  
+  # Save the workbook to a file
+  fpath <- paste0("Output/Final figures/FigS4/GSEA_p_", name, ".xlsx")
+  saveWorkbook(wb, fpath, overwrite = TRUE)
+  cat(paste0("GSEA results saved in - ", fpath))
+  
+}
+gsea_human(df = res.table_betaF,
+           FC_col = "logFC",
+           p_col = "P.Value",
+           name = "beta_HPAPonly_F")
+
+#Visualise
+GO_CC <- read_excel("Output/Final figures/FigS4/GSEA_p_beta_HPAPonly_F.xlsx",sheet="GO_CC")
+GO_MF <- read_excel("Output/Final figures/FigS4/GSEA_p_beta_HPAPonly_F.xlsx",sheet="GO_MF")
+GO_BP <- read_excel("Output/Final figures/FigS4/GSEA_p_beta_HPAPonly_F.xlsx",sheet="GO_BP")
+GO_combined <- bind_rows(GO_CC, GO_MF, GO_BP) %>%
+  arrange(pvalue)
+GO_combined <-GO_combined %>% filter(p.adjust < 0.05)
+GO_combined %>% filter(NES > 0) %>% summarise(n=n()) #158
+GO_combined %>% filter(NES < 0) %>% summarise(n=n()) #193
+
+#remove redundant pathways
+genes_in_pathway <- str_split(GO_combined$core_enrichment, pattern = "/")
 jaccard_similarity <- function(vec1, vec2) {
   intersection <- length(intersect(vec1, vec2))
   union <- length(union(vec1, vec2))
@@ -2332,22 +2760,25 @@ for (i in 1:(n-1)) {
   }
 }
 
-#remove pathways that are >0.6 similarity index to another pathway in list
-GO_combined_F_refined <- GO_combined_F[-repeat_indices,]
+GO_combined_refined <- GO_combined[-repeat_indices,]
+dim(GO_combined_refined) #192
+hist(GO_combined_refined$p.adjust)
+GO_combined_refined <- GO_combined_refined %>% filter(p.adjust < 0.0001)
+dim(GO_combined_refined) #35
 
-GO_combined_F_top60 <- GO_combined_F_refined[1:60,]
-GO_combined_F_top60$direction <- ifelse(GO_combined_F_top60$NES>0,-1,1)
-GO_combined_F_top60$directionlogpadj <- GO_combined_F_top60$direction * log10(GO_combined_F_top60$p.adjust)
+GO_combined_refined$direction <- ifelse(GO_combined_refined$NES>0,-1,1)
+GO_combined_refined$directionlogpadj <- GO_combined_refined$direction * log10(GO_combined_refined$p.adjust)
 
 #get pathway order
-GO_combined_F_top60_T2D <- GO_combined_F_top60 %>% filter(NES>0) %>%
+GO_combined_refined_up <- GO_combined_refined %>% filter(NES>0) %>%
   arrange(directionlogpadj)
-GO_combined_F_top60_Ctrl <- GO_combined_F_top60 %>% filter(NES<0) %>%
+GO_combined_refined_down <- GO_combined_refined %>% filter(NES<0) %>%
   arrange(directionlogpadj)
-pathway_order <- c(unique(GO_combined_F_top60_Ctrl$Description), unique(GO_combined_F_top60_T2D$Description))
+pathway_order <- c(unique(GO_combined_refined_down$Description), unique(GO_combined_refined_up$Description))
 
-GO_combined_F_top60$Description <- factor(GO_combined_F_top60$Description, levels=pathway_order)
-GO_combined_F_top60 %>%
+GO_combined_refined$Description <- factor(GO_combined_refined$Description, levels=pathway_order)
+summary(GO_combined_refined$NES)
+GO_combined_refined %>%
   ggplot(aes(x=directionlogpadj, y=Description, size = abs(NES), colour = NES))+
   geom_point() +
   theme_bw() +
@@ -2363,15 +2794,210 @@ GO_combined_F_top60 %>%
         plot.title = element_text(size = 12, hjust = 0.5),
         legend.title = element_text(size = 11),
         legend.text = element_text(size = 10))
-ggsave("Output/Fig4/Fig4B.tiff", width = 8, height = 11.5)
+ggsave("Output/Final figures/FigS4/FigS4A.tiff", width = 7.5, height = 6)
 
+## Fig S4C ## ----
+beta_M_feature <- beta_bulk_logCPM_long %>%
+  filter(is.na(gene_id)==FALSE) %>%
+  dplyr::select(gene_id, DonorID, logCPM) %>%
+  pivot_wider(names_from = "DonorID", values_from = "logCPM")
+genes_beta_F <- beta_M_feature$gene_id
+beta_M_feature <- data.frame(beta_M_feature)
+rownames(beta_M_feature) <- genes_beta_F
+beta_M_feature <- beta_M_feature[,-1] #remove the gene column
 
-#males
-GO_combined_M <- GO_combined_M %>%
-  arrange(pvalue) %>%
-  filter(p.adjust < 0.05)
+beta_M_metadata <- metadata_combined %>%
+  filter(diagnosis %in% c("Control","T2D"), donorsex == "Male") %>%
+  filter(record_id %in% colnames(beta_M_feature))
 
-genes_in_pathway <- str_split(GO_combined_M$core_enrichment, pattern = "/") #returns a list where each list contains a vector of the genes in that pathway
+beta_M_feature <- beta_M_feature %>%
+  dplyr::select(beta_M_metadata$record_id)
+
+table(beta_M_metadata$diagnosis, beta_M_metadata$dataset)
+#24 Control, 7 T2D from HPAP
+
+#check order
+all(colnames(beta_M_feature) == beta_M_metadata$record_id) #TRUE
+
+#eliminate any feature with fewer than 10 observations
+feature.keep_beta_F <- apply(beta_M_feature, 1, function(x){sum(!is.na(x)) >= 9})
+beta_M_feature <- beta_M_feature[feature.keep_beta_F, ]
+
+# perform analysis
+# make design matrix
+grp.nms <- sort(unique(beta_M_metadata$diagnosis))
+fixedEffects <- c("donorage") #correct for age
+all.vars <- c("diagnosis", fixedEffects)
+design_betaM <- model.matrix(formula(paste0("~ 0 + ", all.vars[1], paste0(" + ", all.vars[2:length(all.vars)], collapse = ""))), data = beta_M_metadata)
+colnames(design_betaM)[1:length(grp.nms)] <- grp.nms
+
+# make contrast matrix
+myargs_betaM <- list()
+ref <- "Control" #using control as reference
+contrasts <- grp.nms[grp.nms != ref]
+myargs_betaM <- as.list(paste("T2D", "-", ref, sep = ""))
+myargs_betaM[["levels"]] <- design_betaM
+contrast.matrix_betaM <- do.call(makeContrasts, myargs_betaM)
+
+# get results
+fit_betaM <- lmFit(beta_M_feature, design_betaM, trend = TRUE, robust = TRUE)
+fit_betaM <- contrasts.fit(fit_betaM, contrast.matrix_betaM)
+fit_betaM <- eBayes(fit_betaM)
+res.table_betaM <- topTable(fit_betaM, number = Inf)
+
+# Remove results rows with NAs
+res.table_betaM <- res.table_betaM[!is.na(res.table_betaM$P.Value), ]
+
+# Save output
+res.table_betaM$entrez <- rownames(res.table_betaM)
+res.table_betaM$Gene <- mapIds(org.Hs.eg.db, keys=c(res.table_betaM$entrez), column="SYMBOL", keytype="ENTREZID", multiVals="first") %>% 
+  as.character() 
+write.csv(res.table_betaM, "Output/Final figures/FigS4/beta HPAP only_M_dea_results_correctforage_dataset.csv", row.names = FALSE)
+
+#GSEA
+gsea_human(df = res.table_betaM,
+           FC_col = "logFC",
+           p_col = "P.Value",
+           name = "beta_HPAPonly_M")
+
+#Visualise
+GO_CC <- read_excel("Output/Final figures/FigS4/GSEA_p_beta_HPAPonly_M.xlsx",sheet="GO_CC")
+GO_MF <- read_excel("Output/Final figures/FigS4/GSEA_p_beta_HPAPonly_M.xlsx",sheet="GO_MF")
+GO_BP <- read_excel("Output/Final figures/FigS4/GSEA_p_beta_HPAPonly_M.xlsx",sheet="GO_BP")
+GO_combined <- bind_rows(GO_CC, GO_MF, GO_BP) %>%
+  arrange(pvalue)
+GO_combined <-GO_combined %>% filter(p.adjust < 0.05)
+GO_combined %>% filter(NES > 0) %>% summarise(n=n()) #101
+GO_combined %>% filter(NES < 0) %>% summarise(n=n()) #333
+
+#remove redundant pathways
+genes_in_pathway <- str_split(GO_combined$core_enrichment, pattern = "/") #returns a list where each list contains a vector of the genes in that pathway
+threshold <- 0.6
+n <- length(genes_in_pathway)
+
+repeat_indices <- c()
+for (i in 1:(n-1)) {
+  for (j in (i+1):n) {
+    sim <- jaccard_similarity(genes_in_pathway[[i]], genes_in_pathway[[j]])
+    if (sim > threshold) {
+      if(length(genes_in_pathway[[i]]) < length(genes_in_pathway[[j]])){
+        repeat_indices <- c(repeat_indices,i)} else {repeat_indices <- c(repeat_indices,j)} #keep the one with more genes in it
+    }
+  }
+}
+
+GO_combined_refined <- GO_combined[-repeat_indices,]
+dim(GO_combined_refined) #266
+hist(GO_combined_refined$p.adjust)
+#take p< 0.0001
+GO_combined_refined <- GO_combined_refined %>% filter(p.adjust < 0.0001) #18
+
+GO_combined_refined$direction <- ifelse(GO_combined_refined$NES>0,-1,1)
+GO_combined_refined$directionlogpadj <- GO_combined_refined$direction * log10(GO_combined_refined$p.adjust)
+
+#get pathway order
+GO_combined_refined_up <- GO_combined_refined %>% filter(NES>0) %>%
+  arrange(directionlogpadj)
+GO_combined_refined_down <- GO_combined_refined %>% filter(NES<0) %>%
+  arrange(directionlogpadj)
+pathway_order <- c(unique(GO_combined_refined_down$Description), unique(GO_combined_refined_up$Description))
+
+GO_combined_refined$Description <- factor(GO_combined_refined$Description, levels=pathway_order)
+summary(GO_combined_refined$NES)
+GO_combined_refined %>%
+  ggplot(aes(x=directionlogpadj, y=Description, size = abs(NES), colour = NES))+
+  geom_point() +
+  theme_bw() +
+  labs(x = "Direction signed -log10(p.adjust)", y = "", 
+       title = "", colour = "NES", size = "NES") +
+  scale_color_gradient2(low = "#0a735b", mid = "white", high = "#9c6b05", midpoint = 0) +
+  scale_size_continuous(range = c(1,7), limits = c(1,2.6), breaks = c(1,2.6)) +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  theme(legend.position = "right",
+        panel.grid = element_blank(),
+        axis.text = element_text(size = 10, colour = "black"),
+        axis.text.x = element_text(hjust = 0.5),
+        plot.title = element_text(size = 12, hjust = 0.5),
+        legend.title = element_text(size = 11),
+        legend.text = element_text(size = 10))
+ggsave("Output/Final figures/FigS4/FigS4C.tiff", width = 6.25, height = 3.75)
+
+## Fig S4B ## ----
+alpha_F_feature <- alpha_bulk_logCPM_long %>%
+  filter(is.na(gene_id)==FALSE) %>%
+  dplyr::select(gene_id, DonorID, logCPM) %>%
+  pivot_wider(names_from = "DonorID", values_from = "logCPM")
+genes_alpha_F <- alpha_F_feature$gene_id
+alpha_F_feature <- data.frame(alpha_F_feature)
+rownames(alpha_F_feature) <- genes_alpha_F
+alpha_F_feature <- alpha_F_feature[,-1] #remove the gene column
+
+alpha_F_metadata <- metadata_combined %>%
+  filter(diagnosis %in% c("Control","T2D"), donorsex == "Female") %>%
+  filter(record_id %in% colnames(alpha_F_feature))
+
+alpha_F_feature <- alpha_F_feature %>%
+  dplyr::select(alpha_F_metadata$record_id)
+
+table(alpha_F_metadata$diagnosis, alpha_F_metadata$dataset)
+#16 Control, 11 T2D from HPAP
+
+#check order
+all(colnames(alpha_F_feature) == alpha_F_metadata$record_id) #TRUE
+
+#eliminate any feature with fewer than 10 observations
+feature.keep_alpha_F <- apply(alpha_F_feature, 1, function(x){sum(!is.na(x)) >= 9})
+alpha_F_feature <- alpha_F_feature[feature.keep_alpha_F, ]
+
+# perform analysis
+# make design matrix
+grp.nms <- sort(unique(alpha_F_metadata$diagnosis))
+fixedEffects <- c("donorage") #correct for age
+all.vars <- c("diagnosis", fixedEffects)
+design_alphaF <- model.matrix(formula(paste0("~ 0 + ", all.vars[1], paste0(" + ", all.vars[2:length(all.vars)], collapse = ""))), data = alpha_F_metadata)
+colnames(design_alphaF)[1:length(grp.nms)] <- grp.nms
+
+# make contrast matrix
+myargs_alphaF <- list()
+ref <- "Control" #using control as reference
+contrasts <- grp.nms[grp.nms != ref]
+myargs_alphaF <- as.list(paste("T2D", "-", ref, sep = ""))
+myargs_alphaF[["levels"]] <- design_alphaF
+contrast.matrix_alphaF <- do.call(makeContrasts, myargs_alphaF)
+
+# get results
+fit_alphaF <- lmFit(alpha_F_feature, design_alphaF, trend = TRUE, robust = TRUE)
+fit_alphaF <- contrasts.fit(fit_alphaF, contrast.matrix_alphaF)
+fit_alphaF <- eBayes(fit_alphaF)
+res.table_alphaF <- topTable(fit_alphaF, number = Inf)
+
+# Remove results rows with NAs
+res.table_alphaF <- res.table_alphaF[!is.na(res.table_alphaF$P.Value), ]
+
+# Save output
+res.table_alphaF$entrez <- rownames(res.table_alphaF)
+res.table_alphaF$Gene <- mapIds(org.Hs.eg.db, keys=c(res.table_alphaF$entrez), column="SYMBOL", keytype="ENTREZID", multiVals="first") %>% 
+  as.character() 
+write.csv(res.table_alphaF, "Output/Final figures/FigS4/alpha HPAP only_F_dea_results_correctforage_dataset.csv", row.names = FALSE)
+
+#GSEA
+gsea_human(df = res.table_alphaF,
+           FC_col = "logFC",
+           p_col = "P.Value",
+           name = "alpha_HPAPonly_F")
+
+#Visualise
+GO_CC <- read_excel("Output/Final figures/FigS4/GSEA_p_alpha_HPAPonly_F.xlsx",sheet="GO_CC")
+GO_MF <- read_excel("Output/Final figures/FigS4/GSEA_p_alpha_HPAPonly_F.xlsx",sheet="GO_MF")
+GO_BP <- read_excel("Output/Final figures/FigS4/GSEA_p_alpha_HPAPonly_F.xlsx",sheet="GO_BP")
+GO_combined <- bind_rows(GO_CC, GO_MF, GO_BP) %>%
+  arrange(pvalue)
+GO_combined <-GO_combined %>% filter(p.adjust < 0.05)
+GO_combined %>% filter(NES > 0) %>% summarise(n=n()) #49
+GO_combined %>% filter(NES < 0) %>% summarise(n=n()) #252
+
+#remove redundant pathways
+genes_in_pathway <- str_split(GO_combined$core_enrichment, pattern = "/") #returns a list where each list contains a vector of the genes in that pathway
 jaccard_similarity <- function(vec1, vec2) {
   intersection <- length(intersect(vec1, vec2))
   union <- length(union(vec1, vec2))
@@ -2393,28 +3019,31 @@ for (i in 1:(n-1)) {
   }
 }
 
-#remove pathways that are >0.6 similarity index to another pathway in list
-GO_combined_M_refined <- GO_combined_M[-repeat_indices,]
+GO_combined_refined <- GO_combined[-repeat_indices,]
+dim(GO_combined_refined) #161
+hist(GO_combined_refined$p.adjust)
+GO_combined_refined <- GO_combined_refined %>% filter(p.adjust < 0.0001)
+dim(GO_combined_refined) #42
 
-GO_combined_M_top60 <- GO_combined_M_refined[1:60,]
-GO_combined_M_top60$direction <- ifelse(GO_combined_M_top60$NES>0,-1,1)
-GO_combined_M_top60$directionlogpadj <- GO_combined_M_top60$direction * log10(GO_combined_M_top60$p.adjust)
+GO_combined_refined$direction <- ifelse(GO_combined_refined$NES>0,-1,1)
+GO_combined_refined$directionlogpadj <- GO_combined_refined$direction * log10(GO_combined_refined$p.adjust)
 
 #get pathway order
-GO_combined_M_top60_T2D <- GO_combined_M_top60 %>% filter(NES>0) %>%
+GO_combined_refined_up <- GO_combined_refined %>% filter(NES>0) %>%
   arrange(directionlogpadj)
-GO_combined_M_top60_Ctrl <- GO_combined_M_top60 %>% filter(NES<0) %>%
+GO_combined_refined_down <- GO_combined_refined %>% filter(NES<0) %>%
   arrange(directionlogpadj)
-pathway_order <- c(unique(GO_combined_M_top60_Ctrl$Description), unique(GO_combined_M_top60_T2D$Description))
+pathway_order <- c(unique(GO_combined_refined_down$Description), unique(GO_combined_refined_up$Description))
 
-GO_combined_M_top60$Description <- factor(GO_combined_M_top60$Description, levels=pathway_order)
-GO_combined_M_top60 %>%
+GO_combined_refined$Description <- factor(GO_combined_refined$Description, levels=pathway_order)
+summary(GO_combined_refined$NES)
+GO_combined_refined %>%
   ggplot(aes(x=directionlogpadj, y=Description, size = abs(NES), colour = NES))+
   geom_point() +
   theme_bw() +
   labs(x = "Direction signed -log10(p.adjust)", y = "", 
        title = "", colour = "NES", size = "NES") +
-  scale_color_gradient2(low = "#0a735b", mid = "white", high = "#9c6b05", midpoint = 0) +
+  scale_color_gradient2(low = "#55066b", mid = "white", high = "#992002", midpoint = 0) +
   scale_size_continuous(range = c(1,7), limits = c(1,3), breaks = c(1,3)) +
   geom_vline(xintercept = 0, linetype = "dashed") +
   theme(legend.position = "right",
@@ -2424,9 +3053,106 @@ GO_combined_M_top60 %>%
         plot.title = element_text(size = 12, hjust = 0.5),
         legend.title = element_text(size = 11),
         legend.text = element_text(size = 10))
-ggsave("Output/Fig4/Fig4C.tiff", width = 8, height = 11.5)
+ggsave("Output/Final figures/FigS4/FigS4B.tiff", width = 6, height = 6.5)
 
-### Figure 5 ### ----
+## Fig S4D ## ----
+alpha_M_feature <- alpha_bulk_logCPM_long %>%
+  filter(is.na(gene_id)==FALSE) %>%
+  dplyr::select(gene_id, DonorID, logCPM) %>%
+  pivot_wider(names_from = "DonorID", values_from = "logCPM")
+genes_alpha_F <- alpha_M_feature$gene_id
+alpha_M_feature <- data.frame(alpha_M_feature)
+rownames(alpha_M_feature) <- genes_alpha_F
+alpha_M_feature <- alpha_M_feature[,-1] #remove the gene column
+
+alpha_M_metadata <- metadata_combined %>%
+  filter(diagnosis %in% c("Control","T2D"), donorsex == "Male") %>%
+  filter(record_id %in% colnames(alpha_M_feature))
+
+alpha_M_feature <- alpha_M_feature %>%
+  dplyr::select(alpha_M_metadata$record_id)
+
+table(alpha_M_metadata$diagnosis, alpha_M_metadata$dataset)
+#24 Control, 7 T2D from HPAP
+
+#check order
+all(colnames(alpha_M_feature) == alpha_M_metadata$record_id) #TRUE
+
+#eliminate any feature with fewer than 10 observations
+feature.keep_alpha_F <- apply(alpha_M_feature, 1, function(x){sum(!is.na(x)) >= 9})
+alpha_M_feature <- alpha_M_feature[feature.keep_alpha_F, ]
+
+# perform analysis
+# make design matrix
+grp.nms <- sort(unique(alpha_M_metadata$diagnosis))
+fixedEffects <- c("donorage") #correct for age
+all.vars <- c("diagnosis", fixedEffects)
+design_alphaM <- model.matrix(formula(paste0("~ 0 + ", all.vars[1], paste0(" + ", all.vars[2:length(all.vars)], collapse = ""))), data = alpha_M_metadata)
+colnames(design_alphaM)[1:length(grp.nms)] <- grp.nms
+
+# make contrast matrix
+myargs_alphaM <- list()
+ref <- "Control" #using control as reference
+contrasts <- grp.nms[grp.nms != ref]
+myargs_alphaM <- as.list(paste("T2D", "-", ref, sep = ""))
+myargs_alphaM[["levels"]] <- design_alphaM
+contrast.matrix_alphaM <- do.call(makeContrasts, myargs_alphaM)
+
+# get results
+fit_alphaM <- lmFit(alpha_M_feature, design_alphaM, trend = TRUE, robust = TRUE)
+fit_alphaM <- contrasts.fit(fit_alphaM, contrast.matrix_alphaM)
+fit_alphaM <- eBayes(fit_alphaM)
+res.table_alphaM <- topTable(fit_alphaM, number = Inf)
+
+# Remove results rows with NAs
+res.table_alphaM <- res.table_alphaM[!is.na(res.table_alphaM$P.Value), ]
+
+# Save output
+res.table_alphaM$entrez <- rownames(res.table_alphaM)
+res.table_alphaM$Gene <- mapIds(org.Hs.eg.db, keys=c(res.table_alphaM$entrez), column="SYMBOL", keytype="ENTREZID", multiVals="first") %>% 
+  as.character() 
+write.csv(res.table_alphaM, "Output/Final figures/FigS4/alpha HPAP only_M_dea_results_correctforage_dataset.csv", row.names = FALSE)
+
+#GSEA
+gsea_human(df = res.table_alphaM,
+           FC_col = "logFC",
+           p_col = "P.Value",
+           name = "alpha_HPAPonly_M")
+
+#Visualise
+GO_CC <- read_excel("Output/Final figures/FigS4/GSEA_p_alpha_HPAPonly_M.xlsx",sheet="GO_CC")
+GO_MF <- read_excel("Output/Final figures/FigS4/GSEA_p_alpha_HPAPonly_M.xlsx",sheet="GO_MF")
+GO_BP <- read_excel("Output/Final figures/FigS4/GSEA_p_alpha_HPAPonly_M.xlsx",sheet="GO_BP")
+GO_combined <- bind_rows(GO_CC, GO_MF, GO_BP) %>%
+  arrange(pvalue)
+GO_combined <-GO_combined %>% filter(p.adjust < 0.05)
+GO_combined %>% filter(NES > 0) %>% summarise(n=n()) #1
+GO_combined %>% filter(NES < 0) %>% summarise(n=n()) #23
+
+#remove redundant pathways
+genes_in_pathway <- str_split(GO_combined$core_enrichment, pattern = "/") #returns a list where each list contains a vector of the genes in that pathway
+threshold <- 0.6
+n <- length(genes_in_pathway)
+
+repeat_indices <- c()
+for (i in 1:(n-1)) {
+  for (j in (i+1):n) {
+    sim <- jaccard_similarity(genes_in_pathway[[i]], genes_in_pathway[[j]])
+    if (sim > threshold) {
+      if(length(genes_in_pathway[[i]]) < length(genes_in_pathway[[j]])){
+        repeat_indices <- c(repeat_indices,i)} else {repeat_indices <- c(repeat_indices,j)} #keep the one with more genes in it
+    }
+  }
+}
+
+GO_combined_refined <- GO_combined[-repeat_indices,]
+dim(GO_combined_refined) #14
+hist(GO_combined_refined$p.adjust)
+#need to take p< 0.0001 for consistency with the rest
+GO_combined_refined <- GO_combined_refined %>% filter(p.adjust < 0.0001) #none
+
+
+### Figure 5, S5 and S6 ### ----
 #clear environment
 rm(list = ls())
 
@@ -2521,7 +3247,7 @@ hormone.content <- perifusion_all_with_metadata %>%
 hist(hormone.content$Insulin.Content...ng.islet.) #left-skewed
 hist(log(hormone.content$Insulin.Content...ng.islet.)) #right-skewed
 
-## Fig 5C ## ----
+## Fig 5B ## ----
 hormone.content %>%
   filter(age_years > 14, age_years < 40) %>%
   filter(simplified_diagnosis == "Control") %>%
@@ -2529,30 +3255,29 @@ hormone.content %>%
 hormone.content %>%
   filter(simplified_diagnosis == "Control") %>%
   filter(age_years > 14, age_years < 40) %>%
-  ggplot(aes(x=sex, y=Insulin.Content...ng.islet., fill = sex))+
+  ggplot(aes(x=sex, y=log(Insulin.Content...ng.islet.), fill = sex))+
   geom_boxplot(alpha = 0.5)+
   geom_quasirandom(size = 2, shape = 21, aes(fill = sex)) +
-  geom_bracket(inherit.aes = FALSE, xmin = 1, xmax = 2, y.position = 80, label = "p=0.068", label.size = 4, size = 0.5, tip.length = c(0.02, 0.45))+
+  geom_bracket(inherit.aes = FALSE, xmin = 1, xmax = 2, y.position = 5, label = "p=0.068", label.size = 4, size = 0.5, tip.length = c(0.02, 0.15))+
   scale_colour_manual(values = c("#50b5ad", "#dbac5a")) +
   scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
-  ylab("Insulin content (ng/islet)") +
+  ylab("log(insulin content (ng/islet))") +
   xlab("") +
-  labs(colour = "Condition", fill = "Condition") +
-  ylim(0,90)+
+  scale_y_continuous(limits = c(-0.5,6))+
   theme_bw()+
   theme(legend.position = "none", panel.grid = element_blank())  +
   theme(
     axis.title = element_text(size = 14, colour = "black"),
     axis.text = element_text(size = 14, colour = "black"),
     plot.title = element_text(size = 14, hjust = 0.5),
-    legend.title = element_text(size = 14),
+    legend.title = element_blank(),
     legend.text = element_text(size = 12),
     panel.border = element_blank(), 
     axis.line = element_line()     
   )
-ggsave("Output/Fig5/Fig5C.tiff", width = 3, height = 3)
+ggsave("Output/Final figures/Fig5/Fig5B.tiff", width = 3, height = 3)
 
-## Fig 5F ## ----
+## Fig 5D ## ----
 hormone.content %>%
   filter(simplified_diagnosis != "T1D") %>%
   anova_test(Insulin.Content...ng.islet. ~ age_years + sex*simplified_diagnosis) #sig for sex but not disease
@@ -2564,35 +3289,103 @@ emmeans_res <- emmeans(model, ~ simplified_diagnosis | sex)
 pairs(emmeans_res, adjust = "tukey") #p=0.0475 for ctrl vs T2D in females
 hormone.content %>%
   filter(simplified_diagnosis != "T1D") %>%
-  ggplot(aes(x=sex, y=Insulin.Content...ng.islet.))+
+  ggplot(aes(x=sex, y=log(Insulin.Content...ng.islet.)))+
   geom_boxplot(alpha = 0.5,position = position_dodge(width = 0.9), aes(fill= simplified_diagnosis))+
   geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
-  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 78, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.25))+
-  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.775, y.position = 90, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.25))+
-  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 60, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.05))+
-  geom_bracket(inherit.aes = FALSE, xmin = 1.225, xmax = 2.225, y.position = 102, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 5, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.1))+
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.775, y.position = 6.5, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.1))+
+  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.05, 0.02))+
+  geom_bracket(inherit.aes = FALSE, xmin = 1.225, xmax = 2.225, y.position = 8, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey50", "#d65ac9")) +
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
-  ylab("Insulin content (ng/islet)") +
+  ylab("log(insulin content (ng/islet))") +
   xlab("") +
-  labs(colour = "Condition", fill = "Condition") +
+  scale_y_continuous(limits = c(-5,9))+
   theme_bw() +
   theme(panel.grid = element_blank())+
-  ylim(0,105)+
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(), 
         axis.line = element_line()      
   )
-ggsave("Output/Fig5/Fig5F.tiff", width = 5, height = 4)
+ggsave("Output/Final figures/Fig5/Fig5D.tiff", width = 5, height = 4)
 
-#save the hormone content data frame for later
-UPenn.insulin.content <- write.csv(hormone.content, "Output/Fig5/UPenn insulin content.csv")
+## Fig S6G ## ----
+hormone.content_matched <- hormone.content %>%
+  filter(simplified_diagnosis != "T1D")
+hormone.content_matched$Group <- as.logical(hormone.content_matched$simplified_diagnosis == "T2D")
+hormone.content_matched <- matchit(Group ~ age_years + sex,
+                                   data = hormone.content_matched,
+                                   method = 'nearest',  
+                                   ratio = 1, 
+                                   exact = ~sex
+) 
+hormone.content_matched <- match.data(hormone.content_matched)
+hormone.content_matched %>%
+  group_by(sex) %>%
+  t_test(age_years ~ simplified_diagnosis) #significant for both, switching to optimal doesn't help
+hormone.content_matched %>%
+  ggplot(aes(x=sex, y=age_years))+
+  geom_boxplot(aes(fill = simplified_diagnosis), alpha = 0.5, position = position_dodge(width = 0.9))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 65, label = "*", label.size = 7, size = 0.5, tip.length = c(0.1, 0.02))+
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 70, label = "*", label.size = 7, size = 0.5, tip.length = c(0.2, 0.02))+
+  scale_colour_manual(values = c("grey50", "#d65ac9")) +
+  scale_fill_manual(values = c("grey50", "#d65ac9")) +
+  xlab("")+
+  ylab("Age (years)") +
+  scale_y_continuous(limits = c(20,80))+
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line() 
+  )
+ggsave("Output/Final figures/FigS6/FigS6G.tiff", width = 5, height = 4)
+
+## Fig S6H ## ----
+hormone.content_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  anova_test(Insulin.Content...ng.islet. ~ age_years + sex*simplified_diagnosis) #sig for disease
+model <- hormone.content_matched %>% filter(simplified_diagnosis != "T1D") %>%
+  lm(Insulin.Content...ng.islet. ~ age_years + sex*simplified_diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ simplified_diagnosis | sex)
+pairs(emmeans_res, adjust = "tukey") #p=0.0782 for ctrl vs T2D in females
+hormone.content_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  ggplot(aes(x=sex, y=log(Insulin.Content...ng.islet.)))+
+  geom_boxplot(alpha = 0.5,position = position_dodge(width = 0.9), aes(fill= simplified_diagnosis))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 5, label = "p=0.078", label.size = 4, size = 0.5, tip.length = c(0.02, 0.1))+
+  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  scale_colour_manual(values = c("grey50", "#d65ac9")) +
+  scale_fill_manual(values = c("grey50", "#d65ac9")) +
+  ylab("log(insulin content (ng/islet))") +
+  xlab("") +
+  scale_y_continuous(limits = c(-5,9))+
+  theme_bw() +
+  theme(panel.grid = element_blank())+
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(), 
+        axis.line = element_line()      
+  )
+ggsave("Output/Final figures/FigS6/FigS6H.tiff", width = 5, height = 4)
 
 #Vanderbilt data
 #clear environment
@@ -2634,7 +3427,7 @@ for (i in 1:length(donor_numbers)){
     if ("Insulin Results" %in% excel_sheets(paste0("data/HPAP/Vanderbilt Perifusion/", donor, "/Islet Studies/Islet physiology studies/Islets to Vanderbilt/Islet perifusion at Vanderbilt/", donor ,"_Perifusion_data.xlsx")) == TRUE){
       postperi <- read_excel(paste0("data/HPAP/Vanderbilt Perifusion/", donor, "/Islet Studies/Islet physiology studies/Islets to Vanderbilt/Islet perifusion at Vanderbilt/", donor ,"_Perifusion_data.xlsx"), sheet = "Insulin Results", range = "D54:F55")
       colnames(postperi) <- c("Insulin.ng.mL","Insulin.content.ng","Insulin.content.ng.postperiIEQ")
-        postperi$DonorID <- rep(donor,nrow(postperi))} else{
+      postperi$DonorID <- rep(donor,nrow(postperi))} else{
         postperi <- NA
       }
   }
@@ -2666,7 +3459,7 @@ head(insulin.content_df)
 
 hist(insulin.content_df$Insulin.content.ng.postperiIEQ)
 
-## Fig 5B ## ----
+## Fig S5B ## ----
 insulin.content_df %>%
   filter(age_years > 14, age_years < 40) %>%
   filter(simplified_diagnosis == "Control") %>%
@@ -2674,29 +3467,29 @@ insulin.content_df %>%
 insulin.content_df %>%
   filter(simplified_diagnosis == "Control") %>%
   filter(age_years > 14, age_years < 40) %>%
-  ggplot(aes(x=sex, y=Insulin.content.ng.postperiIEQ, fill = sex))+
+  ggplot(aes(x=sex, y=log(Insulin.content.ng.postperiIEQ), fill = sex))+
   geom_boxplot(alpha = 0.5)+
   geom_quasirandom(size = 2, shape = 21, aes(fill = sex)) +
-  geom_bracket(inherit.aes = FALSE, xmin = 1, xmax = 2, y.position = 18.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.2, 0.02))+
+  geom_bracket(inherit.aes = FALSE, xmin = 1, xmax = 2, y.position = 3.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.1, 0.1))+
   scale_colour_manual(values = c("#50b5ad", "#dbac5a")) +
   scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
-  ylab("Insulin content (ng/IEQ)") +
+  ylab("log(insulin content (ng/IEQ))") +
   xlab("") +
-  labs(colour = "Condition", fill = "Condition") +
+  scale_y_continuous(limits = c(-0.5,6))+
   theme_bw()+
   theme(legend.position = "none", panel.grid = element_blank())  +
   theme(
     axis.title = element_text(size = 14, colour = "black"),
     axis.text = element_text(size = 14, colour = "black"),
     plot.title = element_text(size = 14, hjust = 0.5),
-    legend.title = element_text(size = 14),
+    legend.title = element_blank(),
     legend.text = element_text(size = 12),
     panel.border = element_blank(),  
     axis.line = element_line()     
   )
-ggsave("Output/Fig5/Fig5B.tiff", width = 3, height = 3)
+ggsave("Output/Final figures/FigS5/FigS5B.tiff", width = 3, height = 3)
 
-## Fig 5E ## ----
+## Fig S5D ## ----
 insulin.content_df %>%
   filter(simplified_diagnosis != "T1D") %>%
   anova_test(Insulin.content.ng.postperiIEQ ~ age_years + sex*simplified_diagnosis) #sig for interaction
@@ -2708,38 +3501,107 @@ emmeans_res <- emmeans(model, ~ simplified_diagnosis | sex)
 pairs(emmeans_res, adjust = "tukey") #p=0.0502 for Ctrl-T2D in females
 insulin.content_df %>%
   filter(simplified_diagnosis != "T1D") %>%
-  ggplot(aes(x=sex, y=Insulin.content.ng.postperiIEQ))+
+  ggplot(aes(x=sex, y=log(Insulin.content.ng.postperiIEQ)))+
   geom_boxplot(alpha = 0.5,position = position_dodge(width = 0.9), aes(fill= simplified_diagnosis))+
   geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
-  geom_bracket(inherit.aes = FALSE, xmin = 1.225, xmax = 2.225, y.position = 22, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.02))+
-  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 21, label = "p=0.05", label.size = 4, size = 0.5, tip.length = c(0.2, 0.02))+
-  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 20, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.2))+
-  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.775, y.position = 26, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE, xmin = 1.225, xmax = 2.225, y.position = 7, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 4, label = "p=0.05", label.size = 4, size = 0.5, tip.length = c(0.1, 0.02))+
+  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 4, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.05))+
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.775, y.position = 5.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey50", "#d65ac9")) +
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
-  ylab("Insulin content (ng/IEQ)") +
+  ylab("log(insulin content (ng/IEQ))") +
   xlab("") +
-  labs(colour = "Condition", fill = "Condition") +
   theme_bw() +
   theme(panel.grid = element_blank())+
-  ylim(0,28)+
+  scale_y_continuous(limits = c(-5,9))+ 
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),  
         axis.line = element_line()       
   )
-ggsave("Output/Fig5/Fig5E.tiff", width = 5, height = 4)
+ggsave("Output/Final figures/FigS5/FigS5D.tiff", width = 5, height = 4)
+
+## Fig S6C ## ----
+unique(insulin.content_df$simplified_diagnosis)
+insulin.content_df_matched <- insulin.content_df %>%
+  filter(simplified_diagnosis != "T1D")
+insulin.content_df_matched$Group <- as.logical(insulin.content_df_matched$simplified_diagnosis == "T2D")
+insulin.content_df_matched <- matchit(Group ~ age_years + sex,
+                                      data = insulin.content_df_matched,
+                                      method = 'nearest',  
+                                      ratio = 1, 
+                                      exact = ~sex
+) 
+insulin.content_df_matched <- match.data(insulin.content_df_matched)
+insulin.content_df_matched %>%
+  group_by(sex) %>%
+  t_test(age_years ~ simplified_diagnosis) #sig for males
+insulin.content_df_matched %>%
+  ggplot(aes(x=sex, y=age_years))+
+  geom_boxplot(aes(fill = simplified_diagnosis), alpha = 0.5, position = position_dodge(width = 0.9))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 68, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 68, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.15, 0.02))+
+  scale_colour_manual(values = c("grey50", "#d65ac9")) +
+  scale_fill_manual(values = c("grey50", "#d65ac9")) +
+  scale_y_continuous(limits = c(20,80))+
+  xlab("")+
+  ylab("Age (years)") +
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line() 
+  )
+ggsave("Output/Final figures/FigS6/FigS6C.tiff", width = 5, height = 4)
+
+## Fig S6D ## ----
+insulin.content_df_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  anova_test(Insulin.content.ng.postperiIEQ ~ age_years + sex*simplified_diagnosis) #sig for interaction
+model <- insulin.content_df_matched %>% filter(simplified_diagnosis != "T1D") %>%
+  lm(Insulin.content.ng.postperiIEQ ~ age_years + sex*simplified_diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ simplified_diagnosis | sex)
+pairs(emmeans_res, adjust = "tukey") #p=0.0459 for ctrl vs T2D in females
+insulin.content_df_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  ggplot(aes(x=sex, y=log(Insulin.content.ng.postperiIEQ)))+
+  geom_boxplot(alpha = 0.5,position = position_dodge(width = 0.9), aes(fill= simplified_diagnosis))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 4, label = "*", label.size = 7, size = 0.5, tip.length = c(0.1, 0.02))+
+  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 4, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.1))+
+  scale_colour_manual(values = c("grey50", "#d65ac9")) +
+  scale_fill_manual(values = c("grey50", "#d65ac9")) +
+  ylab("log(insulin content (ng/IEQ))") +
+  xlab("") +
+  theme_bw() +
+  theme(panel.grid = element_blank())+
+  scale_y_continuous(limits = c(-5,9))+
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),  
+        axis.line = element_line()       
+  )
+ggsave("Output/Final figures/FigS6/FigS6D.tiff", width = 5, height = 4)
+
 
 #Insulin content from Humanislets.com
-
-#clear environment
-rm(list = ls())
-
 #load data
 donor_data <- read.csv("data/Humanislets.com/donor.csv")
 isolation_data <- read.csv("data/Humanislets.com/isolation.csv")
@@ -2748,11 +3610,11 @@ donor_isolation <- inner_join(donor_data, isolation_data, by = "record_id")
 hist(donor_isolation$insulinperieq)
 hist(log(donor_isolation$insulinperieq))
 
-## Fig 5A ## ----
+## Fig S5A ## ----
 donor_isolation %>%
   filter(donorage > 14, donorage < 40) %>%
   filter(diagnosis == "None") %>%
-  anova_test(insulinperieq ~ donorage + donorsex) #ns
+  anova_test(log(insulinperieq) ~ donorage + donorsex) #ns
 donor_isolation %>%
   mutate(diagnosis = case_when(
     diagnosis == "Type2" ~ "T2D",
@@ -2769,20 +3631,21 @@ donor_isolation %>%
   scale_colour_manual(values = c("#113ed1", "#5e4114")) +
   ylab("log(insulin content (ng/IEQ))") +
   xlab("") +
+  scale_y_continuous(limits = c(-0.5,6))+
   theme_bw() +
   theme(legend.position = "none", panel.grid = element_blank()) +
   theme(
     axis.title = element_text(size = 14, colour = "black"),
     axis.text = element_text(size = 14, colour = "black"),
     plot.title = element_text(size = 14, hjust = 0.5),
-    legend.title = element_text(size = 14),
+    legend.title = element_blank(),
     legend.text = element_text(size = 12),
     panel.border = element_blank(), 
     axis.line = element_line()    
   )
-ggsave("Output/Fig5/Fig5A.tiff", width = 3, height = 3)
+ggsave("Output/Final figures/FigS5/FigS5A.tiff", width = 3, height = 3)
 
-## Fig 5D ## ----
+## Fig S5C ## ----
 donor_isolation %>%
   filter(diagnosis != "Type1") %>%
   mutate(output = log(insulinperieq)) %>%
@@ -2819,22 +3682,289 @@ donor_isolation %>%
   scale_fill_manual(values = c("grey40", "#e04e34"))  +
   ylab("log(insulin content (ng/IEQ))") +
   xlab("") +
-  scale_y_continuous(limits = c(-2.5,9))+ 
-  labs(colour = "Condition", fill = "Condition") +
+  scale_y_continuous(limits = c(-5,9))+ 
   theme_bw() +
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line())
-ggsave("Output/Fig5/Fig5D.tiff", width = 5, height = 4)
+ggsave("Output/Final figures/FigS5/FigS5C.tiff", width = 5, height = 4)
 
-### Figure 6 ### ----
+## Fig S6A ## ----
+unique(donor_isolation$diagnosis)
+donor_isolation_matched <- donor_isolation %>%
+  filter(diagnosis != "Type1") %>%
+  filter(insulinperieq > 0)
+donor_isolation_matched$Group <- as.logical(donor_isolation_matched$diagnosis == "Type2")
+donor_isolation_matched <- matchit(Group ~ donorage + donorsex,
+                                   data = donor_isolation_matched,
+                                   method = 'nearest',  
+                                   ratio = 1, 
+                                   exact = ~donorsex
+) 
 
+donor_isolation_matched <- match.data(donor_isolation_matched)
+table(donor_isolation_matched$donorsex, donor_isolation_matched$diagnosis)
+
+donor_isolation_matched %>%
+  group_by(donorsex) %>%
+  t_test(donorage ~ diagnosis) #ns
+
+donor_isolation_matched %>%
+  ggplot(aes(x=donorsex, y=donorage))+
+  geom_boxplot(aes(fill = diagnosis), alpha = 0.5, position = position_dodge(width = 0.9))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = diagnosis, fill = diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 77, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 80, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  scale_colour_manual(values = c("grey40", "#e04e34"))  +
+  scale_fill_manual(values = c("grey40", "#e04e34"))  +
+  xlab("")+
+  ylab("Age (years)") +
+  scale_y_continuous(limits = c(20,80))+
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line())
+ggsave("Output/Final figures/FigS6/FigS6A.tiff", width = 5, height = 4)
+
+## Fig S6B ## ----
+donor_isolation_matched %>%
+  filter(diagnosis != "Type1") %>%
+  mutate(output = log(insulinperieq)) %>%
+  mutate(output = case_when(output == -Inf ~ NA, #remove undetectable results that become -Inf when log-transformed
+                            .default = output)) %>%
+  filter(is.na(output) == FALSE) %>%
+  anova_test(output ~ donorage + donorsex*diagnosis) #ns
+model <- donor_isolation_matched %>% filter(diagnosis != "Type1") %>%
+  mutate(output = log(insulinperieq)) %>%
+  mutate(output = case_when(output == -Inf ~ NA,
+                            .default = output)) %>%
+  filter(is.na(output) == FALSE) %>%
+  lm(output ~ donorage + donorsex*diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ diagnosis | donorsex)
+pairs(emmeans_res, adjust = "tukey") #ns
+
+donor_isolation_matched %>%
+  filter(diagnosis != "Type1") %>%
+  mutate(diagnosis = case_when(
+    diagnosis == "Type2" ~ "T2D",
+    diagnosis == "None" ~ "Control",
+    .default = diagnosis
+  )) %>%
+  ggplot(aes(x=donorsex, y=log(insulinperieq), fill= diagnosis))+
+  geom_boxplot(alpha = 0.5,position = position_dodge(width = 0.9))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = diagnosis, fill = diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 5.6, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.075))+
+  scale_colour_manual(values = c("grey40", "#e04e34"))  +
+  scale_fill_manual(values = c("grey40", "#e04e34"))  +
+  ylab("log(insulin content (ng/IEQ))") +
+  xlab("") +
+  scale_y_continuous(limits = c(-5,9))+
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line())
+ggsave("Output/Final figures/FigS6/FigS6B.tiff", width = 5, height = 4)
+
+# Combined Vanderbilt and Humanislets.com insulin content
+Vanderbiltinscontent <- insulin.content_df %>%
+  dplyr::select(DonorID, sex, simplified_diagnosis, age_years, Insulin.content.ng.postperiIEQ)
+colnames(Vanderbiltinscontent) <- c("DonorID", "sex","diagnosis","age","inscontent")
+Vanderbiltinscontent$dataset <- rep("Vanderbilt",nrow(Vanderbiltinscontent))
+HIinscontent <- donor_isolation %>%
+  dplyr::select(record_id, donorsex, diagnosis, donorage, insulinperieq)
+colnames(HIinscontent) <- c("DonorID", "sex","diagnosis","age","inscontent")
+HIinscontent$dataset <- rep("Humanislets",nrow(HIinscontent))
+combined_inscontent <- combined_inscontent %>%
+  mutate(diagnosis = case_when(
+    diagnosis == "Type2" ~ "T2D",
+    diagnosis == "Type1" ~ "T1D",
+    diagnosis == "None" ~ "Control",
+    .default = diagnosis
+  ))
+combined_inscontent <- bind_rows(Vanderbiltinscontent, HIinscontent)
+hist(combined_inscontent$inscontent)
+hist(log(combined_inscontent$inscontent))
+
+## Fig 5A ## ----
+combined_inscontent %>%
+  filter(diagnosis == "Control") %>%
+  filter(age > 14, age < 40) %>%
+  anova_test(log(inscontent) ~ age + dataset + sex) #ns
+combined_inscontent %>%
+  filter(is.na(inscontent) == FALSE, inscontent > 0) %>%
+  filter(dataset %in% c("Vanderbilt", "Humanislets")) %>%
+  filter(age > 14, age < 40) %>%
+  filter(diagnosis == "Control") %>%
+  ggplot(aes(x=sex, y=log(inscontent))) +
+  geom_boxplot(alpha = 0.5, aes(fill = sex))+
+  scale_fill_manual(values = c("#A7D9DB","#D98B64")) +
+  ggnewscale::new_scale_fill() +
+  geom_quasirandom(size = 2, shape = 21, aes(fill = dataset)) +
+  scale_fill_manual(values = c("#113ED1", "#50B5AD")) +
+  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 5.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.05, 0.02))+
+  scale_y_continuous(limits = c(-0.5,6))+
+  xlab("") +
+  ylab("log(insulin content (ng/IEQ))") +
+  theme_bw()+
+  theme(legend.position = "none", panel.grid = element_blank())  +
+  theme(
+    axis.title = element_text(size = 14, colour = "black"),
+    axis.text = element_text(size = 14, colour = "black"),
+    plot.title = element_text(size = 14, hjust = 0.5),
+    legend.title = element_blank(),
+    legend.text = element_text(size = 12),
+    panel.border = element_blank(), 
+    axis.line = element_line()  
+  )
+ggsave("Output/Final figures/Fig5/Fig5A.tiff", width = 3, height = 3)
+
+## Fig 5C ## ----
+combined_inscontent %>%
+  filter(diagnosis %in% c("Control","T2D")) %>%
+  filter(dataset %in% c("Vanderbilt","Humanislets")) %>%
+  filter(inscontent > 0) %>%
+  anova_test(log(inscontent) ~ age + dataset + sex*diagnosis) #significant for dataset only
+model <- combined_inscontent %>% 
+  filter(diagnosis %in% c("Control","T2D")) %>%
+  filter(dataset %in% c("Vanderbilt","Humanislets")) %>%
+  filter(inscontent > 0) %>%
+  lm(log(inscontent) ~ age + dataset + sex*diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ sex | diagnosis)
+pairs(emmeans_res, adjust = "tukey") #ns, p=0.0932 for F-M in T2D
+emmeans_res <- emmeans(model, ~ diagnosis | sex)
+pairs(emmeans_res, adjust = "tukey") #sig for females
+
+combined_inscontent %>%
+  filter(is.na(inscontent) == FALSE, inscontent > 0) %>%
+  filter(diagnosis != "T1D") %>%
+  filter(dataset %in% c("Vanderbilt","Humanislets")) %>%
+  ggplot(aes(x=sex, y=log(inscontent))) +
+  geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9), aes(fill = diagnosis))+
+  scale_fill_manual(values = c("grey50", "#FFCE2C")) +
+  ggnewscale::new_scale_fill() +
+  geom_quasirandom(size = 2, shape = 21, colour = "black", alpha = 0.75, aes(group = diagnosis, fill = dataset), dodge.width=0.9) +
+  scale_fill_manual(values = c("#113ED1", "#50B5AD")) +
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 6.5, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.1))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 6, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.1))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 8.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 7, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  ylab("log(insulin content (ng/IEQ))") +
+  xlab("")+
+  scale_y_continuous(limits = c(-5,9))+
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line()  
+  )
+ggsave("Output/Final figures/Fig5/Fig5C.tiff", width = 5, height = 4)
+
+## Fig S6E ## ----
+combined_inscontent_matched <- combined_inscontent %>%
+  filter(diagnosis != "T1D") %>%
+  filter(inscontent > 0)
+combined_inscontent_matched$Group <- as.logical(combined_inscontent_matched$diagnosis == "T2D")
+combined_inscontent_matched <- matchit(Group ~ age + dataset + sex,
+                                       data = combined_inscontent_matched,
+                                       method = 'nearest',  
+                                       ratio = 1, 
+                                       exact = ~sex + dataset
+) 
+
+combined_inscontent_matched <- match.data(combined_inscontent_matched)
+table(combined_inscontent_matched$sex, combined_inscontent_matched$diagnosis)
+combined_inscontent_matched %>%
+  group_by(sex) %>%
+  anova_test(age ~ dataset + diagnosis) #sig for dataset for both but not age
+
+combined_inscontent_matched %>%
+  ggplot(aes(x=sex, y=age))+
+  geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9), aes(fill = diagnosis))+
+  scale_fill_manual(values = c("grey50", "#FFCE2C")) +
+  ggnewscale::new_scale_fill() +
+  geom_quasirandom(size = 2, shape = 21, colour = "black", alpha = 0.75, aes(group = diagnosis, fill = dataset), dodge.width=0.9) +
+  scale_fill_manual(values = c("#113ED1", "#50B5AD")) +
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 77, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 80, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  xlab("")+
+  ylab("Age (years)") +
+  scale_y_continuous(limits = c(20,80))+
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line())
+ggsave("Output/Final figures/FigS6/FigS6E.tiff", width = 5, height = 4)
+
+## Fig S6F ## ----
+combined_inscontent_matched %>%
+  filter(diagnosis %in% c("Control","T2D")) %>%
+  filter(inscontent > 0) %>%
+  anova_test(log(inscontent) ~ age + dataset + sex*diagnosis) #significant for dataset only
+model <- combined_inscontent_matched %>% 
+  filter(diagnosis %in% c("Control","T2D")) %>%
+  filter(inscontent > 0) %>%
+  lm(log(inscontent) ~ age + dataset + sex*diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ diagnosis | sex)
+pairs(emmeans_res, adjust = "tukey") #no longer sig for females
+
+combined_inscontent_matched %>%
+  filter(diagnosis != "T1D") %>%
+  ggplot(aes(x=sex, y=log(inscontent))) +
+  geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9), aes(fill = diagnosis))+
+  scale_fill_manual(values = c("grey50", "#FFCE2C")) +
+  ggnewscale::new_scale_fill() +
+  geom_quasirandom(size = 2, shape = 21, colour = "black", alpha = 0.75, aes(group = diagnosis, fill = dataset), dodge.width=0.9) +
+  scale_fill_manual(values = c("#113ED1", "#50B5AD")) +
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 5.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  ylab("log(insulin content (ng/IEQ))") +
+  xlab("")+
+  scale_y_continuous(limits = c(-5,9))+
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line()  
+  )
+ggsave("Output/Final figures/FigS6/FigS6F.tiff", width = 5, height = 4)
+
+
+### Figure 6, S7 and S8 ### ----
 #clear environment
 rm(list = ls())
 
@@ -2920,7 +4050,7 @@ AAM.3mMGlc <- OCR_all %>%
   summarise(AAM.3mMGlc = mean(OCR.nmol.min.100islets))
 OCR_all <- inner_join(OCR_all, AAM.3mMGlc, by = "DonorID")
 lastLG <- OCR_all %>%
-  filter(Time.min > 104, Time.min < 105) %>%
+  filter(Time.min > 97, Time.min < 98) %>% #capturing period before the uptick in respiration at transition to high glucose
   group_by(DonorID) %>%
   summarise(lastLG = mean(OCR.nmol.min.100islets)) #better physiological "baseline"
 OCR_all <- inner_join(OCR_all, lastLG, by = "DonorID")
@@ -2939,7 +4069,7 @@ NaN3 <- OCR_all %>%
   group_by(DonorID) %>%
   summarise(NaN3 = mean(OCR.nmol.min.100islets),min.NaN3 = min(OCR.nmol.min.100islets, na.rm = TRUE))
 OCR_all <- inner_join(OCR_all, NaN3, by = "DonorID")
-View(OCR_all)
+#View(OCR_all)
 
 OCR_all <- OCR_all %>%
   left_join(donors, by = c("DonorID" = "donor_ID"))
@@ -2960,7 +4090,7 @@ OCR_summary <- OCR_all %>%
 #Make version of summary with calculations for respiratory parameters
 OCR_summary_v2 <- OCR_summary %>%
   mutate(spare.resp = FCCP - HighGlc, response.highglc = HighGlc - AAM.3mMGlc, lastbasal = lastbasal, max.resp = FCCP - min.NaN3, response.lowglc = AAM.3mMGlc - AAM, response.AAM = AAM - lastbasal) %>%
-  mutate(spare.resp.max = maxFCCP - lastbasal, spare.resp.max.fcbaseline = (maxFCCP - lastbasal)/lastbasal)
+  mutate(spare.resp.max = maxFCCP - lastbasal, spare.resp.max.fcbaseline = (maxFCCP - lastbasal)/lastbasal, spare.resp.max.fclastLG = (maxFCCP - lastLG)/lastLG, spare.resp.max.fc.meanLG = (maxFCCP - AAM.3mMGlc)/AAM.3mMGlc)
 
 #Add metadata
 OCR_summary_v2 <- OCR_summary_v2 %>%
@@ -2986,7 +4116,7 @@ OCR_all_over_time_summary <- OCR_all %>%
 stimulus_data <- data.frame(
   xmin = c(0,50,80,105,135,165),
   xmax = c(50,200,105,200,200,200),
-  label = c("Baseline","AAM","G 3
+  label = c("G 0","AAM","G 3
             ","G 16.7","FCCP","NaN3"),
   ymin = c(0.55,0.55,0.60,0.60,0.65,0.70), 
   ymax = c(0.60,0.60,0.65,0.65,0.70,0.75),
@@ -3036,15 +4166,15 @@ OCR_all_over_time_summary %>%
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12))
-ggsave("Output/Fig6/Fig6A.tiff", width = 5.5, height = 4)
+ggsave("Output/Final figures/Fig6/Fig6A.tiff", width = 5.5, height = 4)
 
-## Fig 6I ## ----
+## Fig 6F ## ----
 stimulus_data2 <- data.frame(
   xmin = c(0,50,80,105,135,165),   
   xmax = c(50,200,105,200,200,200),
-  label = c("Baseline","AAM","G 3","G 16.7","FCCP","NaN3"),
+  label = c("G 0","AAM","G 3","G 16.7","FCCP","NaN3"),
   ymin = c(70,70,77,77,84,91), 
   ymax = c(77,77,84,84,91,98)
 )
@@ -3067,7 +4197,7 @@ OCR_all_over_time_summary %>%
   geom_ribbon(alpha = 0.2, colour = NA, (aes(ymax = up, ymin = down, fill = simplified_diagnosis)))+
   scale_colour_manual(values = c("grey50", "#d65ac9")) +
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
-  ylab ("OCR (nmol/min/100 islets))") +
+  ylab ("OCR (nmol/min/100 islets)") +
   xlab ("Time (min)") +
   labs(colour = "Condition", fill = "Condition") +
   coord_cartesian(xlim = c(0, 200), ylim = c(0,1)) +  
@@ -3077,7 +4207,7 @@ OCR_all_over_time_summary %>%
     data = stimulus_data2,
     aes(xmin = xmin, xmax = xmax, ymin = ymin/100, ymax = ymax/100),
     inherit.aes = FALSE,
-    fill = NA, colour = "black",size = 0.25
+    fill = NA, colour = "black",linewidth = 0.25
   ) +
   geom_text(
     data = stimulus_data2,
@@ -3091,215 +4221,216 @@ OCR_all_over_time_summary %>%
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12))
-ggsave("Output/Fig6/Fig6I.tiff", width = 5.5, height = 4)
+ggsave("Output/Final figures/Fig6/Fig6F.tiff", width = 5.5, height = 4)
 
-## Fig 6C ## ----
+## Fig S7A ## ----
 OCR_summary_v2 %>%
   filter(age_years > 14, age_years < 40) %>%
   filter(simplified_diagnosis == "Control") %>%
-  anova_test(lastbasal ~ age_years + sex) #ns
+  anova_test(lastLG ~ age_years + sex) #ns
 OCR_summary_v2 %>%
   filter(age_years > 14, age_years < 40) %>%
   filter(simplified_diagnosis == "Control") %>%
-  ggplot(aes(x=sex, y=lastbasal, fill = sex)) +
+  ggplot(aes(x=sex, y=lastLG, fill = sex)) +
   geom_boxplot(alpha = 0.5)+
   geom_quasirandom(size = 2, shape = 21, aes(fill = sex)) +
-  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 0.45, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.2))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 0.42, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("#50b5ad", "#dbac5a")) +
   scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
+  scale_y_continuous(limits = c(0,0.5))+
   xlab("") +
-  ylab("Baseline\n(nmol/min/100 islets)") +
+  ylab("Baseline (3 mM glucose)\n(nmol/min/100 islets)") +
   theme_bw()+
   theme(legend.position = "none", panel.grid = element_blank())  +
   theme(
     axis.title = element_text(size = 14, colour = "black"),
     axis.text = element_text(size = 14, colour = "black"),
     plot.title = element_text(size = 14, hjust = 0.5),
-    legend.title = element_text(size = 14),
+    legend.title = element_blank(),
     legend.text = element_text(size = 12),
     panel.border = element_blank(), 
     axis.line = element_line()  
   )
-ggsave("Output/Fig6/Fig6C.tiff", width = 3, height = 3)
-
-## Fig 6J ## ----
-OCR_summary_v2 %>%
-  filter(simplified_diagnosis != "T1D") %>%
-  anova_test(lastbasal ~ age_years + sex*simplified_diagnosis) #sig for interaction
-model <- OCR_summary_v2 %>% filter(simplified_diagnosis != "T1D") %>%
-  lm(lastbasal ~ age_years + sex*simplified_diagnosis, data = .)
-emmeans_res <- emmeans(model, ~ sex | simplified_diagnosis)
-pairs(emmeans_res, adjust = "tukey") #p=0.0231 for F-M T2D
-emmeans_res <- emmeans(model, ~ simplified_diagnosis | sex)
-pairs(emmeans_res, adjust = "tukey") #p=0.0068 for Ctrl-T2D in males
-
-OCR_summary_v2 %>%
-  filter(simplified_diagnosis != "T1D") %>%
-  ggplot(aes(x=sex, y=lastbasal)) +
-  geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9), aes(fill = simplified_diagnosis))+
-  geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
-  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 0.55, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.1, 0.02))+
-  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 0.75, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.1))+
-  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 0.86, label = "*", label.size = 7, size = 0.5, tip.length = c(0.3, 0.02))+
-  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 1, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
-  scale_colour_manual(values = c("grey50", "#d65ac9")) +
-  scale_fill_manual(values = c("grey50", "#d65ac9")) +
-  ylab("Baseline\n(nmol/min/100 islets)") +
-  xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
-  scale_y_continuous(limits = c(0,1)) +
-  theme_bw() +
-  theme(legend.position = "bottom",
-        panel.grid = element_blank(),
-        axis.title = element_text(size = 14, colour = "black"),
-        axis.text = element_text(size = 14, colour = "black"),
-        plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
-        legend.text = element_text(size = 12),
-        panel.border = element_blank(),
-        axis.line = element_line()  
-  )
-ggsave("Output/Fig6/Fig6J.tiff", width = 4.5, height = 4)
-
-## Fig 6E ## ----
-OCR_summary_v2 %>%
-  filter(age_years > 14, age_years < 40) %>%
-  filter(simplified_diagnosis == "Control") %>%
-  anova_test(maxFCCP ~ age_years + sex) #ns
-OCR_summary_v2 %>%
-  filter(age_years > 14, age_years < 40) %>%
-  filter(simplified_diagnosis == "Control") %>%
-  ggplot(aes(x=sex, y=maxFCCP, fill = sex)) +
-  geom_boxplot(alpha = 0.5)+
-  geom_quasirandom(size = 2, shape = 21, aes(fill = sex)) +
-  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 0.75, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.2, 0.02))+
-  scale_colour_manual(values = c("#50b5ad", "#dbac5a")) +
-  scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
-  xlab("") +
-  ylab("Maximal respiratory capacity\n(nmol/min/100 islets)") +
-  theme_bw()+
-  theme(legend.position = "none", panel.grid = element_blank())  +
-  theme(
-    axis.title = element_text(size = 14, colour = "black"),
-    axis.text = element_text(size = 14, colour = "black"),
-    plot.title = element_text(size = 14, hjust = 0.5),
-    legend.title = element_text(size = 14),
-    legend.text = element_text(size = 12),
-    panel.border = element_blank(), 
-    axis.line = element_line()  
-  )
-ggsave("Output/Fig6/Fig6E.tiff", width = 3, height = 3)
-
-## Fig 6K ## ----
-OCR_summary_v2 %>%
-  filter(simplified_diagnosis != "T1D") %>%
-  anova_test(maxFCCP ~ age_years + sex*simplified_diagnosis) #ns
-model <- OCR_summary_v2 %>% filter(simplified_diagnosis != "T1D") %>%
-  lm(maxFCCP ~ age_years + sex*simplified_diagnosis, data = .)
-emmeans_res <- emmeans(model, ~ sex | simplified_diagnosis)
-pairs(emmeans_res, adjust = "tukey") #p=ns
-emmeans_res <- emmeans(model, ~ simplified_diagnosis | sex)
-pairs(emmeans_res, adjust = "tukey") #p=ns
-
-OCR_summary_v2 %>%
-  filter(simplified_diagnosis != "T1D") %>%
-  ggplot(aes(x=sex, y=maxFCCP)) +
-  geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9), aes(fill = simplified_diagnosis))+
-  geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
-  geom_bracket(inherit.aes = FALSE, xmin = 1.225, xmax = 2.225, y.position = 1.2, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
-  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 1.1, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.3, 0.02))+
-  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 1.1, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.1, 0.02))+
-  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.775, y.position = 1.3, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
-  scale_colour_manual(values = c("grey50", "#d65ac9")) +
-  scale_fill_manual(values = c("grey50", "#d65ac9")) +
-  ylab("Maximal respiratory capacity\n(nmol/min/100 islets)") +
-  xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
-  theme_bw() +
-  theme(legend.position = "bottom",
-        panel.grid = element_blank(),
-        axis.title = element_text(size = 14, colour = "black"),
-        axis.text = element_text(size = 14, colour = "black"),
-        plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
-        legend.text = element_text(size = 12),
-        panel.border = element_blank(),
-        axis.line = element_line()  
-  )
-ggsave("Output/Fig6/Fig6K.tiff", width = 4.5, height = 4)
+ggsave("Output/Final figures/FigS7/FigS7A.tiff", width = 3, height = 3)
 
 ## Fig 6G ## ----
 OCR_summary_v2 %>%
-  filter(age_years > 14, age_years < 40) %>%
-  filter(simplified_diagnosis == "Control") %>%
-  anova_test(spare.resp.max.fcbaseline ~ age_years + sex) #p=0.055 for sex
-OCR_summary_v2 %>%
-  filter(age_years > 14, age_years < 40) %>%
-  filter(simplified_diagnosis == "Control") %>%
-  ggplot(aes(x=sex, y=spare.resp.max.fcbaseline*100, fill = sex)) +
-  geom_boxplot(alpha = 0.5)+
-  geom_quasirandom(size = 2, shape = 21, aes(fill = sex)) +
-  scale_colour_manual(values = c("#50b5ad", "#dbac5a")) +
-  scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
-  xlab("") +
-  ylab("Spare respiratory capacity\n(% of baseline)") +
-  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 370, label = "p=0.055", label.size = 4, size = 0.5, tip.length = c(0.1, 0.02))+
-  ylim(0,400) +
-  theme_bw()+
-  theme(legend.position = "none", panel.grid = element_blank())  +
-  theme(
-    axis.title = element_text(size = 14, colour = "black"),
-    axis.text = element_text(size = 14, colour = "black"),
-    plot.title = element_text(size = 14, hjust = 0.5),
-    legend.title = element_text(size = 14),
-    legend.text = element_text(size = 12),
-    panel.border = element_blank(), 
-    axis.line = element_line()  
-  )
-ggsave("Output/Fig6/Fig6G.tiff", width = 3, height = 3)
-
-## Fig 6L ## ----
-OCR_summary_v2 %>%
   filter(simplified_diagnosis != "T1D") %>%
-  anova_test(spare.resp.max.fcbaseline ~ age_years + sex*simplified_diagnosis) #sig for interaction
+  anova_test(lastLG ~ age_years + sex*simplified_diagnosis) #0.098 for interaction
 model <- OCR_summary_v2 %>% filter(simplified_diagnosis != "T1D") %>%
-  lm(spare.resp.max.fcbaseline ~ age_years + sex*simplified_diagnosis, data = .)
+  lm(lastLG ~ age_years + sex*simplified_diagnosis, data = .)
 emmeans_res <- emmeans(model, ~ sex | simplified_diagnosis)
-pairs(emmeans_res, adjust = "tukey") #p=0.0466 for F-M in Control, p=0.0403 for F-M in T2D
+pairs(emmeans_res, adjust = "tukey") #p=0.0758 for F-M T2D
 emmeans_res <- emmeans(model, ~ simplified_diagnosis | sex)
-pairs(emmeans_res, adjust = "tukey") #p=0183 for Ctrl-T2D in males
+pairs(emmeans_res, adjust = "tukey") #p=0.0394 for Ctrl-T2D in males
 
 OCR_summary_v2 %>%
   filter(simplified_diagnosis != "T1D") %>%
-  ggplot(aes(x=sex, y=spare.resp.max.fcbaseline*100)) +
+  ggplot(aes(x=sex, y=lastLG)) +
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9), aes(fill = simplified_diagnosis))+
   geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
-  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 375, label = "*", label.size = 7, size = 0.5, tip.length = c(0.1, 0.015))+
-  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 430, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.08))+
-  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 360, label = "*", label.size = 7, size = 0.5, tip.length = c(0.015, 0.5))+
-  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 490, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 0.625, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.1, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 0.8, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.2))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 0.925, label = "p=0.076", label.size = 4, size = 0.5, tip.length = c(0.2, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 1.05, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey50", "#d65ac9")) +
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
-  ylab("Spare respiratory capacity\n(% of baseline)") +
+  ylab("Baseline (3 mM glucose)\n(nmol/min/100 islets)") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
-  scale_y_continuous(limits = c(0,490))+
+  scale_y_continuous(limits = c(0,1.1)) +
   theme_bw() +
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line()  
   )
-ggsave("Output/Fig6/Fig6L.tiff", width = 4.5, height = 4)
+ggsave("Output/Final figures/Fig6/Fig6G.tiff", width = 4.5, height = 4)
 
-## Fig 6M ## ----
+## Fig S7C ## ----
+OCR_summary_v2 %>%
+  filter(age_years > 14, age_years < 40) %>%
+  filter(simplified_diagnosis == "Control") %>%
+  anova_test(max.resp ~ age_years + sex) #ns
+OCR_summary_v2 %>%
+  filter(age_years > 14, age_years < 40) %>%
+  filter(simplified_diagnosis == "Control") %>%
+  ggplot(aes(x=sex, y=max.resp, fill = sex)) +
+  geom_boxplot(alpha = 0.5)+
+  geom_quasirandom(size = 2, shape = 21, aes(fill = sex)) +
+  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 0.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.1))+
+  scale_colour_manual(values = c("#50b5ad", "#dbac5a")) +
+  scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
+  scale_y_continuous(limits = c(-0.2,0.5))+
+  xlab("") +
+  ylab("Maximal respiratory capacity\n(nmol/min/100 islets)") +
+  theme_bw()+
+  theme(legend.position = "none", panel.grid = element_blank())  +
+  theme(
+    axis.title = element_text(size = 14, colour = "black"),
+    axis.text = element_text(size = 14, colour = "black"),
+    plot.title = element_text(size = 14, hjust = 0.5),
+    legend.title = element_blank(),
+    legend.text = element_text(size = 12),
+    panel.border = element_blank(), 
+    axis.line = element_line()  
+  )
+ggsave("Output/Final figures/FigS7/FigS7C.tiff", width = 3, height = 3)
+
+## Fig 6H ## ----
+OCR_summary_v2 %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  filter(max.resp != -Inf) %>%
+  anova_test(max.resp ~ age_years + sex*simplified_diagnosis) #ns
+model <- OCR_summary_v2 %>% filter(simplified_diagnosis != "T1D") %>%
+  filter(max.resp != -Inf) %>%
+  lm(max.resp ~ age_years + sex*simplified_diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ sex | simplified_diagnosis)
+pairs(emmeans_res, adjust = "tukey") #ns
+emmeans_res <- emmeans(model, ~ simplified_diagnosis | sex)
+pairs(emmeans_res, adjust = "tukey") #ns
+
+OCR_summary_v2 %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  ggplot(aes(x=sex, y=max.resp)) +
+  geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9), aes(fill = simplified_diagnosis))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE, xmin = 1.225, xmax = 2.225, y.position = 1.1, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 0.9, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.3, 0.02))+
+  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 0.8, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.2))+
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.775, y.position = 1, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  scale_colour_manual(values = c("grey50", "#d65ac9")) +
+  scale_fill_manual(values = c("grey50", "#d65ac9")) +
+  ylab("Maximal respiratory capacity\n(nmol/min/100 islets)") +
+  xlab("")+
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line()  
+  )
+ggsave("Output/Final figures/Fig6/Fig6H.tiff", width = 4.5, height = 4)
+
+## Fig S7E ## ----
+OCR_summary_v2 %>%
+  filter(age_years > 14, age_years < 40) %>%
+  filter(simplified_diagnosis == "Control") %>%
+  anova_test(spare.resp.max.fclastLG ~ age_years + sex) #ns for sex
+OCR_summary_v2 %>%
+  filter(age_years > 14, age_years < 40) %>%
+  filter(simplified_diagnosis == "Control") %>%
+  ggplot(aes(x=sex, y=spare.resp.max.fclastLG*100, fill = sex)) +
+  geom_boxplot(alpha = 0.5)+
+  geom_quasirandom(size = 2, shape = 21, aes(fill = sex)) +
+  scale_colour_manual(values = c("#50b5ad", "#dbac5a")) +
+  scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
+  xlab("") +
+  ylab("Spare respiratory capacity\n(% of 3 mM glucose)") +
+  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 180, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.1, 0.02))+
+  ylim(0,200) +
+  theme_bw()+
+  theme(legend.position = "none", panel.grid = element_blank())  +
+  theme(
+    axis.title = element_text(size = 14, colour = "black"),
+    axis.text = element_text(size = 14, colour = "black"),
+    plot.title = element_text(size = 14, hjust = 0.5),
+    legend.title = element_blank(),
+    legend.text = element_text(size = 12),
+    panel.border = element_blank(), 
+    axis.line = element_line()  
+  )
+ggsave("Output/Final figures/FigS7/FigS7E.tiff", width = 3, height = 3)
+
+## Fig 6I ## ----
+OCR_summary_v2 %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  anova_test(spare.resp.max.fclastLG ~ age_years + sex*simplified_diagnosis) #sig for interaction
+model <- OCR_summary_v2 %>% filter(simplified_diagnosis != "T1D") %>%
+  lm(spare.resp.max.fclastLG ~ age_years + sex*simplified_diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ sex | simplified_diagnosis)
+pairs(emmeans_res, adjust = "tukey") #p=0.0251 for F-M in Control, p=0.0413 for F-M in T2D
+emmeans_res <- emmeans(model, ~ simplified_diagnosis | sex)
+pairs(emmeans_res, adjust = "tukey") #p=0.0253 for Ctrl-T2D in males
+
+OCR_summary_v2 %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  ggplot(aes(x=sex, y=spare.resp.max.fclastLG*100)) +
+  geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9), aes(fill = simplified_diagnosis))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 330, label = "*", label.size = 7, size = 0.5, tip.length = c(0.1, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 400, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.08))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 300, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.5))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 250, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.1, 0.02))+
+  scale_colour_manual(values = c("grey50", "#d65ac9")) +
+  scale_fill_manual(values = c("grey50", "#d65ac9")) +
+  ylab("Spare respiratory capacity\n(% of 3 mM glucose)") +
+  xlab("")+
+  scale_y_continuous(limits = c(0,450))+
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line()  
+  )
+ggsave("Output/Final figures/Fig6/Fig6I.tiff", width = 4.5, height = 4)
+
+## Fig 6J ## ----
 OCR_summary_v2 %>%
   filter(simplified_diagnosis != "T1D") %>%
   anova_test(response.highglc ~ age_years + sex*simplified_diagnosis) #sig for disease and sex*disease interaction
@@ -3323,7 +4454,6 @@ OCR_summary_v2 %>%
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("High glucose-stimulated\nOCR (nmol/min/100 islets)") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
   scale_y_continuous(limits = c(-0.1, 0.16)) +
   theme_bw() +
   theme(legend.position = "bottom",
@@ -3331,23 +4461,256 @@ OCR_summary_v2 %>%
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line()  
   )
-ggsave("Output/Fig6/Fig6M.tiff", width = 4.5, height = 4)
-  
-#Humanislets OCR data
-#clear environment
-rm(list = ls())
+ggsave("Output/Final figures/Fig6/Fig6J.tiff", width = 4.5, height = 4)
 
+## Fig S8A ## ----
+unique(OCR_summary_v2$simplified_diagnosis)
+OCR_summary_v2_matched <- OCR_summary_v2 %>%
+  filter(simplified_diagnosis != "T1D")
+OCR_summary_v2_matched$Group <- as.logical(OCR_summary_v2_matched$simplified_diagnosis == "T2D")
+OCR_summary_v2_matched <- matchit(Group ~ age_years + sex,
+                                  data = OCR_summary_v2_matched,
+                                  method = 'nearest',  
+                                  ratio = 1, 
+                                  exact = ~sex
+) 
+OCR_summary_v2_matched <- match.data(OCR_summary_v2_matched)
+OCR_summary_v2_matched %>%
+  group_by(sex) %>%
+  t_test(age_years ~ simplified_diagnosis) #ns
+OCR_summary_v2_matched %>%
+  ggplot(aes(x=sex, y=age_years))+
+  geom_boxplot(aes(fill = simplified_diagnosis), alpha = 0.5, position = position_dodge(width = 0.9))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 70, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 70, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  scale_colour_manual(values = c("grey50", "#d65ac9")) +
+  scale_fill_manual(values = c("grey50", "#d65ac9")) +
+  xlab("")+
+  ylab("Age (years)") +
+  ylim(20,75)+
+  labs(fill = "Condition")+
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line() 
+  )
+ggsave("Output/Final figures/FigS8/FigS8A.tiff", width = 5, height = 4)
+
+## Fig S8B ## ----
+stimulus_data3 <- data.frame(
+  xmin = c(0,50,80,105,135,165),   
+  xmax = c(50,200,105,200,200,200),
+  label = c("G 0","AAM","G 3","G 16.7","FCCP","NaN3"),
+  ymin = c(70,70,77,77,84,91), 
+  ymax = c(77,77,84,84,91,98)
+)
+
+OCR_all_over_time_summary %>%
+  filter(DonorID %in% OCR_summary_v2_matched$DonorID) %>%
+  filter(Time.min < 193) %>%
+  mutate(Time.min = round(Time.min)) %>%
+  ungroup() %>%
+  group_by(Time.min, simplified_diagnosis, sex) %>%
+  summarise(
+    n = n(),
+    mean = mean(donormeanraw, na.rm = TRUE),
+    sd = sd(donormeanraw, na.rm = TRUE),
+    up = if (n > 2) mean + sd else NA_real_,
+    down = if (n > 2) mean - sd else NA_real_,
+    .groups = "drop"
+  ) %>%
+  ggplot(aes(x=Time.min, y=mean, colour = simplified_diagnosis, group = simplified_diagnosis)) +
+  geom_path(linewidth = 1)+
+  geom_ribbon(alpha = 0.2, colour = NA, (aes(ymax = up, ymin = down, fill = simplified_diagnosis)))+
+  scale_colour_manual(values = c("grey50", "#d65ac9")) +
+  scale_fill_manual(values = c("grey50", "#d65ac9")) +
+  ylab ("OCR (nmol/min/100 islets)") +
+  xlab ("Time (min)") +
+  labs(colour = "Condition", fill = "Condition") +
+  coord_cartesian(xlim = c(0, 200), ylim = c(0,1)) +  
+  facet_wrap(~sex)+
+  geom_vline(xintercept = c(50, 80, 105, 135, 165), colour = "darkgrey", linetype = 5)+
+  geom_rect(
+    data = stimulus_data3,
+    aes(xmin = xmin, xmax = xmax, ymin = ymin/100, ymax = ymax/100),
+    inherit.aes = FALSE,
+    fill = NA, colour = "black",size = 0.25
+  ) +
+  geom_text(
+    data = stimulus_data3,
+    aes(x = (xmin + xmax)/2, y = (ymin/100+ymax/100)/2, label = label),
+    inherit.aes = FALSE,
+    size = 3
+  ) +
+  theme_bw()+
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12))
+ggsave("Output/Final figures/FigS8/FigS8B.tiff", width = 5.5, height = 4)
+
+## Fig S8C ## ----
+OCR_summary_v2_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  anova_test(lastLG ~ age_years + sex*simplified_diagnosis) #ns for sex
+model <- OCR_summary_v2_matched %>% filter(simplified_diagnosis != "T1D") %>%
+  lm(lastLG ~ age_years + sex*simplified_diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ simplified_diagnosis | sex)
+pairs(emmeans_res, adjust = "tukey") #ns
+
+OCR_summary_v2_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  ggplot(aes(x=sex, y=lastbasal)) +
+  geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9), aes(fill = simplified_diagnosis))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 0.55, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.1, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 0.75, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.1))+
+  scale_colour_manual(values = c("grey50", "#d65ac9")) +
+  scale_fill_manual(values = c("grey50", "#d65ac9")) +
+  ylab("Baseline (3 mM glucose)\n(nmol/min/100 islets)") +
+  xlab("")+
+  labs(fill = "Condition")+
+  scale_y_continuous(limits = c(0,1)) +
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line()  
+  )
+ggsave("Output/Final figures/FigS8/FigS8C.tiff", width = 5, height = 4)
+
+## Fig S8D ## ----
+OCR_summary_v2_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  filter(max.resp != -Inf) %>%
+  anova_test(max.resp ~ age_years + sex*simplified_diagnosis) #ns
+model <- OCR_summary_v2_matched %>% filter(simplified_diagnosis != "T1D") %>%
+  lm(maxFCCP ~ age_years + sex*simplified_diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ simplified_diagnosis | sex)
+pairs(emmeans_res, adjust = "tukey") #ns
+
+OCR_summary_v2_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  ggplot(aes(x=sex, y=maxFCCP)) +
+  geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9), aes(fill = simplified_diagnosis))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 1.05, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.5, 0.02))+
+  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 1, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.1, 0.02))+
+  scale_colour_manual(values = c("grey50", "#d65ac9")) +
+  scale_fill_manual(values = c("grey50", "#d65ac9")) +
+  ylab("Maximal respiratory capacity\n(nmol/min/100 islets)") +
+  xlab("")+
+  labs(fill = "Condition")+
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line()  
+  )
+ggsave("Output/Final figures/FigS8/FigS8D.tiff", width = 5, height = 4)
+
+## Fig S8E ## ----
+OCR_summary_v2_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  anova_test(spare.resp.max.fclastLG ~ age_years + sex*simplified_diagnosis) #sig for interaction
+model <- OCR_summary_v2_matched %>% filter(simplified_diagnosis != "T1D") %>%
+  lm(spare.resp.max.fclastLG ~ age_years + sex*simplified_diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ simplified_diagnosis | sex)
+pairs(emmeans_res, adjust = "tukey") #p=0.0392 for Ctrl-T2D in males, p=0.0594 for females
+
+OCR_summary_v2_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  ggplot(aes(x=sex, y=spare.resp.max.fclastLG*100)) +
+  geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9), aes(fill = simplified_diagnosis))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 170, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.3))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 225, label = "p=0.059", label.size = 4, size = 0.5, tip.length = c(0.55, 0.02))+
+  scale_colour_manual(values = c("grey50", "#d65ac9")) +
+  scale_fill_manual(values = c("grey50", "#d65ac9")) +
+  ylab("Spare respiratory capacity\n(% of 3 mM glucose)") +
+  xlab("")+
+  labs(fill = "Condition")+
+  scale_y_continuous(limits = c(0,250))+
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line()  
+  )
+ggsave("Output/Final figures/FigS8/FigS8E.tiff", width = 5, height = 4)
+
+## Fig S8F ## ----
+OCR_summary_v2_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  anova_test(response.highglc ~ age_years + sex*simplified_diagnosis) #sig for disease and sex*disease interaction
+model <- OCR_summary_v2_matched %>% filter(simplified_diagnosis != "T1D") %>%
+  lm(response.highglc ~ age_years + sex*simplified_diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ simplified_diagnosis | sex)
+pairs(emmeans_res, adjust = "tukey") #still sig for Ctrl-T2D in males
+
+OCR_summary_v2_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  ggplot(aes(x=sex, y=response.highglc)) +
+  geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9), aes(fill = simplified_diagnosis))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 0.1, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 0.12, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.4))+
+  scale_colour_manual(values = c("grey50", "#d65ac9")) +
+  scale_fill_manual(values = c("grey50", "#d65ac9")) +
+  ylab("High glucose-stimulated\nOCR (nmol/min/100 islets)") +
+  xlab("")+
+  labs(fill = "Condition")+
+  scale_y_continuous(limits = c(-0.1, 0.16)) +
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line()  
+  )
+ggsave("Output/Final figures/FigS8/FigS8F.tiff", width = 5, height = 4)
+
+#Humanislets OCR data
 #read metadata and data
 donor_data <- read.csv("data/Humanislets.com/donor.csv")
 seahorse_norm_dna <- read.csv("data/Humanislets.com/seahorse_norm_dna.csv")
 seahorse_norm_dna_baseline <- read.csv("data/Humanislets.com/seahorse_norm_dna_baselineoc.csv")
 
-#first working with baselined data
+#first working with unbaselined data
 #remove outlier runs (three runs per donor, check if one of those three should be excluded)
 all_time <- seahorse_norm_dna %>%
   pivot_longer(colnames(seahorse_norm_dna)[grepl("^time",colnames(seahorse_norm_dna))], names_to = "time", values_to = "OCR" ) %>%
@@ -3393,7 +4756,6 @@ seahorse_norm_dna_summary <- seahorse_norm_dna_postgrubbs %>%
   summarise(across(where(is.numeric), mean))
 
 ## Fig 6B ## ----
-#Import raw OCR data (not)
 #Make long format
 colnames(seahorse_norm_dna_summary)
 seahorse_norm_dna_summary_long <- seahorse_norm_dna_summary %>% 
@@ -3401,12 +4763,16 @@ seahorse_norm_dna_summary_long <- seahorse_norm_dna_summary %>%
 seahorse_norm_dna_summary_long$Time.min <- gsub("time_","",seahorse_norm_dna_summary_long$Time.min)
 seahorse_norm_dna_summary_long$Time.min <- as.numeric(seahorse_norm_dna_summary_long$Time.min)
 
+#Convert raw values to nmol/min/100 islets
+seahorse_norm_dna_summary_long <- seahorse_norm_dna_summary_long %>%
+  mutate(OCR_nmolmin100islets = (OCR/1000)*(meta_dna_cont/70)*100)
+
 stimulus_data3 <- data.frame(
   xmin = c(0,35,85,145,205), 
   xmax = c(35,85,145,205,260), 
   label = c("G 2.8","G 16.7","Oligomycin","FCCP","Rotenone/\nAntA"),
-  ymin = c(rep(300,4),285),  
-  ymax = c(rep(330,4),335)
+  ymin = c(rep(0.62,4),0.595),  
+  ymax = c(rep(0.67,4),0.695)
 )
 seahorse_norm_dna_summary_long %>%
   filter(donorage > 14, donorage < 40) %>%
@@ -3415,8 +4781,8 @@ seahorse_norm_dna_summary_long %>%
   group_by(Time.min, donorsex) %>%
   summarise(
     n = n(),
-    mean = mean(OCR, na.rm = TRUE),
-    sd = sd(OCR, na.rm = TRUE),
+    mean = mean(OCR_nmolmin100islets, na.rm = TRUE),
+    sd = sd(OCR_nmolmin100islets, na.rm = TRUE),
     up = if (n > 2) mean + sd else NA_real_,
     down = if (n > 2) mean - sd else NA_real_,
     .groups = "drop"
@@ -3426,10 +4792,10 @@ seahorse_norm_dna_summary_long %>%
   geom_ribbon(alpha = 0.2, colour = NA, (aes(ymax = up, ymin = down, fill = donorsex)))+
   scale_fill_manual(values = c("#113ed1", "#5e4114")) +
   scale_colour_manual(values = c("#113ed1", "#5e4114")) +
-  ylab ("OCR (pmol/min/\U03BCg DNA)") +
+  ylab ("OCR (nmol/min/100 islets)") +
   xlab ("Time (min)") +
   labs(colour = "Sex", fill = "Sex") +
-  coord_cartesian(xlim = c(0, 270), ylim = c(0,330)) +  
+  coord_cartesian(xlim = c(0, 270), ylim = c(0,0.75)) +  
   scale_x_continuous(breaks = c(35,85,145,205))+
   geom_vline(xintercept = c(35,85,145,205), colour = "darkgrey", linetype = 5)+
   geom_rect(
@@ -3451,71 +4817,78 @@ seahorse_norm_dna_summary_long %>%
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12))
-ggsave("Output/Fig6/Fig6B.tiff", width = 5.5, height = 4)
+ggsave("Output/Final figures/Fig6/Fig6B.tiff", width = 5.5, height = 4)
 
-## Fig 6D ## ----
+# Convert units of summary data
+seahorse_norm_dna_summary <- seahorse_norm_dna_summary %>%
+  mutate(basalnmolper100islets = (calc_basal_resp/1000)*(meta_dna_cont/70)*100,
+         maxnmolper100islets = (calc_max_resp/1000)*(meta_dna_cont/70)*100)
+
+## Fig S7B ## ----
 seahorse_norm_dna_summary %>%
   ungroup() %>%
   filter(donorage > 14, donorage < 40) %>%
   filter(diagnosis == "None") %>%
-  anova_test(calc_basal_resp ~ donorage + donorsex) #ns
+  anova_test(basalnmolper100islets ~ donorage + donorsex) #ns
 seahorse_norm_dna_summary %>%
   filter(donorage > 14, donorage < 40) %>%
   filter(diagnosis == "None") %>%
-  ggplot(aes(x=donorsex, y=calc_basal_resp, fill = donorsex)) +
+  ggplot(aes(x=donorsex, y=basalnmolper100islets, fill = donorsex)) +
   geom_boxplot(alpha = 0.5)+
   geom_quasirandom(size = 2, shape = 21, aes(fill = donorsex)) +
-  geom_bracket(inherit.aes = FALSE, xmin = 1, xmax = 2, y.position = 240, label = "ns", label.size = 4, size = 0.5,tip.length = c(0.2, 0.02))+
+  geom_bracket(inherit.aes = FALSE, xmin = 1, xmax = 2, y.position = 0.35, label = "ns", label.size = 4, size = 0.5,tip.length = c(0.02, 0.1))+
   scale_fill_manual(values = c("#113ed1", "#5e4114")) +
   scale_colour_manual(values = c("#113ed1", "#5e4114")) +
+  scale_y_continuous(limits = c(0,0.5))+
   xlab("") +
-  ylab("Baseline\n(pmol/min/\U03BCg DNA)") +
+  ylab("Baseline (2.8 mM glucose)\n(nmol/min/100 islets)") +
   theme_bw()+
   theme(legend.position = "none", panel.grid = element_blank())  +
   theme(
     axis.title = element_text(size = 14, colour = "black"),
     axis.text = element_text(size = 14, colour = "black"),
     plot.title = element_text(size = 14, hjust = 0.5),
-    legend.title = element_text(size = 14),
+    legend.title = element_blank(),
     legend.text = element_text(size = 12),
     panel.border = element_blank(), 
     axis.line = element_line()    
   )
-ggsave("Output/Fig6/Fig6D.tiff", width = 3, height = 3)
+ggsave("Output/Final figures/FigS7/FigS7B.tiff", width = 3, height = 3)
 
-## Fig 6F ## ----
+## Fig S7D ## ----
 seahorse_norm_dna_summary %>%
   ungroup() %>%
   filter(donorage > 14, donorage < 40) %>%
   filter(diagnosis == "None") %>%
-  anova_test(calc_max_resp ~ donorage + donorsex) #ns
+  anova_test(maxnmolper100islets ~ donorage + donorsex) #ns
 seahorse_norm_dna_summary %>%
   filter(donorage > 14, donorage < 40) %>%
   filter(diagnosis == "None") %>%
-  ggplot(aes(x=donorsex, y=calc_max_resp, fill = donorsex)) +
+  ggplot(aes(x=donorsex, y=maxnmolper100islets, fill = donorsex)) +
   geom_boxplot(alpha = 0.5)+
   geom_quasirandom(size = 2, shape = 21, aes(fill = donorsex)) +
-  geom_bracket(inherit.aes = FALSE, xmin = 1, xmax = 2, y.position = 320, label = "ns", label.size = 4, size = 0.5,tip.length = c(0.25, 0.02))+
+  geom_bracket(inherit.aes = FALSE, xmin = 1, xmax = 2, y.position = 0.4, label = "ns", label.size = 4, size = 0.5,tip.length = c(0.02, 0.02))+
   scale_fill_manual(values = c("#113ed1", "#5e4114")) +
   scale_colour_manual(values = c("#113ed1", "#5e4114")) +
+  scale_y_continuous(limits = c(-0.2,0.5))+
   xlab("") +
-  ylab("Maximal respiratory capacity\n(pmol/min/\U03BCg DNA)") +
+  ylab("Maximal respiratory capacity\n(nmol/min/100 islets)") +
   theme_bw()+
   theme(legend.position = "none", panel.grid = element_blank())  +
   theme(
     axis.title = element_text(size = 14, colour = "black"),
     axis.text = element_text(size = 14, colour = "black"),
     plot.title = element_text(size = 14, hjust = 0.5),
-    legend.title = element_text(size = 14),
+    legend.title = element_blank(),
     legend.text = element_text(size = 12),
     panel.border = element_blank(),
     axis.line = element_line()  
   )
-ggsave("Output/Fig6/Fig6F.tiff", width = 3, height = 3)
+ggsave("Output/Final figures/FigS7/FigS7D.tiff", width = 3, height = 3)
 
-## Fig 6H ## ----
+## Fig S7F ## ----
 #Use baselined data and process in the  same way
 all_time_baselined <- seahorse_norm_dna_baseline %>%
   pivot_longer(colnames(seahorse_norm_dna_baseline)[grepl("^time",colnames(seahorse_norm_dna_baseline))], names_to = "time", values_to = "baselined_OCR" ) %>%
@@ -3565,26 +4938,150 @@ seahorse_norm_dna_baseline_summary %>%
   geom_quasirandom(size = 2, shape = 21, aes(fill = donorsex)) +
   scale_fill_manual(values = c("#113ed1", "#5e4114")) +
   scale_colour_manual(values = c("#113ed1", "#5e4114")) +
-  geom_bracket(inherit.aes = FALSE, xmin = 1, xmax = 2, y.position = 72, label = "p=0.08", label.size = 4, size = 0.5,tip.length = c(0.4, 0.02))+
+  geom_bracket(inherit.aes = FALSE, xmin = 1, xmax = 2, y.position = 80, label = "p=0.08", label.size = 4, size = 0.5,tip.length = c(0.4, 0.1))+
   xlab("") +
-  ylab("Spare respiratory capacity\n(% of baseline)") +
-  scale_y_continuous(limits = c(0, 80))+
+  ylab("Spare respiratory capacity\n(% of 2.8 mM glucose)") +
+  scale_y_continuous(limits = c(0,400))+
   theme_bw()+
   theme(legend.position = "none", panel.grid = element_blank())  +
   theme(
     axis.title = element_text(size = 14, colour = "black"),
     axis.text = element_text(size = 14, colour = "black"),
     plot.title = element_text(size = 14, hjust = 0.5),
-    legend.title = element_text(size = 14),
+    legend.title = element_blank(),
     legend.text = element_text(size = 12),
     panel.border = element_blank(),  
     axis.line = element_line() 
   )
-ggsave("Output/Fig6/Fig6H.tiff", width = 3, height = 3)
+ggsave("Output/Final figures/FigS7/FigS7F.tiff", width = 3, height = 3)
+
+#Combine HPAP and Humanislets.com OCR data for young control donors
+#spare capacity
+HPAP_sparecap <- OCR_summary_v2 %>%
+  dplyr::select(DonorID, sex, age_years, simplified_diagnosis, spare.resp.max.fclastLG)
+HPAP_sparecap$dataset <- rep("HPAP", nrow(HPAP_sparecap))
+Humanislets_sparecap <- seahorse_norm_dna_baseline_summary %>%
+  dplyr::select(record_id, donorsex, donorage, diagnosis, calc_spare_cap)
+Humanislets_sparecap$dataset <- rep("Humanislets", nrow(Humanislets_sparecap))
+colnames(Humanislets_sparecap) <- colnames(HPAP_sparecap)
+combined_sparecap_summary <- bind_rows(HPAP_sparecap, Humanislets_sparecap)
+head(combined_sparecap_summary)
+combined_sparecap_summary <- combined_sparecap_summary %>%
+  mutate(simplified_diagnosis = case_when(
+    simplified_diagnosis == "None" ~ "Control",
+    simplified_diagnosis == "Type2" ~ "T2D",
+    .default = simplified_diagnosis
+  ))
+#other parameters
+HPAP_OCR <- OCR_summary_v2 %>%
+  dplyr::select(DonorID, sex, age_years, simplified_diagnosis, lastLG, max.resp)
+HPAP_OCR$dataset <- rep("HPAP", nrow(HPAP_OCR))
+Humanislets_OCR <- seahorse_norm_dna_summary %>%
+  dplyr::select(record_id, donorsex, donorage, diagnosis, basalnmolper100islets, maxnmolper100islets)
+Humanislets_OCR$dataset <- rep("Humanislets", nrow(Humanislets_OCR))
+colnames(Humanislets_OCR) <- colnames(HPAP_OCR)
+combined_OCR_summary <- bind_rows(HPAP_OCR, Humanislets_OCR)
+head(combined_OCR_summary)
+combined_OCR_summary <- combined_OCR_summary %>%
+  mutate(simplified_diagnosis = case_when(
+    simplified_diagnosis == "None" ~ "Control",
+    simplified_diagnosis == "Type2" ~ "T2D",
+    .default = simplified_diagnosis
+  ))
+
+## Fig 6C ## ----
+combined_OCR_summary %>%
+  filter(age_years > 14, age_years < 40) %>%
+  filter(simplified_diagnosis == "Control") %>%
+  anova_test(lastLG ~ dataset + age_years + sex) #sig for dataset, ns for sex (p=0.343)
+combined_OCR_summary %>%
+  filter(age_years > 14, age_years < 40) %>%
+  filter(simplified_diagnosis == "Control") %>%
+  ggplot(aes(x=sex, y=lastLG)) +
+  geom_boxplot(alpha = 0.5, aes(fill = sex))+
+  scale_fill_manual(values = c("#A7D9DB","#D98B64")) +
+  ggnewscale::new_scale_fill() +
+  geom_quasirandom(size = 2, shape = 21, aes(fill = dataset)) +
+  scale_fill_manual(values = c("#50B5AD","#113ED1")) +
+  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 0.45, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  xlab("") +
+  ylab("Baseline (~3 mM glucose)\n(nmol/min/100 islets)") +
+  theme_bw()+
+  theme(legend.position = "none", panel.grid = element_blank())  +
+  theme(
+    axis.title = element_text(size = 14, colour = "black"),
+    axis.text = element_text(size = 14, colour = "black"),
+    plot.title = element_text(size = 14, hjust = 0.5),
+    legend.title = element_blank(),
+    legend.text = element_text(size = 12),
+    panel.border = element_blank(), 
+    axis.line = element_line()  
+  )
+ggsave("Output/Final figures/Fig6/Fig6C.tiff", width = 3, height = 3)
+
+## Fig 6D ## ----
+combined_OCR_summary %>%
+  filter(age_years > 14, age_years < 40) %>%
+  filter(simplified_diagnosis == "Control") %>%
+  anova_test(max.resp ~ dataset + age_years + sex) #ns
+combined_OCR_summary %>%
+  filter(age_years > 14, age_years < 40) %>%
+  filter(simplified_diagnosis == "Control") %>%
+  ggplot(aes(x=sex, y=max.resp)) +
+  geom_boxplot(alpha = 0.5, aes(fill = sex))+
+  scale_fill_manual(values = c("#A7D9DB","#D98B64")) +
+  ggnewscale::new_scale_fill() +
+  geom_quasirandom(size = 2, shape = 21, aes(fill = dataset)) +
+  scale_fill_manual(values = c("#50B5AD","#113ED1")) +
+  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 0.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  xlab("") +
+  ylab("Maximal respiratory capacity\n(nmol/min/100 islets)") +
+  theme_bw()+
+  theme(legend.position = "none", panel.grid = element_blank())  +
+  theme(
+    axis.title = element_text(size = 14, colour = "black"),
+    axis.text = element_text(size = 14, colour = "black"),
+    plot.title = element_text(size = 14, hjust = 0.5),
+    legend.title = element_blank(),
+    legend.text = element_text(size = 12),
+    panel.border = element_blank(), 
+    axis.line = element_line()  
+  )
+ggsave("Output/Final figures/Fig6/Fig6D.tiff", width = 3, height = 3)
+
+## Fig 6E ## ----
+combined_sparecap_summary %>%
+  filter(age_years > 14, age_years < 40) %>%
+  filter(simplified_diagnosis == "Control") %>%
+  anova_test(spare.resp.max.fclastLG ~ dataset + age_years + sex) #sig for dataset and sex
+combined_sparecap_summary %>%
+  filter(age_years > 14, age_years < 40) %>%
+  filter(simplified_diagnosis == "Control") %>%
+  ggplot(aes(x=sex, y=spare.resp.max.fclastLG*100)) +
+  geom_boxplot(alpha = 0.5, aes(fill = sex))+
+  scale_fill_manual(values = c("#A7D9DB","#D98B64")) +
+  ggnewscale::new_scale_fill() +
+  geom_quasirandom(size = 2, shape = 21, aes(fill = dataset)) +
+  scale_fill_manual(values = c("#50B5AD","#113ED1")) +
+  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 180, label = "*", label.size = 7, size = 0.5, tip.length = c(0.15, 0.02))+
+  scale_y_continuous(limits = c(0,200))+
+  xlab("") +
+  ylab("Spare respiratory capacity\n(% of ~3 mM glucose)") +
+  theme_bw()+
+  theme(legend.position = "none", panel.grid = element_blank())  +
+  theme(
+    axis.title = element_text(size = 14, colour = "black"),
+    axis.text = element_text(size = 14, colour = "black"),
+    plot.title = element_text(size = 14, hjust = 0.5),
+    legend.title = element_blank(),
+    legend.text = element_text(size = 12),
+    panel.border = element_blank(), 
+    axis.line = element_line()  
+  )
+ggsave("Output/Final figures/Fig6/Fig6E.tiff", width = 3, height = 3)
 
 
-## Figure S2-3 ## ----
-
+## Figure S9-10 ## ----
 #clear environment
 rm(list = ls())
 
@@ -3857,27 +5354,27 @@ for (i in 1:length(all_runs_exclnoglcresp)){
 Solution_timings <- list()
 for (i in 1:length(all_runs_means)){
   if (is.null(all_runs_means[[i]]) == FALSE){
-  data <- all_runs_means[[i]] %>%
-    filter(is.na(Condition) == FALSE) %>%
-    dplyr::select(Condition, Time_from_start)
-  Solution_timings[[i]] <- data
+    data <- all_runs_means[[i]] %>%
+      filter(is.na(Condition) == FALSE) %>%
+      dplyr::select(Condition, Time_from_start)
+    Solution_timings[[i]] <- data
   } else {Solution_timings[[i]] <- NULL}
 }
 
 weird <- c()
 for (i in 1:length(Solution_timings)){
   if (is.null(Solution_timings[[i]]) == FALSE){
-  test1 <- grepl("No",Solution_timings[[i]]$Condition[1])
-  test2 <- grepl("AAM",Solution_timings[[i]]$Condition[2])
-  test3 <- grepl("3",Solution_timings[[i]]$Condition[3])
-  test4 <- grepl("16.7",Solution_timings[[i]]$Condition[4])
-  test5 <- grepl("No",Solution_timings[[i]]$Condition[5])
-  test6 <- grepl("K",Solution_timings[[i]]$Condition[6])
+    test1 <- grepl("No",Solution_timings[[i]]$Condition[1])
+    test2 <- grepl("AAM",Solution_timings[[i]]$Condition[2])
+    test3 <- grepl("3",Solution_timings[[i]]$Condition[3])
+    test4 <- grepl("16.7",Solution_timings[[i]]$Condition[4])
+    test5 <- grepl("No",Solution_timings[[i]]$Condition[5])
+    test6 <- grepl("K",Solution_timings[[i]]$Condition[6])
     if (test1==TRUE & test2 == TRUE & test3 == TRUE & test4 == TRUE & test5==TRUE & test6 == TRUE){
-  } else{  
-    weird <- c(weird, i)
+    } else{  
+      weird <- c(weird, i)
+    }
   }
-}
 }
 weird #indices for unusual runs are 21  22  32  62  97 108 110 126 129 138 192
 
@@ -4525,7 +6022,7 @@ AUC_summary <- KCldf %>% dplyr::select(Donor, AUC.KCl) %>% full_join(AUC_summary
 #Add metadata
 AUC_summary <- left_join(AUC_summary, donor_info, by = c("Donor"="donor_ID"))
 
-## Fig S3A ## ----
+## Fig S10A ## ----
 stimulus_data <- data.frame(
   xmin = c(0,9,16,23,27,39),
   xmax = c(9,16,23,27,39,45),
@@ -4567,11 +6064,11 @@ per_donor_mininterval %>%
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12))
-ggsave("Output/FigS3/FigS3A.tiff", width = 7, height = 4)
+ggsave("Output/Final figures/FigS10/FigS10A.tiff", width = 7, height = 4)
 
-## Fig S3B ## ----
+## Fig S10B ## ----
 AUC_summary %>%
   ungroup() %>%
   filter(simplified_diagnosis != "T1D") %>%
@@ -4596,21 +6093,20 @@ AUC_summary %>%
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("AUC AAM") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
   theme_bw() +
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(), 
         axis.line = element_line() 
   )
-ggsave("Output/FigS3/FigS3B.tiff",width = 5, height = 4)
+ggsave("Output/Final figures/FigS10/FigS10B.tiff",width = 5, height = 4)
 
-## Fig S3C ## ----
+## Fig S10C ## ----
 AUC_summary %>%
   ungroup() %>%
   filter(simplified_diagnosis != "T1D") %>%
@@ -4635,21 +6131,20 @@ AUC_summary %>%
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("AUC 3 mM Glucose") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
   theme_bw() +
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(), 
         axis.line = element_line() 
   )
-ggsave("Output/FigS3/FigS3C.tiff",width = 5, height = 4)
+ggsave("Output/Final figures/FigS10/FigS10C.tiff",width = 5, height = 4)
 
-## Fig S3D ## ----
+## Fig S10D ## ----
 AUC_summary %>%
   ungroup() %>%
   filter(simplified_diagnosis != "T1D") %>%
@@ -4675,21 +6170,20 @@ AUC_summary %>%
   ylab("AUC 16.7 mM Glucose") +
   scale_y_continuous(limits= c(-1,10.7))+
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
   theme_bw() +
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(), 
         axis.line = element_line() 
   )
-ggsave("Output/FigS3/FigS3D.tiff",width = 5, height = 4)
+ggsave("Output/Final figures/FigS10/FigS10D.tiff",width = 5, height = 4)
 
-## Fig S3E ## ----
+## Fig S10E ## ----
 AUC_summary %>%
   ungroup() %>%
   filter(simplified_diagnosis != "T1D") %>%
@@ -4715,21 +6209,20 @@ AUC_summary %>%
   ylab("AUC KCl") +
   xlab("")+
   scale_y_continuous(limits= c(0,8.5))+
-  labs(colour = "Condition", fill = "Condition")+
   theme_bw() +
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(), 
         axis.line = element_line() 
   )
-ggsave("Output/FigS3/FigS3E.tiff",width = 5, height = 4)
+ggsave("Output/Final figures/FigS10/FigS10E.tiff",width = 5, height = 4)
 
-## Fig S2A ## ----
+## Fig S9A ## ----
 stimulus_data2 <- data.frame(
   xmin = c(0,9,16,23,27,39),
   xmax = c(9,16,23,27,39,45),
@@ -4771,11 +6264,11 @@ per_donor_mininterval %>%
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12))
-ggsave("Output/FigS2/FigS2A.tiff", width = 5.5, height = 4)
+ggsave("Output/Final figures/FigS9/FigS9A.tiff", width = 5.5, height = 4)
 
-## Fig S2B ## ----
+## Fig S9B ## ----
 AUC_summary %>%
   ungroup() %>%
   filter(simplified_diagnosis %in% c("Control")) %>%
@@ -4792,21 +6285,20 @@ AUC_summary %>%
   scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
   ylab("AUC AAM") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
   theme_bw() +
   theme(legend.position = "none",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(), 
         axis.line = element_line()    
   )
-ggsave("Output/FigS2/FigS2B.tiff",width = 3, height = 3)
+ggsave("Output/Final figures/FigS9/FigS9B.tiff",width = 3, height = 3)
 
-## Fig S2C ## ----
+## Fig S9C ## ----
 AUC_summary %>%
   ungroup() %>%
   filter(simplified_diagnosis %in% c("Control")) %>%
@@ -4823,21 +6315,20 @@ AUC_summary %>%
   scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
   ylab("AUC 3 mM Glucose") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
   theme_bw() +
   theme(legend.position = "none",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(), 
         axis.line = element_line()    
   )
-ggsave("Output/FigS2/FigS2C.tiff",width = 3, height = 3)
+ggsave("Output/Final figures/FigS9/FigS9C.tiff",width = 3, height = 3)
 
-## Fig S2D ## ----
+## Fig S9D ## ----
 AUC_summary %>%
   ungroup() %>%
   filter(simplified_diagnosis %in% c("Control")) %>%
@@ -4854,21 +6345,20 @@ AUC_summary %>%
   scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
   ylab("AUC 16.7 mM Glucose") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
   theme_bw() +
   theme(legend.position = "none",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(), 
         axis.line = element_line()    
   )
-ggsave("Output/FigS2/FigS2D.tiff",width = 3, height = 3)
+ggsave("Output/Final figures/FigS9/FigS9D.tiff",width = 3, height = 3)
 
-## Fig S2E ## ----
+## Fig S9E ## ----
 AUC_summary %>%
   ungroup() %>%
   filter(simplified_diagnosis %in% c("Control")) %>%
@@ -4885,21 +6375,20 @@ AUC_summary %>%
   scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
   ylab("AUC KCl") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
   theme_bw() +
   theme(legend.position = "none",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(), 
         axis.line = element_line()    
   )
-ggsave("Output/FigS2/FigS2E.tiff",width = 3, height = 3)
+ggsave("Output/Final figures/FigS9/FigS9E.tiff",width = 3, height = 3)
 
-### Figure 7 and S4,7-8 ### ----
+### Figure 7 and S11-14, S17-19 ### ----
 
 #UPenn perifusion data
 #clear environment
@@ -5144,13 +6633,13 @@ glucagonAUCs <- KClgcg %>% dplyr::select(DonorID, AUC.gcg.KCl) %>% full_join(glu
 baselineins <- perifusion_all_with_metadata %>%
   filter(Stimulus == "No Stimuli", Time..min. < 30) %>%
   group_by(DonorID) %>%
-  summarise(mean.ins.baseline = mean(Insulin.Release..ng.100.islets.min.))
+  summarise(mean.ins.baseline = mean(Insulin.Release..ng.100.islets.min., na.rm = TRUE))
 insulinAUCs <- baselineins %>% dplyr::select(DonorID, mean.ins.baseline) %>% full_join(insulinAUCs, by = "DonorID")
 
 baselinegcg <- perifusion_all_with_metadata %>%
   filter(Stimulus == "No Stimuli", Time..min. < 30) %>%
   group_by(DonorID) %>%
-  summarise(mean.gcg.baseline = mean(Glucagon.Release..pg.100.islets.min.))
+  summarise(mean.gcg.baseline = mean(Glucagon.Release..pg.100.islets.min., na.rm = TRUE))
 glucagonAUCs <- baselinegcg %>% dplyr::select(DonorID, mean.gcg.baseline) %>% full_join(glucagonAUCs, by = "DonorID")
 
 #Add metadata to AUCs
@@ -5159,13 +6648,13 @@ perifusion_summary <- full_join(perifusion_summary, glucagonAUCs, by = "DonorID"
 head(perifusion_summary)
 tail(colnames(perifusion_summary))
 
-## Fig 7A ## ----
+## Fig 7A and S13A ## ----
 stimulus_data <- data.frame(
   xmin = c(20,30,61,81,101,121,141), 
   xmax = c(30,121,81,121,121,141,160),
-  label = c("Base\nline","AAM","G 3","G 16.7","IBMX","wash\nout","KCl"),
-  ymin = c(8.6,8.9,9.5,9.5,10.1,9.8,10.1), 
-  ymax = c(9.8,9.5,10.1,10.1,10.7,11,10.7))
+  label = c("G 0","AAM","G 3","G 16.7","IBMX","wash\nout","KCl"),
+  ymin = c(8.9,8.9,9.5,9.5,10.1,9.8,10.1), 
+  ymax = c(9.5,9.5,10.1,10.1,10.7,11,10.7))
 
 perifusion_all_with_metadata %>%
   filter(Time..min. < 160) %>%
@@ -5208,11 +6697,12 @@ perifusion_all_with_metadata %>%
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12))
-ggsave("Output/Fig7/Fig7A.tiff", width = 8, height = 4)
+ggsave("Output/Final figures/Fig7/Fig7A.tiff", width = 8, height = 4)
+ggsave("Output/Final figures/FigS13/FigS13A.tiff", width = 8, height = 4)
 
-## Fig 7D ## ----
+## Fig S13B ## ----
 hist(perifusion_summary$mean.ins.baseline)
 hist(log(perifusion_summary$mean.ins.baseline))
 perifusion_summary %>%
@@ -5239,21 +6729,20 @@ perifusion_summary %>%
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("log(baseline insulin secretion \n(ng/100 islets))") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
   theme_bw() +
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line()   
   )
-ggsave("Output/Fig7/Fig7D.tiff", width = 4 , height = 4)
+ggsave("Output/Final figures/FigS13/FigS13B.tiff", width = 4 , height = 4)
 
-## Fig 7F ## ----
+## Fig S13C ## ----
 hist(perifusion_summary$AUC.ins.AAM)
 hist(log(perifusion_summary$AUC.ins.AAM))
 perifusion_summary %>%
@@ -5280,7 +6769,6 @@ perifusion_summary %>%
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("log(AUC secretion\n4 mM AAM)") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
   scale_y_continuous(limits = c(-1,5.5)) +
   theme_bw() +
   theme(legend.position = "bottom",
@@ -5288,14 +6776,14 @@ perifusion_summary %>%
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line()   
   )
-ggsave("Output/Fig7/Fig7F.tiff", width = 4 , height = 4)
+ggsave("Output/Final figures/FigS13/FigS13C.tiff", width = 4 , height = 4)
 
-## Fig 7E ## ----
+## Fig S13D ## ----
 hist(perifusion_summary$AUC.ins.LG)
 hist(log(perifusion_summary$AUC.ins.LG))
 perifusion_summary %>%
@@ -5322,21 +6810,20 @@ perifusion_summary %>%
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("log(AUC secretion\n3 mM glucose)") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
   theme_bw() +
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line()   
   )
-ggsave("Output/Fig7/Fig7E.tiff", width = 4 , height = 4)
+ggsave("Output/Final figures/FigS13/FigS13D.tiff", width = 4 , height = 4)
 
-## Fig 7J ## ----
+## Fig S13E ## ----
 hist(perifusion_summary$AUC.ins.HG)
 hist(log(perifusion_summary$AUC.ins.HG))
 perifusion_summary %>%
@@ -5363,7 +6850,6 @@ perifusion_summary %>%
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("log(AUC secretion\n16.7 mM glucose)") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
   scale_y_continuous(limits = c(-0.5,6.1)) +
   theme_bw() +
   theme(legend.position = "bottom",
@@ -5371,14 +6857,14 @@ perifusion_summary %>%
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line()   
   )
-ggsave("Output/Fig7/Fig7J.tiff", width = 4 , height = 4)
+ggsave("Output/Final figures/FigS13/FigS13E.tiff", width = 4 , height = 4)
 
-## Fig 7M ## ----
+## Fig S13F ## ----
 hist(perifusion_summary$AUC.ins.IBMX)
 hist(log(perifusion_summary$AUC.ins.IBMX))
 perifusion_summary %>%
@@ -5405,7 +6891,6 @@ perifusion_summary %>%
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("log(AUC secretion 16.7 mM\nglucose + 0.1 mM IBMX)") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
   scale_y_continuous(limits = c(0,7)) +
   theme_bw() +
   theme(legend.position = "bottom",
@@ -5413,14 +6898,14 @@ perifusion_summary %>%
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line()   
   )
-ggsave("Output/Fig7/Fig7M.tiff", width = 4 , height = 4)
+ggsave("Output/Final figures/FigS13/FigS13F.tiff", width = 4 , height = 4)
 
-## Fig 7O ## ----
+## Fig S13G ## ----
 hist(perifusion_summary$AUC.ins.KCl)
 hist(log(perifusion_summary$AUC.ins.KCl))
 perifusion_summary %>%
@@ -5447,7 +6932,6 @@ perifusion_summary %>%
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("log(AUC secretion\n30 mM KCl)") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
   scale_y_continuous(limits = c(0,5.5)) +
   theme_bw() +
   theme(legend.position = "bottom",
@@ -5455,20 +6939,340 @@ perifusion_summary %>%
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line()   
   )
-ggsave("Output/Fig7/Fig7O.tiff", width = 4 , height = 4)
+ggsave("Output/Final figures/FigS13/FigS13G.tiff", width = 4 , height = 4)
 
-## Fig S4A ## ----
+#Age-matching
+## Fig S14B ### ----
+perifusion_matched <- perifusion_summary %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  filter(mean.ins.baseline > 0) %>%
+  dplyr::select(DonorID, sex, simplified_diagnosis, age_years) %>%
+  distinct()
+perifusion_matched$Group <- as.logical(perifusion_matched$simplified_diagnosis == "T2D")
+perifusion_matched <- matchit(Group ~ age_years + sex,
+                              data = perifusion_matched,
+                              method = 'nearest',
+                              ratio = 1, 
+                              exact = ~sex
+) 
+perifusion_matched <- match.data(perifusion_matched)
+table(perifusion_matched$sex, perifusion_matched$simplified_diagnosis)
+
+perifusion_all_with_metadata_matched <- perifusion_all_with_metadata %>%
+  filter(DonorID %in% perifusion_matched$DonorID)
+
+perifusion_all_with_metadata_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  dplyr::select(DonorID, sex, simplified_diagnosis, age_years) %>%
+  distinct() %>%
+  group_by(sex, simplified_diagnosis) %>%
+  summarise(n=n())
+
+perifusion_matched %>%
+  group_by(sex) %>%
+  t_test(age_years ~ simplified_diagnosis) #sig for both
+perifusion_matched %>%
+  ggplot(aes(x=sex, y=age_years))+
+  geom_boxplot(aes(fill = simplified_diagnosis), alpha = 0.5, position = position_dodge(width = 0.9))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 68, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.1))+
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 70, label = "*", label.size = 7, size = 0.5, tip.length = c(0.15, 0.02))+
+  scale_colour_manual(values = c("grey50", "#d65ac9")) +
+  scale_fill_manual(values = c("grey50", "#d65ac9")) +
+  xlab("")+
+  ylab("Age (years)") +
+  ylim(20,75)+
+  labs(fill = "Condition")+
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line() 
+  )
+ggsave("Output/Final figures/FigS14/FigS14B.tiff", width = 4, height = 4)
+
+## Fig S14A ## ----
+perifusion_all_with_metadata_matched %>%
+  filter(Time..min. < 160) %>%
+  filter(simplified_diagnosis %in% c("Control","T2D")) %>%
+  ungroup() %>%
+  group_by(Time..min., simplified_diagnosis, sex) %>%
+  summarise(
+    n = n(),
+    mean = mean(Insulin.Release..ng.100.islets.min., na.rm = TRUE),
+    sd = sd(Insulin.Release..ng.100.islets.min., na.rm = TRUE),
+    up = if (n > 2) mean + sd else NA_real_,
+    down = if (n > 2) mean - sd else NA_real_,
+    .groups = "drop"
+  ) %>%
+  ggplot(aes(x=Time..min., y=mean, colour = simplified_diagnosis, group = simplified_diagnosis)) +
+  geom_path(linewidth = 1)+
+  geom_ribbon(alpha = 0.2, colour = NA, (aes(ymax = up, ymin = down, fill = simplified_diagnosis)))+
+  scale_colour_manual(values = c("grey50", "#d65ac9")) +
+  scale_fill_manual(values = c("grey50", "#d65ac9")) +
+  ylab ("Insulin release (ng/100 islets)") +
+  xlab ("Time (min)") +
+  labs(colour = "Condition", fill = "Condition") +
+  facet_wrap(~sex)+
+  geom_vline(xintercept = c(20,30,61,81,101,121,141), colour = "darkgrey", linetype = 5)+
+  geom_rect(
+    data = stimulus_data,
+    aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
+    inherit.aes = FALSE,
+    fill = NA, colour = "grey30",size = 0.5
+  ) +
+  geom_text(
+    data = stimulus_data,
+    aes(x = (xmin + xmax)/2, y = (ymin+ymax)/2, label = label),
+    inherit.aes = FALSE,
+    size = 2.5
+  ) +
+  theme_bw()+
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12))
+ggsave("Output/Final figures/FigS14/FigS14A.tiff", width = 8, height = 4)
+
+## Fig S14C ## ----
+perifusion_summary_matched <- perifusion_summary %>%
+  filter(DonorID %in% perifusion_matched$DonorID)
+
+perifusion_summary_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  dplyr::select(DonorID, sex, simplified_diagnosis, age_years) %>%
+  distinct() %>%
+  group_by(sex, simplified_diagnosis) %>%
+  summarise(n=n())
+
+perifusion_summary_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  anova_test(log(mean.ins.baseline) ~ age_years + sex*simplified_diagnosis) #sig for disease
+model <- perifusion_summary_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  lm(log(mean.ins.baseline) ~ age_years + sex*simplified_diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ simplified_diagnosis | sex)
+pairs(emmeans_res, adjust = "tukey") #p=0.0114 for Control vs T2D in females, ns for males
+
+perifusion_summary_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  ggplot(aes(x=sex, y=log(mean.ins.baseline), fill = simplified_diagnosis)) +
+  geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 1.5, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.1))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 1.4, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.05, 0.02))+
+  scale_colour_manual(values = c("grey50", "#d65ac9")) +
+  scale_fill_manual(values = c("grey50", "#d65ac9")) +
+  ylab("log(baseline insulin secretion \n(ng/100 islets))") +
+  xlab("")+
+  scale_y_continuous(limits = c(-3,2))+
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line()   
+  )
+ggsave("Output/Final figures/FigS14/FigS14C.tiff", width = 4, height = 4)
+
+## Fig S14D ## ----
+perifusion_summary_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  anova_test(log(AUC.ins.AAM) ~ age_years + sex*simplified_diagnosis) #sig for disease
+model <- perifusion_summary_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  lm(log(AUC.ins.AAM) ~ age_years + sex*simplified_diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ simplified_diagnosis | sex)
+pairs(emmeans_res, adjust = "tukey") #p=0.0098 for Control vs T2D in females, p=0.0804 for males
+
+perifusion_summary %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  ggplot(aes(x=sex, y=log(AUC.ins.AAM), fill = simplified_diagnosis)) +
+  geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 4.7, label = "p=0.08", label.size = 4, size = 0.5, tip.length = c(0.075, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 4.2, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.1))+
+  scale_colour_manual(values = c("grey50", "#d65ac9")) +
+  scale_fill_manual(values = c("grey50", "#d65ac9")) +
+  ylab("log(AUC secretion\n4 mM AAM)") +
+  xlab("")+
+  scale_y_continuous(limits = c(-1,5))+
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line()   
+  )
+ggsave("Output/Final figures/FigS14/FigS14D.tiff", width = 4, height = 4)
+
+## Fig S14E ## ----
+perifusion_summary_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  anova_test(log(AUC.ins.LG) ~ age_years + sex*simplified_diagnosis) #sig for disease
+model <- perifusion_summary_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  lm(log(AUC.ins.LG) ~ age_years + sex*simplified_diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ simplified_diagnosis | sex)
+pairs(emmeans_res, adjust = "tukey") #p=0.0619 for Control vs T2D in females, ns for males
+
+perifusion_summary_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  ggplot(aes(x=sex, y=log(AUC.ins.LG), fill = simplified_diagnosis)) +
+  geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 3.6, label = "p=0.06", label.size = 4, size = 0.5, tip.length = c(0.02, 0.12))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 3.6, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  scale_colour_manual(values = c("grey50", "#d65ac9")) +
+  scale_fill_manual(values = c("grey50", "#d65ac9")) +
+  ylab("log(AUC secretion\n3 mM glucose)") +
+  xlab("")+
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line()   
+  )
+ggsave("Output/Final figures/FigS14/FigS14E.tiff", width = 4, height = 4)
+
+## Fig S14F ## ----
+perifusion_summary_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  anova_test(log(AUC.ins.HG) ~ age_years + sex*simplified_diagnosis) #sig for disease
+model <- perifusion_summary_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  lm(log(AUC.ins.HG) ~ age_years + sex*simplified_diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ simplified_diagnosis | sex)
+pairs(emmeans_res, adjust = "tukey") #p=0.0002 for Control vs T2D in females, p=0.0093 for males
+
+perifusion_summary_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  ggplot(aes(x=sex, y=log(AUC.ins.HG), fill = simplified_diagnosis)) +
+  geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 5.1, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.05))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 5, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.1))+
+  scale_colour_manual(values = c("grey50", "#d65ac9")) +
+  scale_fill_manual(values = c("grey50", "#d65ac9")) +
+  ylab("log(AUC secretion\n16.7 mM glucose)") +
+  xlab("")+
+  scale_y_continuous(limits = c(-0.5,5.5))+
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line()   
+  )
+ggsave("Output/Final figures/FigS14/FigS14F.tiff", width = 4, height = 4)
+
+## Fig S14G ## ----
+perifusion_summary_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  anova_test(log(AUC.ins.IBMX) ~ age_years + sex*simplified_diagnosis) #sig for disease
+model <- perifusion_summary_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  lm(log(AUC.ins.IBMX) ~ age_years + sex*simplified_diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ simplified_diagnosis | sex)
+pairs(emmeans_res, adjust = "tukey") #p=0.0002 for Control vs T2D in females, p=0.001 for males
+
+perifusion_summary_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  ggplot(aes(x=sex, y=log(AUC.ins.IBMX), fill = simplified_diagnosis)) +
+  geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 5.7, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.05))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 5.7, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.1))+
+  scale_colour_manual(values = c("grey50", "#d65ac9")) +
+  scale_fill_manual(values = c("grey50", "#d65ac9")) +
+  ylab("log(AUC secretion 16.7 mM\nglucose + 0.1 mM IBMX)") +
+  xlab("")+
+  scale_y_continuous(limits = c(0,6))+
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line()   
+  )
+ggsave("Output/Final figures/FigS14/FigS14G.tiff", width = 4, height = 4)
+
+## Fig S14H ## ----
+perifusion_summary_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  anova_test(log(AUC.ins.KCl) ~ age_years + sex*simplified_diagnosis) #sig for disease and age
+model <- perifusion_summary_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  lm(log(AUC.ins.KCl) ~ age_years + sex*simplified_diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ simplified_diagnosis | sex)
+pairs(emmeans_res, adjust = "tukey") #p=0.0008 for Control vs T2D in females, p=0.0296 for males
+
+perifusion_summary_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  ggplot(aes(x=sex, y=log(AUC.ins.KCl), fill = simplified_diagnosis)) +
+  geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 4.7, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 4.6, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.05))+
+  scale_colour_manual(values = c("grey50", "#d65ac9")) +
+  scale_fill_manual(values = c("grey50", "#d65ac9")) +
+  ylab("log(AUC secretion\n30 mM KCl)") +
+  xlab("")+
+  scale_y_continuous(limits = c(0,5))+
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line()   
+  )
+ggsave("Output/Final figures/FigS14/FigS14H.tiff", width = 4, height = 4)
+
+## Fig S11A ## ----
 stimulus_data2 <- data.frame(
   xmin = c(20,30,61,81,101,121,141),
   xmax = c(30,121,81,121,121,141,160),
-  label = c("Base\nline","AAM","G 3","G 16.7","IBMX","wash\nout","KCl"),
-  ymin = c(8.6,8.9,9.5,9.5,10.1,9.8,10.1), 
-  ymax = c(9.8,9.5,10.1,10.1,10.7,11,10.7))
+  label = c("G 0","AAM","G 3","G 16.7","IBMX","wash\nout","KCl"),
+  ymin = c(8.9,8.9,9.5,9.5,10.1,9.8,10.1), 
+  ymax = c(9.5,9.5,10.1,10.1,10.7,11,10.7))
 
 perifusion_all_with_metadata %>%
   filter(Time..min. < 160) %>%
@@ -5510,11 +7314,11 @@ perifusion_all_with_metadata %>%
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12))
-ggsave("Output/FigS4/FigS4A.tiff", width = 5.5, height = 4)
+ggsave("Output/Final figures/FigS11/FigS11A.tiff", width = 5.5, height = 4)
 
-## Fig S4B ## ----
+## Fig S11B ## ----
 perifusion_summary %>%
   filter(simplified_diagnosis == "Control") %>%
   filter(age_years > 14, age_years < 40) %>%
@@ -5531,21 +7335,20 @@ perifusion_summary %>%
   scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
   ylab("log(baseline insulin secretion \n(ng/100 islets))") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
   theme_bw() +
   theme(legend.position = "none",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line()
   )
-ggsave("Output/FigS4/FigS4B.tiff", width = 3 , height = 3)
+ggsave("Output/Final figures/FigS11/FigS11B.tiff", width = 3 , height = 3)
 
-## Fig S4C ## ----
+## Fig S11C ## ----
 perifusion_summary %>%
   filter(simplified_diagnosis == "Control") %>%
   filter(age_years > 14, age_years < 40) %>%
@@ -5562,21 +7365,20 @@ perifusion_summary %>%
   scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
   ylab("log(AUC secretion\n4 mM AAM)") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
   theme_bw() +
   theme(legend.position = "none",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line()
   )
-ggsave("Output/FigS4/FigS4C.tiff", width = 3 , height = 3)
+ggsave("Output/Final figures/FigS11/FigS11C.tiff", width = 3 , height = 3)
 
-## Fig S4D ## ----
+## Fig S11D ## ----
 perifusion_summary %>%
   filter(simplified_diagnosis == "Control") %>%
   filter(age_years > 14, age_years < 40) %>%
@@ -5593,21 +7395,20 @@ perifusion_summary %>%
   scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
   ylab("log(AUC secretion\n3 mM glucose)") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
   theme_bw() +
   theme(legend.position = "none",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line()
   )
-ggsave("Output/FigS4/FigS4D.tiff", width = 3 , height = 3)
+ggsave("Output/Final figures/FigS11/FigS11D.tiff", width = 3 , height = 3)
 
-## Fig S4E ## ----
+## Fig S11E ## ----
 perifusion_summary %>%
   filter(simplified_diagnosis == "Control") %>%
   filter(age_years > 14, age_years < 40) %>%
@@ -5624,21 +7425,20 @@ perifusion_summary %>%
   scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
   ylab("log(AUC secretion\n16.7 mM glucose)") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
   theme_bw() +
   theme(legend.position = "none",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line()
   )
-ggsave("Output/FigS4/FigS4E.tiff", width = 3, height = 3)
+ggsave("Output/Final figures/FigS11/FigS11E.tiff", width = 3, height = 3)
 
-## Fig S4F ## ----
+## Fig S11F ## ----
 perifusion_summary %>%
   filter(simplified_diagnosis == "Control") %>%
   filter(age_years > 14, age_years < 40) %>%
@@ -5655,21 +7455,20 @@ perifusion_summary %>%
   scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
   ylab("log(AUC secretion 16.7 mM\nglucose + 0.1 mM IBMX)") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
   theme_bw() +
   theme(legend.position = "none",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line()
   )
-ggsave("Output/FigS4/FigS4F.tiff", width = 3, height = 3)
+ggsave("Output/Final figures/FigS11/FigS11F.tiff", width = 3, height = 3)
 
-## Fig S4G ## ----
+## Fig S11G ## ----
 perifusion_summary %>%
   filter(simplified_diagnosis == "Control") %>%
   filter(age_years > 14, age_years < 40) %>%
@@ -5686,27 +7485,26 @@ perifusion_summary %>%
   scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
   ylab("log(AUC secretion\n30 mM KCl)") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
   theme_bw() +
   theme(legend.position = "none",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line()
   )
-ggsave("Output/FigS4/FigS4G.tiff", width = 3, height = 3)
+ggsave("Output/Final figures/FigS11/FigS11G.tiff", width = 3, height = 3)
 
-## Fig S7A ## ----
+## Fig S17A ## ----
 stimulus_data3 <- data.frame(
   xmin = c(20,30,61,81,101,121,141),    
   xmax = c(30,121,81,121,121,141,160),
-  label = c("Base\nline","AAM","G 3","G 16.7","IBMX","wash\nout","KCl"),
-  ymin = c(335,350,370,370,400,385,400), 
-  ymax = c(385,370,400,400,430,445,430))
+  label = c("G 0","AAM","G 3","G 16.7","IBMX","wash\nout","KCl"),
+  ymin = c(350,350,370,370,400,385,400), 
+  ymax = c(370,370,400,400,430,445,430))
 perifusion_all_with_metadata %>%
   filter(Time..min. < 160) %>%
   filter(simplified_diagnosis %in% c("Control")) %>%
@@ -5746,11 +7544,11 @@ perifusion_all_with_metadata %>%
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12))
-ggsave("Output/FigS7/FigS7A.tiff", width = 5.5, height = 4)
+ggsave("Output/Final figures/FigS17/FigS17A.tiff", width = 5.5, height = 4)
 
-## Fig S7C ## ----
+## Fig S17C ## ----
 hist(perifusion_summary$mean.gcg.baseline)
 hist(log(perifusion_summary$mean.gcg.baseline))
 perifusion_summary %>%
@@ -5769,21 +7567,20 @@ perifusion_summary %>%
   scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
   ylab("log(baseline glucagon\nsecretion (pg/100 islets))") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
   theme_bw() +
   theme(legend.position = "none",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line()
   )
-ggsave("Output/FigS7/FigS7C.tiff", width = 3 , height = 3)
+ggsave("Output/Final figures/FigS17/FigS17C.tiff", width = 3 , height = 3)
 
-## Fig S7E ## ----
+## Fig S17E ## ----
 hist(perifusion_summary$AUC.gcg.AAM)
 hist(log(perifusion_summary$AUC.gcg.AAM))
 perifusion_summary %>%
@@ -5802,21 +7599,20 @@ perifusion_summary %>%
   scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
   ylab("log(AUC secretion\n4 mM AAM)") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
   theme_bw() +
   theme(legend.position = "none",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line()
   )
-ggsave("Output/FigS7/FigS7E.tiff", width = 3 , height = 3)
+ggsave("Output/Final figures/FigS17/FigS17E.tiff", width = 3 , height = 3)
 
-## Fig S7G ## ----
+## Fig S17G ## ----
 hist(perifusion_summary$AUC.gcg.IBMX)
 hist(log(perifusion_summary$AUC.gcg.IBMX))
 perifusion_summary %>%
@@ -5835,21 +7631,20 @@ perifusion_summary %>%
   scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
   ylab("log(AUC secretion 16.7 mM\nglucose + 0.1 mM IBMX)") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
   theme_bw() +
   theme(legend.position = "none",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line()
   )
-ggsave("Output/FigS7/FigS7G.tiff", width = 3 , height = 3)
+ggsave("Output/Final figures/FigS17/FigS17G.tiff", width = 3 , height = 3)
 
-## Fig S7I ## ----
+## Fig S17I ## ----
 hist(perifusion_summary$AUC.gcg.KCl)
 hist(log(perifusion_summary$AUC.gcg.KCl))
 perifusion_summary %>%
@@ -5868,21 +7663,20 @@ perifusion_summary %>%
   scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
   ylab("log(AUC secretion\n30 mM KCl)") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
   theme_bw() +
   theme(legend.position = "none",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line()
   )
-ggsave("Output/FigS7/FigS7I.tiff", width = 3 , height = 3)
+ggsave("Output/Final figures/FigS17/FigS17I.tiff", width = 3 , height = 3)
 
-## Fig S7K ## ----
+## Fig S17K ## ----
 glucagon.content <- perifusion_all_with_metadata %>%
   dplyr:: select(Glucagon.Content..pg.islet., DonorID, sex, age_years, simplified_diagnosis) %>%
   distinct()
@@ -5904,21 +7698,20 @@ glucagon.content %>%
   scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
   ylab("log(glucagon content\n(pg/islet))") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
   theme_bw() +
   theme(legend.position = "none",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line()
   )
-ggsave("Output/FigS7/FigS7K.tiff", width = 3 , height = 3)
+ggsave("Output/Final figures/FigS17/FigS17K.tiff", width = 3 , height = 3)
 
-## Fig S8A ## ----
+## Fig S18A ## ----
 perifusion_all_with_metadata %>%
   filter(Time..min. < 160) %>%
   filter(simplified_diagnosis %in% c("Control","T2D")) %>%
@@ -5961,11 +7754,11 @@ perifusion_all_with_metadata %>%
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12))
-ggsave("Output/FigS8/FigS8A.tiff", width = 8, height = 4)
+ggsave("Output/Final figures/FigS18/FigS18A.tiff", width = 8, height = 4)
 
-## Fig S8C ## ----
+## Fig S18C ## ----
 perifusion_summary %>%
   filter(simplified_diagnosis != "T1D") %>%
   anova_test(log(mean.gcg.baseline) ~ age_years + sex*simplified_diagnosis) #sig for disease
@@ -5990,7 +7783,6 @@ perifusion_summary %>%
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("log(baseline glucagon secretion \n(pg/100 islets))") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
   scale_y_continuous(limits = c(0.5,6.2)) +
   theme_bw() +
   theme(legend.position = "bottom",
@@ -5998,14 +7790,14 @@ perifusion_summary %>%
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line()   
   )
-ggsave("Output/FigS8/FigS8C.tiff", width = 4 , height = 4)
+ggsave("Output/Final figures/FigS18/FigS18C.tiff", width = 4 , height = 4)
 
-## Fig S8E ## ----
+## Fig S18E ## ----
 perifusion_summary %>%
   filter(simplified_diagnosis != "T1D") %>%
   anova_test(log(AUC.gcg.AAM) ~ age_years + sex*simplified_diagnosis) #sig for disease
@@ -6030,7 +7822,6 @@ perifusion_summary %>%
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("log(AUC secretion\n4 mM AAM)") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
   scale_y_continuous(limits = c(4.5,10.2)) +
   theme_bw() +
   theme(legend.position = "bottom",
@@ -6038,14 +7829,14 @@ perifusion_summary %>%
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line()   
   )
-ggsave("Output/FigS8/FigS8E.tiff", width = 4 , height = 4)
+ggsave("Output/Final figures/FigS18/FigS18E.tiff", width = 4 , height = 4)
 
-## Fig S8G ## ----
+## Fig S18G ## ----
 perifusion_summary %>%
   filter(simplified_diagnosis != "T1D") %>%
   anova_test(log(AUC.gcg.IBMX) ~ age_years + sex*simplified_diagnosis) #ns
@@ -6070,21 +7861,20 @@ perifusion_summary %>%
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("log(AUC secretion 16.7 mM\nglucose + 0.1 mM IBMX)") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
   theme_bw() +
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line()   
   )
-ggsave("Output/FigS8/FigS8G.tiff", width = 4 , height = 4)
+ggsave("Output/Final figures/FigS18/FigS18G.tiff", width = 4 , height = 4)
 
-## Fig S8I ## ----
+## Fig S18I ## ----
 perifusion_summary %>%
   filter(simplified_diagnosis != "T1D") %>%
   anova_test(log(AUC.gcg.KCl) ~ age_years + sex*simplified_diagnosis) #sig for disease
@@ -6109,7 +7899,6 @@ perifusion_summary %>%
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("log(AUC secretion\n30 mM KCl)") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
   scale_y_continuous(limits = c(4.5,10.5)) +
   theme_bw() +
   theme(legend.position = "bottom",
@@ -6117,14 +7906,14 @@ perifusion_summary %>%
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line()   
   )
-ggsave("Output/FigS8/FigS8I.tiff", width = 4 , height = 4)
+ggsave("Output/Final figures/FigS18/FigS18I.tiff", width = 4 , height = 4)
 
-## Fig S8K ## ----
+## Fig S18K ## ----
 glucagon.content %>%
   filter(simplified_diagnosis != "T1D") %>%
   anova_test(log(Glucagon.Content..pg.islet.) ~ age_years + sex*simplified_diagnosis) #sig for disease
@@ -6144,26 +7933,1463 @@ glucagon.content %>%
   geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 9, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.1))+
   geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 10, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.3))+
   geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 10.4, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
-  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 11, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 11.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey50", "#d65ac9")) +
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("log(glucagon content (pg/islet))") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
-  scale_y_continuous(limits = c(3,11)) +
+  scale_y_continuous(limits = c(3,11.5)) +
   theme_bw() +
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line()   
   )
-ggsave("Output/FigS8/FigS8K.tiff", width = 5 , height = 4)
+ggsave("Output/Final figures/FigS18/FigS18K.tiff", width = 5 , height = 4)
 
+#Age-matched glucagon data
+## Fig S19 ## ----
+perifusion_matched <- perifusion_summary %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  filter(mean.gcg.baseline > 0) %>%
+  dplyr::select(DonorID, sex, simplified_diagnosis, age_years) %>%
+  distinct()
+perifusion_matched$Group <- as.logical(perifusion_matched$simplified_diagnosis == "T2D")
+perifusion_matched <- matchit(Group ~ age_years + sex,
+                              data = perifusion_matched,
+                              method = 'nearest',  
+                              ratio = 1, 
+                              exact = ~sex
+) 
+perifusion_matched <- match.data(perifusion_matched)
+table(perifusion_matched$sex, perifusion_matched$simplified_diagnosis)
+
+perifusion_all_with_metadata_matched <- perifusion_all_with_metadata %>%
+  filter(DonorID %in% perifusion_matched$DonorID)
+perifusion_summary_matched <- perifusion_summary %>%
+  filter(DonorID %in% perifusion_matched$DonorID)
+perifusion_matched %>%
+  group_by(sex) %>%
+  t_test(age_years ~ simplified_diagnosis) #sig for both
+perifusion_matched %>%
+  ggplot(aes(x=sex, y=age_years))+
+  geom_boxplot(aes(fill = simplified_diagnosis), alpha = 0.5, position = position_dodge(width = 0.9))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 68, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.1))+
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 70, label = "*", label.size = 7, size = 0.5, tip.length = c(0.15, 0.02))+
+  scale_colour_manual(values = c("grey50", "#d65ac9")) +
+  scale_fill_manual(values = c("grey50", "#d65ac9")) +
+  xlab("")+
+  ylab("Age (years)") +
+  ylim(20,75)+
+  labs(fill = "Condition")+
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line() 
+  )
+ggsave("Output/Final figures/FigS19/FigS19B.tiff", width = 5, height = 4)
+
+## Fig S19A ## ----
+perifusion_all_with_metadata_matched %>%
+  filter(Time..min. < 160) %>%
+  filter(simplified_diagnosis %in% c("Control","T2D")) %>%
+  ungroup() %>%
+  group_by(Time..min., simplified_diagnosis, sex) %>%
+  summarise(
+    n = n(),
+    mean = mean(Glucagon.Release..pg.100.islets.min., na.rm = TRUE),
+    sd = sd(Glucagon.Release..pg.100.islets.min., na.rm = TRUE),
+    up = if (n > 2) mean + sd else NA_real_,
+    down = if (n > 2) mean - sd else NA_real_,
+    .groups = "drop"
+  ) %>%
+  ggplot(aes(x=Time..min., y=mean, colour = simplified_diagnosis, group = simplified_diagnosis)) +
+  geom_path(linewidth = 1)+
+  geom_ribbon(alpha = 0.2, colour = NA, (aes(ymax = up, ymin = down, fill = simplified_diagnosis)))+
+  scale_colour_manual(values = c("grey50", "#d65ac9")) +
+  scale_fill_manual(values = c("grey50", "#d65ac9")) +
+  ylab ("Glucagon release (pg/100 islets)") +
+  xlab ("Time (min)") +
+  facet_wrap(~sex)+
+  geom_vline(xintercept = c(20,30,61,81,101,121,141), colour = "darkgrey", linetype = 5)+
+  geom_rect(
+    data = stimulus_data3,
+    aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
+    inherit.aes = FALSE,
+    fill = NA, colour = "grey30",size = 0.5
+  ) +
+  geom_text(
+    data = stimulus_data3,
+    aes(x = (xmin + xmax)/2, y = (ymin+ymax)/2, label = label),
+    inherit.aes = FALSE,
+    size = 2.5
+  ) +
+  theme_bw()+
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12))
+ggsave("Output/Final figures/FigS19/FigS19A.tiff", width = 8, height = 4)
+
+## Fig S19E ## ----
+perifusion_summary_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  anova_test(log(mean.gcg.baseline) ~ age_years + sex*simplified_diagnosis) #sig for disease
+model <- perifusion_summary_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  lm(log(mean.gcg.baseline) ~ age_years + sex*simplified_diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ simplified_diagnosis | sex)
+pairs(emmeans_res, adjust = "tukey") #p=0.0255 for Control vs T2D in females, ns for males
+
+perifusion_summary_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  ggplot(aes(x=sex, y=log(mean.gcg.baseline), fill = simplified_diagnosis)) +
+  geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 5, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.15))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 4.2, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  scale_colour_manual(values = c("grey50", "#d65ac9")) +
+  scale_fill_manual(values = c("grey50", "#d65ac9")) +
+  ylab("log(baseline glucagon secretion \n(pg/100 islets))") +
+  xlab("")+
+  scale_y_continuous(limits = c(0.5,6.2)) +
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line()   
+  )
+ggsave("Output/Final figures/FigS19/FigS19E.tiff", width = 4, height = 4)
+
+## Fig S19G ## ----
+perifusion_summary_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  anova_test(log(AUC.gcg.AAM) ~ age_years + sex*simplified_diagnosis) #sig for disease
+model <- perifusion_summary_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  lm(log(AUC.gcg.AAM) ~ age_years + sex*simplified_diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ simplified_diagnosis | sex)
+pairs(emmeans_res, adjust = "tukey") #p=0.0132 for Control vs T2D in females, ns for males
+
+perifusion_summary_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  ggplot(aes(x=sex, y=log(AUC.gcg.AAM), fill = simplified_diagnosis)) +
+  geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 9, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.07))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 8.7, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  scale_colour_manual(values = c("grey50", "#d65ac9")) +
+  scale_fill_manual(values = c("grey50", "#d65ac9")) +
+  ylab("log(AUC secretion\n4 mM AAM)") +
+  xlab("")+
+  scale_y_continuous(limits = c(4.5,9.5))+
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line()   
+  )
+ggsave("Output/Final figures/FigS19/FigS19G.tiff", width = 4, height = 4)
+
+## Fig S19I ## ----
+perifusion_summary_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  anova_test(log(AUC.gcg.IBMX) ~ age_years + sex*simplified_diagnosis) #ns
+model <- perifusion_summary_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  lm(log(AUC.gcg.IBMX) ~ age_years + sex*simplified_diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ simplified_diagnosis | sex)
+pairs(emmeans_res, adjust = "tukey") #p=0.0775 for Control vs T2D in females, ns for males
+
+perifusion_summary_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  ggplot(aes(x=sex, y=log(AUC.gcg.IBMX), fill = simplified_diagnosis)) +
+  geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 9.4, label = "p=0.08", label.size = 4, size = 0.5, tip.length = c(0.02, 0.15))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 9.1, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.15, 0.02))+
+  scale_colour_manual(values = c("grey50", "#d65ac9")) +
+  scale_fill_manual(values = c("grey50", "#d65ac9")) +
+  ylab("log(AUC secretion 16.7 mM\nglucose + 0.1 mM IBMX)") +
+  xlab("")+
+  scale_y_continuous(limits=c(4.8,10))+
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line()   
+  )
+ggsave("Output/Final figures/FigS19/FigS19I.tiff", width = 4, height = 4)
+
+## Fig S19K ## ----
+perifusion_summary_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  anova_test(log(AUC.gcg.KCl) ~ age_years + sex*simplified_diagnosis) #sig for age an disease
+model <- perifusion_summary_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  lm(log(AUC.gcg.KCl) ~ age_years + sex*simplified_diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ simplified_diagnosis | sex)
+pairs(emmeans_res, adjust = "tukey") #p=0.0216 for Control vs T2D in females
+
+perifusion_summary_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  ggplot(aes(x=sex, y=log(AUC.gcg.KCl), fill = simplified_diagnosis)) +
+  geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 9, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.1))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 8.8, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.05))+
+  scale_colour_manual(values = c("grey50", "#d65ac9")) +
+  scale_fill_manual(values = c("grey50", "#d65ac9")) +
+  ylab("log(AUC secretion\n30 mM KCl)") +
+  xlab("")+
+  scale_y_continuous(limits = c(4.5,9.5))+
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line()   
+  )
+ggsave("Output/Final figures/FigS19/FigS19K.tiff", width = 4, height = 4)
+
+## Fig S19M ## ----
+glucagon.content_matched <- glucagon.content %>%
+  filter(DonorID %in% perifusion_matched$DonorID)
+table(glucagon.content_matched$sex, glucagon.content_matched$simplified_diagnosis) #numbers don't line up - need to redo matching
+
+glucagon.content_matched <- glucagon.content %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  filter(Glucagon.Content..pg.islet. > 0) %>%
+  dplyr::select(DonorID, sex, simplified_diagnosis, age_years, Glucagon.Content..pg.islet.) %>%
+  distinct()
+
+glucagon.content_matched$Group <- as.logical(glucagon.content_matched$simplified_diagnosis == "T2D")
+glucagon.content_matched <- matchit(Group ~ age_years + sex,
+                                    data = glucagon.content_matched,
+                                    method = 'nearest',  
+                                    ratio = 1, 
+                                    exact = ~sex
+) 
+glucagon.content_matched <- match.data(glucagon.content_matched)
+table(glucagon.content_matched$sex, glucagon.content_matched$simplified_diagnosis)
+
+glucagon.content_matched %>%
+  group_by(sex) %>%
+  t_test(age_years ~ simplified_diagnosis) #sig for females
+glucagon.content_matched %>%
+  ggplot(aes(x=sex, y=age_years))+
+  geom_boxplot(aes(fill = simplified_diagnosis), alpha = 0.5, position = position_dodge(width = 0.9))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 65, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 70, label = "*", label.size = 7, size = 0.5, tip.length = c(0.2, 0.02))+
+  scale_colour_manual(values = c("grey50", "#d65ac9")) +
+  scale_fill_manual(values = c("grey50", "#d65ac9")) +
+  xlab("")+
+  ylab("Age (years)") +
+  ylim(15,75)+
+  labs(fill = "Condition")+
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line() 
+  )
+ggsave("Output/Final figures/FigS19/FigS19M.tiff", width = 4, height = 4)
+
+## Fig S19N ## ----
+glucagon.content_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  anova_test(log(Glucagon.Content..pg.islet.) ~ age_years + sex*simplified_diagnosis) #sig for disease
+model <- glucagon.content_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  lm(log(Glucagon.Content..pg.islet.) ~ age_years + sex*simplified_diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ simplified_diagnosis | sex)
+pairs(emmeans_res, adjust = "tukey") #sig for males only, p=0.0637 for females
+
+glucagon.content_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  ggplot(aes(x=sex, y=log(Glucagon.Content..pg.islet.), fill = simplified_diagnosis)) +
+  geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 9.2, label = "p=0.06", label.size = 4, size = 0.5, tip.length = c(0.02, 0.1))+
+  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 10.2, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.4))+
+  scale_colour_manual(values = c("grey50", "#d65ac9")) +
+  scale_fill_manual(values = c("grey50", "#d65ac9")) +
+  ylab("log(glucagon content (pg/islet))") +
+  xlab("")+
+  scale_y_continuous(limits = c(5,10.5))+
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line()   
+  )
+ggsave("Output/Final figures/FigS19/FigS19N.tiff", width = 4, height = 4)
+
+#Humanislets.com glucose perifusion data
+#read data and metadata
+peri_gluc <- read.csv("data/Humanislets.com/peri_gluc.csv")
+donor_data <- read.csv("data/Humanislets.com/donor.csv")
+donor_data <- donor_data %>%
+  mutate(diagnosis = case_when(
+    diagnosis == "None" ~ "Control",
+    diagnosis == "Type1" ~ "T1D",
+    diagnosis == "Type2" ~ "T2D"
+  ))
+
+#summarise per donor
+peri_gluc_means <- peri_gluc %>%
+  group_by(record_id) %>%
+  summarise_all(mean)
+
+#turn to long format
+peri_gluc_long <- peri_gluc_means %>%
+  dplyr::select(-replicate) %>%
+  pivot_longer(!record_id, names_to = "Time.min", values_to = "Insulin.release")
+peri_gluc_long$Time.min <- gsub("time_","",peri_gluc_long$Time.min)
+peri_gluc_long$Time.min <- as.numeric(peri_gluc_long$Time.min)
+head(peri_gluc_long)
+
+#Add metadata
+peri_gluc_long <- inner_join(peri_gluc_long, donor_data, by = "record_id")
+
+#convert units
+peri_gluc_long <- peri_gluc_long %>%
+  mutate(Insulin.release.uU.min = Insulin.release * (2/5))
+peri_gluc_long <- peri_gluc_long %>%
+  mutate(Insulin.release.uU.islet.min = Insulin.release.uU.min/65,
+         Insulin.release.pmol.islet.min = Insulin.release.uU.islet.min*(6/1000),
+         Insulin.release.ng.islet.min = Insulin.release.pmol.islet.min*5.808,
+         Insulin.release.ng.100islets.min = Insulin.release.ng.islet.min*100)
+
+peri_gluc_means <- peri_gluc_means %>%
+  mutate(across(-c(record_id, replicate), ~ .x * (34.848/1625)))
+
+#Calculate AUCs
+calculate.auc.G15 <- function(x){
+  if(sum(!is.na(x)) >= 2) {
+    x_interpolated <- na.approx(x, na.rm = FALSE)
+    time_points <- c(20,22.5,25,27.5,30,32.5,35,40,45,50,55,60,65)
+    auc_value <- auc(time_points, x_interpolated, type = 'linear')
+  } else {
+    auc_value <- NA
+  }
+  return(auc_value)
+}
+peri_gluc_means$AUC.G15 <- apply(peri_gluc_means[,c(7:19)], 1, calculate.auc.G15)
+
+calculate.auc.G6 <- function(x){
+  if(sum(!is.na(x)) >= 2) {
+    x_interpolated <- na.approx(x, na.rm = FALSE)
+    time_points <- c(85,90,92.5,95,97.5,100,102.5,105,107.5,110,112.5,115,117.5,120,122.5,125,127.5,130,135,140)
+    auc_value <- auc(time_points, x_interpolated, type = 'linear')
+  } else {
+    auc_value <- NA
+  }
+  return(auc_value)
+}
+peri_gluc_means$AUC.G6 <- apply(peri_gluc_means[,c(23:42)], 1, calculate.auc.G6)
+
+calculate.auc.KCl <- function(x){
+  if(sum(!is.na(x)) >= 2) {
+    x_interpolated <- na.approx(x, na.rm = FALSE)
+    time_points <- c(160,162.5,165,167.5,170,175,180,185,190)
+    auc_value <- auc(time_points, x_interpolated, type = 'linear')
+  } else {
+    auc_value <- NA
+  }
+  return(auc_value)
+}
+peri_gluc_means$AUC.KCl <- apply(peri_gluc_means[,c(46:54)], 1, calculate.auc.KCl)
+
+peri_gluc_means <- peri_gluc_means %>%
+  mutate(baseline.mean = rowMeans(across(c(time_5, time_10, time_15, time_20)), na.rm = TRUE))
+
+#add metadata
+peri_gluc_means <- left_join(peri_gluc_means, donor_data, by = "record_id")
+
+## Fig 7B and S13M ## ----
+stimulus_data4 <- data.frame(
+  xmin = c(0,20,90,160), 
+  xmax = c(20,70,140,190), 
+  label = c("G 3","G 15","G 6","KCl"),
+  ymin = rep(14.5,4),  
+  ymax = rep(16,4))
+
+peri_gluc_long %>%
+  filter(diagnosis %in% c("Control","T2D")) %>%
+  ungroup() %>%
+  group_by(Time.min, diagnosis, donorsex) %>%
+  summarise(
+    n = n(),
+    mean = mean(Insulin.release.ng.100islets.min, na.rm = TRUE),
+    sd = sd(Insulin.release.ng.100islets.min, na.rm = TRUE),
+    up = if (n > 2) mean + sd else NA_real_,
+    down = if (n > 2) mean - sd else NA_real_,
+    .groups = "drop"
+  ) %>%
+  ggplot(aes(x=Time.min, y=mean, colour = diagnosis, group = diagnosis)) +
+  geom_path(linewidth = 1)+
+  geom_ribbon(alpha = 0.2, colour = NA, (aes(ymax = up, ymin = down, fill = diagnosis)))+
+  scale_colour_manual(values = c("grey40", "#e04e34"))  +
+  scale_fill_manual(values = c("grey40", "#e04e34"))  +
+  ylab ("Insulin release (ng/100 islets)") +
+  xlab ("Time (min)") +
+  labs(colour = "Condition", fill = "Condition") +
+  facet_wrap(~donorsex)+
+  geom_vline(xintercept = c(0,20,70,90,140,160,190), colour = "darkgrey", linetype = 5)+
+  geom_rect(
+    data = stimulus_data4,
+    aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
+    inherit.aes = FALSE,
+    fill = NA, colour = "grey30",size = 0.5
+  ) +
+  geom_text(
+    data = stimulus_data4,
+    aes(x = (xmin + xmax)/2, y = (ymin+ymax)/2, label = label),
+    inherit.aes = FALSE,
+    size = 3
+  ) +
+  theme_bw()+
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12))
+ggsave("Output/Final figures/Fig7/Fig7B.tiff", width = 8, height = 4)
+ggsave("Output/Final figures/FigS13/FigS13M.tiff", width = 8, height = 4)
+
+## Fig S13N ## ----
+hist(peri_gluc_means$baseline.mean)
+hist(log(peri_gluc_means$baseline.mean))
+peri_gluc_means %>%
+  ungroup() %>%
+  filter(diagnosis != "T1D") %>%
+  anova_test(log(baseline.mean) ~ donorage + donorsex*diagnosis) #sig for sex and diagnosis
+model <- peri_gluc_means %>%
+  filter(diagnosis != "T1D") %>%
+  lm(log(baseline.mean) ~ donorage + donorsex*diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ donorsex | diagnosis)
+pairs(emmeans_res, adjust = "tukey") #p=0.0419 for F-M in controls
+emmeans_res <- emmeans(model, ~ diagnosis | donorsex)
+pairs(emmeans_res, adjust = "tukey") #ns
+
+peri_gluc_means %>%
+  filter(diagnosis != "T1D") %>%
+  ggplot(aes(x=donorsex, y=log(baseline.mean), fill = diagnosis)) +
+  geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = diagnosis, fill = diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 1.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.075))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 2, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.1))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 2.5, label = "*", label.size = 7, size = 0.5, tip.length = c(0.1, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 3.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  scale_colour_manual(values = c("grey40", "#e04e34"))  +
+  scale_fill_manual(values = c("grey40", "#e04e34"))  +
+  ylab("log(baseline insulin secretion\n(ng/100 islets))") +
+  xlab("")+
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line() 
+  )
+ggsave("Output/Final figures/FigS13/FigS13N.tiff", width = 4, height = 4)
+
+## Fig S13O ## ----
+hist(peri_gluc_means$AUC.G15)
+hist(log(peri_gluc_means$AUC.G15))
+peri_gluc_means %>%
+  ungroup() %>%
+  filter(diagnosis != "T1D") %>%
+  anova_test(log(AUC.G15) ~ donorage + donorsex*diagnosis) #sig for diagnosis
+model <- peri_gluc_means %>%
+  filter(diagnosis != "T1D") %>%
+  lm(log(AUC.G15) ~ donorage + donorsex*diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ donorsex | diagnosis)
+pairs(emmeans_res, adjust = "tukey") #ns
+emmeans_res <- emmeans(model, ~ diagnosis | donorsex)
+pairs(emmeans_res, adjust = "tukey") #p=0.0597 for Ctrl vs T2D in females, p=0.0002 for males
+
+peri_gluc_means %>%
+  filter(diagnosis != "T1D") %>%
+  ggplot(aes(x=donorsex, y=log(AUC.G15), fill = diagnosis)) +
+  geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = diagnosis, fill = diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 6.5, label = "p=0.06", label.size = 4, size = 0.5, tip.length = c(0.02, 0.1))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 6.5, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.14))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 7, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 7.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  scale_colour_manual(values = c("grey40", "#e04e34"))  +
+  scale_fill_manual(values = c("grey40", "#e04e34"))  +
+  ylab("log(AUC secretion\n15 mM glucose)") +
+  xlab("")+
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line() 
+  )
+ggsave("Output/Final figures/FigS13/FigS13O.tiff", width = 4, height = 4)
+
+## Fig S13P ## ----
+hist(peri_gluc_means$AUC.G6)
+hist(log(peri_gluc_means$AUC.G6))
+peri_gluc_means %>%
+  ungroup() %>%
+  filter(diagnosis != "T1D") %>%
+  anova_test(log(AUC.G6) ~ donorage + donorsex*diagnosis) #sig for sex
+model <- peri_gluc_means %>%
+  filter(diagnosis != "T1D") %>%
+  lm(log(AUC.G6) ~ donorage + donorsex*diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ donorsex | diagnosis)
+pairs(emmeans_res, adjust = "tukey") #o=0.0412 for F vs M in controls, 0.0829 in T2D
+emmeans_res <- emmeans(model, ~ diagnosis | donorsex)
+pairs(emmeans_res, adjust = "tukey") #ns
+
+peri_gluc_means %>%
+  filter(diagnosis != "T1D") %>%
+  ggplot(aes(x=donorsex, y=log(AUC.G6), fill = diagnosis)) +
+  geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
+  geom_quasirandom(size = 2, shape= 21, aes(group = diagnosis, fill = diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 5.8, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.15))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 6.3, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.15))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 6.5, label = "*", label.size = 7, size = 0.5, tip.length = c(0.1, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 7, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  scale_colour_manual(values = c("grey40", "#e04e34"))  +
+  scale_fill_manual(values = c("grey40", "#e04e34"))  +
+  ylab("log(AUC secretion\n6 mM glucose)") +
+  xlab("")+
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line() 
+  )
+ggsave("Output/Final figures/FigS13/FigS13P.tiff", width = 4, height = 4)
+
+## Fig S13Q ## ----
+hist(peri_gluc_means$AUC.KCl)
+hist(log(peri_gluc_means$AUC.KCl))
+peri_gluc_means %>%
+  ungroup() %>%
+  filter(diagnosis != "T1D") %>%
+  anova_test(log(AUC.KCl) ~ donorage + donorsex*diagnosis) #ns
+model <- peri_gluc_means %>%
+  filter(diagnosis != "T1D") %>%
+  lm(log(AUC.KCl) ~ donorage + donorsex*diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ donorsex | diagnosis)
+pairs(emmeans_res, adjust = "tukey") #ns
+emmeans_res <- emmeans(model, ~ diagnosis | donorsex)
+pairs(emmeans_res, adjust = "tukey") #ns
+
+peri_gluc_means %>%
+  filter(diagnosis != "T1D") %>%
+  ggplot(aes(x=donorsex, y=log(AUC.KCl), fill = diagnosis)) +
+  geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = diagnosis, fill = diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 5.7, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.15))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 6.2, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.15))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 6.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 7, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  scale_colour_manual(values = c("grey40", "#e04e34"))  +
+  scale_fill_manual(values = c("grey40", "#e04e34"))  +
+  ylab("log(AUC secretion\n30 mM KCl)") +
+  xlab("")+
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line() 
+  )
+ggsave("Output/Final figures/FigS13/FigS13Q.tiff", width = 4, height = 4)
+
+## Fig S14P ## ----
+peri_gluc_matched <- peri_gluc_means %>%
+  filter(baseline.mean > 0) %>%
+  dplyr::select(record_id, donorsex, diagnosis, donorage) %>%
+  distinct()
+peri_gluc_matched$Group <- as.logical(peri_gluc_matched$diagnosis == "T2D")
+peri_gluc_matched <- matchit(Group ~ donorage + donorsex,
+                             data = peri_gluc_matched,
+                             method = 'nearest',
+                             ratio = 1, 
+                             exact = ~donorsex
+) 
+peri_gluc_matched <- match.data(peri_gluc_matched)
+table(peri_gluc_matched$donorsex, peri_gluc_matched$diagnosis)
+
+peri_gluc_long_matched <- peri_gluc_long %>%
+  filter(record_id %in% peri_gluc_matched$record_id)
+
+peri_gluc_long_matched %>%
+  dplyr::select(record_id, donorsex, diagnosis, donorage) %>%
+  distinct() %>%
+  group_by(donorsex, diagnosis) %>%
+  summarise(n=n())
+peri_gluc_matched %>%
+  group_by(donorsex) %>%
+  t_test(donorage ~ diagnosis) #ns
+
+peri_gluc_matched %>%
+  ggplot(aes(x=donorsex, y=donorage))+
+  geom_boxplot(aes(fill = diagnosis), alpha = 0.5, position = position_dodge(width = 0.9))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = diagnosis, fill = diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 70, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 69, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  scale_colour_manual(values = c("grey40", "#e04e34"))  +
+  scale_fill_manual(values = c("grey40", "#e04e34"))  +
+  xlab("")+
+  ylab("Age (years)") +
+  scale_y_continuous(limits = c(40,75))+
+  labs(fill = "Condition")+
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line() 
+  )
+ggsave("Output/Final figures/FigS14/FigS14P.tiff", width = 4, height = 4)
+
+## Fig S14O ## ----
+peri_gluc_long_matched %>%
+  filter(diagnosis %in% c("Control","T2D")) %>%
+  ungroup() %>%
+  group_by(Time.min, diagnosis, donorsex) %>%
+  summarise(
+    n = n(),
+    mean = mean(Insulin.release.ng.100islets.min, na.rm = TRUE),
+    sd = sd(Insulin.release.ng.100islets.min, na.rm = TRUE),
+    up = if (n > 2) mean + sd else NA_real_,
+    down = if (n > 2) mean - sd else NA_real_,
+    .groups = "drop"
+  ) %>%
+  ggplot(aes(x=Time.min, y=mean, colour = diagnosis, group = diagnosis)) +
+  geom_path(linewidth = 1)+
+  geom_ribbon(alpha = 0.2, colour = NA, (aes(ymax = up, ymin = down, fill = diagnosis)))+
+  scale_colour_manual(values = c("grey40", "#e04e34"))  +
+  scale_fill_manual(values = c("grey40", "#e04e34"))  +
+  ylab ("Insulin release (ng/100 islets)") +
+  xlab ("Time (min)") +
+  labs(colour = "Condition", fill = "Condition") +
+  facet_wrap(~donorsex)+
+  geom_vline(xintercept = c(0,20,70,90,140,160,190), colour = "darkgrey", linetype = 5)+
+  geom_rect(
+    data = stimulus_data4,
+    aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
+    inherit.aes = FALSE,
+    fill = NA, colour = "grey30",size = 0.5
+  ) +
+  geom_text(
+    data = stimulus_data4,
+    aes(x = (xmin + xmax)/2, y = (ymin+ymax)/2, label = label),
+    inherit.aes = FALSE,
+    size = 3
+  ) +
+  theme_bw()+
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12))
+ggsave("Output/Final figures/FigS14/FigS14O.tiff", width = 8, height = 4)
+
+## Fig S14Q ## ----
+peri_gluc_means_matched <- peri_gluc_means %>%
+  filter(record_id %in% peri_gluc_matched$record_id)
+peri_gluc_means_matched %>%
+  ungroup() %>%
+  filter(diagnosis != "T1D") %>%
+  anova_test(log(baseline.mean) ~ donorage + donorsex*diagnosis) #ns
+model <- peri_gluc_means_matched %>%
+  filter(diagnosis != "T1D") %>%
+  lm(log(baseline.mean) ~ donorage + donorsex*diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ diagnosis | donorsex)
+pairs(emmeans_res, adjust = "tukey") #ns
+
+peri_gluc_means_matched %>%
+  filter(diagnosis != "T1D") %>%
+  ggplot(aes(x=donorsex, y=log(baseline.mean), fill = diagnosis)) +
+  geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = diagnosis, fill = diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 1.2, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 1.2, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  scale_colour_manual(values = c("grey40", "#e04e34"))  +
+  scale_fill_manual(values = c("grey40", "#e04e34"))  +
+  ylab("log(baseline insulin secretion\n(ng/100 islets))") +
+  xlab("")+
+  scale_y_continuous(limits = c(-3.5,1.5)) +
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line() 
+  )
+ggsave("Output/Final figures/FigS14/FigS14Q.tiff", width = 4, height = 4)
+
+## Fig S14R ## ----
+peri_gluc_means_matched %>%
+  ungroup() %>%
+  filter(diagnosis != "T1D") %>%
+  anova_test(log(AUC.G15) ~ donorage + donorsex*diagnosis) #sig for diagnosis
+model <- peri_gluc_means_matched %>%
+  filter(diagnosis != "T1D") %>%
+  lm(log(AUC.G15) ~ donorage + donorsex*diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ diagnosis | donorsex)
+pairs(emmeans_res, adjust = "tukey") #ns
+
+peri_gluc_means_matched %>%
+  filter(diagnosis != "T1D") %>%
+  ggplot(aes(x=donorsex, y=log(AUC.G15), fill = diagnosis)) +
+  geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = diagnosis, fill = diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 6.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.15))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 5.8, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  scale_colour_manual(values = c("grey40", "#e04e34"))  +
+  scale_fill_manual(values = c("grey40", "#e04e34"))  +
+  ylab("log(AUC secretion\n15 mM glucose)") +
+  xlab("")+
+  scale_y_continuous(limits = c(0,7)) +
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line() 
+  )
+ggsave("Output/Final figures/FigS14/FigS14R.tiff", width = 4, height = 4)
+
+## Fig S14S ## ----
+peri_gluc_means_matched %>%
+  ungroup() %>%
+  filter(diagnosis != "T1D") %>%
+  anova_test(log(AUC.G6) ~ donorage + donorsex*diagnosis) #sig for interaction
+model <- peri_gluc_means_matched %>%
+  filter(diagnosis != "T1D") %>%
+  lm(log(AUC.G6) ~ donorage + donorsex*diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ diagnosis | donorsex)
+pairs(emmeans_res, adjust = "tukey") #sig for females
+
+peri_gluc_means_matched %>%
+  filter(diagnosis != "T1D") %>%
+  ggplot(aes(x=donorsex, y=log(AUC.G6), fill = diagnosis)) +
+  geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
+  geom_quasirandom(size = 2, shape= 21, aes(group = diagnosis, fill = diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 5.8, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.2))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 5.6, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.1, 0.02))+
+  scale_colour_manual(values = c("grey40", "#e04e34"))  +
+  scale_fill_manual(values = c("grey40", "#e04e34"))  +
+  ylab("log(AUC secretion\n6 mM glucose)") +
+  xlab("")+
+  scale_y_continuous(limits = c(2.5,6.5)) +
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line() 
+  )
+ggsave("Output/Final figures/FigS14/FigS14S.tiff", width = 4, height = 4)
+
+## Fig S14T ## ----
+peri_gluc_means_matched %>%
+  ungroup() %>%
+  filter(diagnosis != "T1D") %>%
+  anova_test(log(AUC.KCl) ~ donorage + donorsex*diagnosis) #ns
+model <- peri_gluc_means_matched %>%
+  filter(diagnosis != "T1D") %>%
+  lm(log(AUC.KCl) ~ donorage + donorsex*diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ diagnosis | donorsex)
+pairs(emmeans_res, adjust = "tukey") #ns
+
+peri_gluc_means_matched %>%
+  filter(diagnosis != "T1D") %>%
+  ggplot(aes(x=donorsex, y=log(AUC.KCl), fill = diagnosis)) +
+  geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = diagnosis, fill = diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 5.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.2))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 5.4, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.2, 0.02))+
+  scale_colour_manual(values = c("grey40", "#e04e34"))  +
+  scale_fill_manual(values = c("grey40", "#e04e34"))  +
+  ylab("log(AUC secretion\n30 mM KCl)") +
+  xlab("")+
+  scale_y_continuous(limits = c(2.5,6))+
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line() 
+  )
+ggsave("Output/Final figures/FigS14/FigS14T.tiff", width = 4, height = 4)
+
+## Fig S11M ## ----
+stimulus_data5 <- data.frame(
+  xmin = c(0,20,90,160),
+  xmax = c(20,70,140,190),
+  label = c("G 3","G 15","G 6","KCl"),
+  ymin = c(rep(21,4)),  
+  ymax = c(rep(23,4)))
+
+peri_gluc_long %>%
+  filter(diagnosis %in% c("Control")) %>%
+  filter(donorage > 14, donorage < 40) %>%
+  ungroup() %>%
+  group_by(Time.min, donorsex) %>%
+  summarise(
+    n = n(),
+    mean = mean(Insulin.release.ng.100islets.min, na.rm = TRUE),
+    sd = sd(Insulin.release.ng.100islets.min, na.rm = TRUE),
+    up = if (n > 2) mean + sd else NA_real_,
+    down = if (n > 2) mean - sd else NA_real_,
+    .groups = "drop"
+  ) %>%
+  ggplot(aes(x=Time.min, y=mean, colour = donorsex, group = donorsex)) +
+  geom_path(linewidth = 1)+
+  geom_ribbon(alpha = 0.2, colour = NA, (aes(ymax = up, ymin = down, fill = donorsex)))+
+  scale_fill_manual(values = c("#113ed1", "#5e4114")) +
+  scale_colour_manual(values = c("#113ed1", "#5e4114")) +
+  ylab ("Insulin Release (ng/100 islets)") +
+  xlab ("Time (min)") +
+  labs(colour = "Condition", fill = "Condition") +
+  geom_vline(xintercept = c(0,20,70,90,140,160,190), colour = "darkgrey", linetype = 5)+
+  geom_rect(
+    data = stimulus_data5,
+    aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
+    inherit.aes = FALSE,
+    fill = NA, colour = "grey30",size = 0.5
+  ) +
+  geom_text(
+    data = stimulus_data5,
+    aes(x = (xmin + xmax)/2, y = (ymin+ymax)/2, label = label),
+    inherit.aes = FALSE,
+    size = 3
+  ) +
+  theme_bw()+
+  theme(legend.position = "none",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12))
+ggsave("Output/Final figures/FigS11/FigS11M.tiff", width = 5.5, height = 4)
+
+## Fig S11N ## ----
+peri_gluc_means %>%
+  filter(diagnosis == "Control") %>%
+  filter(donorage > 14, donorage < 40) %>%
+  anova_test(baseline.mean ~ donorage + donorsex) #ns
+
+peri_gluc_means %>%
+  filter(diagnosis == "Control") %>%
+  filter(donorage > 14, donorage < 40) %>%
+  ggplot(aes(x=donorsex, y=log(baseline.mean),  fill = donorsex)) +
+  geom_boxplot(alpha = 0.5)+
+  geom_quasirandom(size = 2, shape = 21, aes(fill = donorsex)) +
+  geom_bracket(inherit.aes = FALSE, xmin = 1, xmax = 2, y.position = 2, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.1, 0.02))+
+  scale_fill_manual(values = c("#113ed1", "#5e4114")) +
+  scale_colour_manual(values = c("#113ed1", "#5e4114")) +
+  ylab("log(baseline insulin secretion\n(ng/100 islets))") +
+  xlab("")+
+  theme_bw()+
+  theme(legend.position = "none", panel.grid = element_blank())  +
+  theme(
+    axis.title = element_text(size = 14, colour = "black"),
+    axis.text = element_text(size = 14, colour = "black"),
+    plot.title = element_text(size = 14, hjust = 0.5),
+    legend.title = element_blank(),
+    legend.text = element_text(size = 12),
+    panel.border = element_blank(), 
+    axis.line = element_line()  
+  )
+ggsave("Output/Final figures/FigS11/FigS11N.tiff", width = 3, height = 3)
+
+## Fig S11O ## ----
+peri_gluc_means %>%
+  filter(diagnosis == "Control") %>%
+  filter(donorage > 14, donorage < 40) %>%
+  anova_test(AUC.G15 ~ donorage + donorsex) #p=0.029 for sex
+
+peri_gluc_means %>%
+  filter(diagnosis == "Control") %>%
+  filter(donorage > 14, donorage < 40) %>%
+  ggplot(aes(x=donorsex, y=log(AUC.G15),  fill = donorsex)) +
+  geom_boxplot(alpha = 0.5)+
+  geom_quasirandom(size = 2, shape = 21, aes(fill = donorsex)) +
+  geom_bracket(inherit.aes = FALSE, xmin = 1, xmax = 2, y.position = 6.5, label = "*", label.size = 7, size = 0.5, tip.length = c(0.25, 0.02))+
+  scale_fill_manual(values = c("#113ed1", "#5e4114")) +
+  scale_colour_manual(values = c("#113ed1", "#5e4114")) +
+  ylab("log(AUC secretion\n15 mM glucose)") +
+  xlab("")+
+  scale_y_continuous(limits = c(3,7))+
+  theme_bw()+
+  theme(legend.position = "none", panel.grid = element_blank())  +
+  theme(
+    axis.title = element_text(size = 14, colour = "black"),
+    axis.text = element_text(size = 14, colour = "black"),
+    plot.title = element_text(size = 14, hjust = 0.5),
+    legend.title = element_blank(),
+    legend.text = element_text(size = 12),
+    panel.border = element_blank(), 
+    axis.line = element_line()  
+  )
+ggsave("Output/Final figures/FigS11/FigS11O.tiff", width = 3, height = 3)
+
+## Fig S11P ## ----
+peri_gluc_means %>%
+  filter(diagnosis == "Control") %>%
+  filter(donorage > 14, donorage < 40) %>%
+  anova_test(AUC.G6 ~ donorage + donorsex) #p=0.031 for sex
+
+peri_gluc_means %>%
+  filter(diagnosis == "Control") %>%
+  filter(donorage > 14, donorage < 40) %>%
+  ggplot(aes(x=donorsex, y=log(AUC.G6),  fill = donorsex)) +
+  geom_boxplot(alpha = 0.5)+
+  geom_quasirandom(size = 2, shape = 21, aes(fill = donorsex)) +
+  geom_bracket(inherit.aes = FALSE, xmin = 1, xmax = 2, y.position = 6.25, label = "*", label.size = 7, size = 0.5, tip.length = c(0.2, 0.02))+
+  scale_fill_manual(values = c("#113ed1", "#5e4114")) +
+  scale_colour_manual(values = c("#113ed1", "#5e4114")) +
+  ylab("log(AUC secretion\n6 mM glucose)") +
+  xlab("")+
+  scale_y_continuous(limits = c(2,6.5))+
+  theme_bw()+
+  theme(legend.position = "none", panel.grid = element_blank())  +
+  theme(
+    axis.title = element_text(size = 14, colour = "black"),
+    axis.text = element_text(size = 14, colour = "black"),
+    plot.title = element_text(size = 14, hjust = 0.5),
+    legend.title = element_blank(),
+    legend.text = element_text(size = 12),
+    panel.border = element_blank(), 
+    axis.line = element_line()  
+  )
+ggsave("Output/Final figures/FigS11/FigS11P.tiff", width = 3, height = 3)
+
+## Fig S11Q ## ----
+peri_gluc_means %>%
+  filter(diagnosis == "Control") %>%
+  filter(donorage > 14, donorage < 40) %>%
+  anova_test(AUC.KCl ~ donorage + donorsex) #p=0.043 for sex
+
+peri_gluc_means %>%
+  filter(diagnosis == "Control") %>%
+  filter(donorage > 14, donorage < 40) %>%
+  ggplot(aes(x=donorsex, y=log(AUC.KCl),  fill = donorsex)) +
+  geom_boxplot(alpha = 0.5)+
+  geom_quasirandom(size = 2, shape = 21, aes(fill = donorsex)) +
+  geom_bracket(inherit.aes = FALSE, xmin = 1, xmax = 2, y.position = 6, label = "*", label.size = 7, size = 0.5, tip.length = c(0.25, 0.02))+
+  scale_fill_manual(values = c("#113ed1", "#5e4114")) +
+  scale_colour_manual(values = c("#113ed1", "#5e4114")) +
+  ylab("log(AUC secretion\n30 mM KCl)") +
+  xlab("")+
+  scale_y_continuous(limits = c(2,6.5))+
+  theme_bw()+
+  theme(legend.position = "none", panel.grid = element_blank())  +
+  theme(
+    axis.title = element_text(size = 14, colour = "black"),
+    axis.text = element_text(size = 14, colour = "black"),
+    plot.title = element_text(size = 14, hjust = 0.5),
+    legend.title = element_blank(),
+    legend.text = element_text(size = 12),
+    panel.border = element_blank(), 
+    axis.line = element_line()  
+  )
+ggsave("Output/Final figures/FigS11/FigS11Q.tiff", width = 3, height = 3)
+
+#Combining HPAP UPenn and Humanislets.com perifusions
+UPenn_select <- perifusion_all_with_metadata %>%
+  dplyr::select(Time..min.,Insulin.Release..ng.100.islets.min.,DonorID, sex,age_years,simplified_diagnosis)
+Humanislets_select <- peri_gluc_long %>%
+  dplyr::select(Time.min, Insulin.release.ng.100islets.min, record_id, donorsex, donorage, diagnosis)
+
+colnames(UPenn_select) <- c("Time.min","Insulin.orig.units","DonorID","sex","age","diagnosis")
+colnames(Humanislets_select) <- colnames(UPenn_select)
+Combined <- bind_rows(UPenn_select, Humanislets_select)
+Combined$dataset <- c(rep("UPenn",nrow(UPenn_select)),rep("Humanislets",nrow(Humanislets_select)))
+
+## Fig 7C ## ----
+mean_3G <- Combined %>%
+  filter(dataset != "Vanderbilt") %>%
+  filter(dataset == "Humanislets" & Time.min <= 20 | dataset == "UPenn" & Time.min >= 61 & Time.min <= 80) %>%
+  group_by(DonorID, sex, age, diagnosis, dataset) %>%
+  summarise(mean_3G = mean(Insulin.orig.units, na.rm = TRUE)) %>%
+  ungroup()
+
+hist(mean_3G$mean_3G)
+hist(log(mean_3G$mean_3G))
+
+mean_3G %>%
+  filter(diagnosis != "T1D") %>%
+  anova_test(log(mean_3G) ~ dataset + age + sex*diagnosis) #sig for dataset, age, and diagnosis
+model <- mean_3G %>% filter(diagnosis != "T1D") %>%
+  lm(log(mean_3G) ~ dataset + age + sex*diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ sex | diagnosis)
+pairs(emmeans_res, adjust = "tukey") #ns
+emmeans_res <- emmeans(model, ~ diagnosis | sex)
+pairs(emmeans_res, adjust = "tukey") #p=0.0327 for Ctrl-T2D in males
+
+mean_3G %>%
+  filter(diagnosis != "T1D") %>%
+  ggplot(aes(x=sex, y=log(mean_3G))) +
+  geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9), aes(fill = diagnosis))+
+  scale_fill_manual(values = c("grey50", "#FFCE2C")) +
+  ggnewscale::new_scale_fill() +
+  geom_quasirandom(size = 2, shape = 21, colour = "black", alpha = 0.75, aes(group = diagnosis, fill = dataset), dodge.width=0.9) +
+  scale_fill_manual(values = c("#50B5AD","#113ED1")) +
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 1.8, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.1))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 2, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.1))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 2.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 3.25, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  scale_y_continuous(limits = c(-4.5,3.25))+
+  ylab("log(mean secretion at\n3 mM glucose (ng/100 islets))") +
+  xlab("")+
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line()  
+  )
+ggsave("Output/Final figures/Fig7/Fig7C.tiff", width = 5, height = 4)
+
+## Fig 7D ## ----
+max_HG <- Combined %>%
+  filter(dataset == "Humanislets" & Time.min >= 20 & Time.min <= 70 | dataset == "UPenn" & Time.min >= 81 & Time.min <= 101) %>%
+  group_by(DonorID, sex, age, diagnosis, dataset) %>%
+  summarise(max_HG = max(Insulin.orig.units, na.rm = TRUE)) %>%
+  ungroup()
+unique(max_HG$dataset)
+
+hist(max_HG$max_HG)
+hist(log(max_HG$max_HG))
+
+max_HG %>%
+  filter(diagnosis != "T1D") %>%
+  anova_test(log(max_HG) ~ dataset + age + sex*diagnosis) #sig for dataset, age, and diagnosis
+model <- max_HG %>% filter(diagnosis != "T1D") %>%
+  lm(log(max_HG) ~ dataset + age + sex*diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ sex | diagnosis)
+pairs(emmeans_res, adjust = "tukey") #ns
+emmeans_res <- emmeans(model, ~ diagnosis | sex)
+pairs(emmeans_res, adjust = "tukey") #sig for both sexes
+
+max_HG %>%
+  filter(diagnosis != "T1D") %>%
+  ggplot(aes(x=sex, y=log(max_HG))) +
+  geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9), aes(fill = diagnosis))+
+  scale_fill_manual(values = c("grey50", "#FFCE2C")) +
+  ggnewscale::new_scale_fill() +
+  geom_quasirandom(size = 2, shape = 21, colour = "black", alpha = 0.75, aes(group = diagnosis, fill = dataset), dodge.width=0.9) +
+  scale_fill_manual(values = c("#50B5AD","#113ED1")) +
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 3.4, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.1))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 4.2, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.2))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 4.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 5.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  scale_y_continuous(limits = c(-3,5.5))+
+  ylab("log(peak secretion at 15 or\n16.7 mM glucose (ng/100 islets))") +
+  xlab("")+
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line()  
+  ) 
+ggsave("Output/Final figures/Fig7/Fig7D.tiff", width = 5, height = 4)
+
+## Fig 7E ## ----
+max_KCl <- Combined %>%
+  filter(dataset != "Vanderbilt") %>%
+  filter(dataset == "Humanislets" & Time.min >= 160 & Time.min <= 190 |  dataset == "UPenn" & Time.min >= 141 & Time.min <= 160) %>%
+  group_by(DonorID, sex, age, diagnosis, dataset) %>%
+  summarise(max_KCl = max(Insulin.orig.units, na.rm = TRUE)) %>%
+  ungroup()
+unique(max_KCl$dataset)
+
+hist(max_KCl$max_KCl)
+hist(log(max_KCl$max_KCl))
+
+max_KCl %>%
+  filter(diagnosis != "T1D") %>%
+  anova_test(log(max_KCl) ~ dataset + age + sex*diagnosis) #sig for dataset, age, and diagnosis
+model <- max_KCl %>% filter(diagnosis != "T1D") %>%
+  lm(log(max_KCl) ~ dataset + age + sex*diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ sex | diagnosis)
+pairs(emmeans_res, adjust = "tukey") #ns
+emmeans_res <- emmeans(model, ~ diagnosis | sex)
+pairs(emmeans_res, adjust = "tukey") #sig for both sexes
+
+max_KCl %>%
+  filter(diagnosis != "T1D") %>%
+  ggplot(aes(x=sex, y=log(max_KCl))) +
+  geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9), aes(fill = diagnosis))+
+  scale_fill_manual(values = c("grey50", "#FFCE2C")) +
+  ggnewscale::new_scale_fill() +
+  geom_quasirandom(size = 2, shape = 21, colour = "black", alpha = 0.75, aes(group = diagnosis, fill = dataset), dodge.width=0.9) +
+  scale_fill_manual(values = c("#50B5AD","#113ED1")) +
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 3.2, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.1))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 3.6, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.1))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 4, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 4.75, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  scale_y_continuous(limits = c(-3,4.75))+
+  ylab("log(peak secretion at 30 mM KCl\n(ng/100 islets))") +
+  xlab("")+
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line()  
+  ) 
+ggsave("Output/Final figures/Fig7/Fig7E.tiff", width = 5, height = 4)
+
+## Fig 7F ## ----
+SI <- inner_join(mean_3G, max_HG, by = c("DonorID", "sex", "age", "diagnosis", "dataset")) %>%
+  mutate(SI = max_HG/mean_3G)
+
+hist(SI$SI)
+hist(log(SI$SI))
+
+SI %>%
+  filter(diagnosis != "T1D") %>%
+  anova_test(log(SI) ~ dataset + age + sex*diagnosis) #sig for dataset and diagnosis
+model <- SI %>% filter(diagnosis != "T1D") %>%
+  lm(log(SI) ~ dataset + age + sex*diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ sex | diagnosis)
+pairs(emmeans_res, adjust = "tukey") #ns
+emmeans_res <- emmeans(model, ~ diagnosis | sex)
+pairs(emmeans_res, adjust = "tukey") #sig for both sexes
+
+SI %>%
+  filter(diagnosis != "T1D") %>%
+  ggplot(aes(x=sex, y=log(SI))) +
+  geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9), aes(fill = diagnosis))+
+  scale_fill_manual(values = c("grey50", "#FFCE2C")) +
+  ggnewscale::new_scale_fill() +
+  geom_quasirandom(size = 2, shape = 21, colour = "black", alpha = 0.75, aes(group = diagnosis, fill = dataset), dodge.width=0.9) +
+  scale_fill_manual(values = c("#50B5AD","#113ED1")) +
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 4, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.15))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 4.7, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.3))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 5.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  scale_y_continuous(limits = c(0,5.5))+
+  ylab("log(stimulation index, 15 or\n16.7 mM glucose/3 mM glucose))") +
+  xlab("")+
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line()  
+  )
+ggsave("Output/Final figures/Fig7/Fig7F.tiff", width = 5, height = 4)
+
+#Age-matched
+## Fig S12A ## ----
+Combined_matched <- SI %>%
+  filter(diagnosis != "T1D") %>%
+  filter(is.na(SI) == FALSE) %>%
+  dplyr::select(DonorID, sex, diagnosis, age, dataset) %>%
+  distinct()
+Combined_matched$Group <- as.logical(Combined_matched$diagnosis == "T2D")
+Combined_matched <- matchit(Group ~ age + sex + dataset,
+                            data = Combined_matched,
+                            method = 'nearest', # can switch to 'exact' or 'optimal'
+                            ratio = 1, 
+                            exact = ~sex + dataset
+) 
+Combined_matched <- match.data(Combined_matched)
+table(Combined_matched$sex, Combined_matched$diagnosis, Combined_matched$dataset)
+
+Combined_matched %>%
+  group_by(sex) %>%
+  anova_test(age ~ dataset + diagnosis) #sig for diagnosis in both sexes, plus dataset effect in males
+
+Combined_matched %>%
+  ggplot(aes(x=sex, y=age))+
+  geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9), aes(fill = diagnosis))+
+  scale_fill_manual(values = c("grey50", "#FFCE2C")) +
+  ggnewscale::new_scale_fill() +
+  geom_quasirandom(size = 2, shape = 21, colour = "black", alpha = 0.75, aes(group = diagnosis, fill = dataset), dodge.width=0.9) +
+  scale_fill_manual(values = c("#50B5AD","#113ED1")) +
+  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 72, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 70, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.02))+
+  xlab("")+
+  ylab("Age (years)") +
+  ylim(20,75)+
+  labs(fill = "Condition")+
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line() 
+  )
+ggsave("Output/Final figures/FigS12/FigS12A.tiff", width = 4, height = 4)
+
+## Fig S12B ## ----
+mean_3G_matched <- mean_3G %>%
+  filter(DonorID %in% Combined_matched$DonorID)
+
+mean_3G_matched %>%
+  filter(diagnosis != "T1D") %>%
+  anova_test(log(mean_3G) ~ dataset + age + sex*diagnosis) #sig for dataset and diagnosis
+model <- mean_3G_matched %>% filter(diagnosis != "T1D") %>%
+  lm(log(mean_3G) ~ dataset + age + sex*diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ diagnosis | sex)
+pairs(emmeans_res, adjust = "tukey") #p=0.0498 for Ctrl-T2D in males
+
+mean_3G_matched %>%
+  filter(diagnosis != "T1D") %>%
+  ggplot(aes(x=sex, y=log(mean_3G))) +
+  geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9), aes(fill = diagnosis))+
+  scale_fill_manual(values = c("grey50", "#FFCE2C")) +
+  ggnewscale::new_scale_fill() +
+  geom_quasirandom(size = 2, shape = 21, colour = "black", alpha = 0.75, aes(group = diagnosis, fill = dataset), dodge.width=0.9) +
+  scale_fill_manual(values = c("#50B5AD","#113ED1")) +
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 1.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.075))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 1.4, label = "*", label.size = 7, size = 0.5, tip.length = c(0.1, 0.02))+
+  scale_y_continuous(limits = c(-4,2.5))+
+  ylab("log(mean secretion at\n3 mM glucose (ng/100 islets))") +
+  xlab("")+
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line()  
+  )
+ggsave("Output/Final figures/FigS12/FigS12B.tiff", width = 4, height = 4)
+
+## Fig S12C ## ----
+max_HG_matched <- max_HG %>%
+  filter(DonorID %in% Combined_matched$DonorID)
+max_HG_matched %>%
+  filter(diagnosis != "T1D") %>%
+  anova_test(log(max_HG) ~ dataset + age + sex*diagnosis) #sig for diagnosis
+model <- max_HG_matched %>% filter(diagnosis != "T1D") %>%
+  filter(max_HG > 0) %>%
+  lm(log(max_HG) ~ dataset + age + sex*diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ diagnosis | sex)
+pairs(emmeans_res, adjust = "tukey") #sig for both sexes
+
+max_HG_matched %>%
+  filter(diagnosis != "T1D") %>%
+  filter(dataset != "Vanderbilt") %>%
+  ggplot(aes(x=sex, y=log(max_HG))) +
+  geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9), aes(fill = diagnosis))+
+  scale_fill_manual(values = c("grey50", "#FFCE2C")) +
+  ggnewscale::new_scale_fill() +
+  geom_quasirandom(size = 2, shape = 21, colour = "black", alpha = 0.75, aes(group = diagnosis, fill = dataset), dodge.width=0.9) +
+  scale_fill_manual(values = c("#50B5AD","#113ED1")) +
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 3, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.1))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 2.9, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.05))+
+  scale_y_continuous(limits = c(-3,3.5))+
+  ylab("log(peak secretion at 15 or\n16.7 mM glucose (ng/100 islets))") +
+  xlab("")+
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line()  
+  ) 
+ggsave("Output/Final figures/FigS12/FigS12C.tiff", width = 4, height = 4)
+
+## Fig S12D ## ----
+max_KCl_matched <- max_KCl %>%
+  filter(DonorID %in% Combined_matched$DonorID)
+
+max_KCl_matched %>%
+  filter(diagnosis != "T1D") %>%
+  anova_test(log(max_KCl) ~ dataset + age + sex*diagnosis) #sig for diagnosis
+model <- max_KCl_matched %>% filter(diagnosis != "T1D") %>%
+  lm(log(max_KCl) ~ dataset + age + sex*diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ diagnosis | sex)
+pairs(emmeans_res, adjust = "tukey") #sig for both sexes
+
+max_KCl_matched %>%
+  filter(diagnosis != "T1D") %>%
+  ggplot(aes(x=sex, y=log(max_KCl))) +
+  geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9), aes(fill = diagnosis))+
+  scale_fill_manual(values = c("grey50", "#FFCE2C")) +
+  ggnewscale::new_scale_fill() +
+  geom_quasirandom(size = 2, shape = 21, colour = "black", alpha = 0.75, aes(group = diagnosis, fill = dataset), dodge.width=0.9) +
+  scale_fill_manual(values = c("#50B5AD","#113ED1")) +
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 3.3, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.15))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 3, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.02))+
+  scale_y_continuous(limits = c(-3,4.5))+
+  ylab("log(peak secretion at 30 mM KCl\n(ng/100 islets))") +
+  xlab("")+
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line()  
+  ) 
+ggsave("Output/Final figures/FigS12/FigS12D.tiff", width = 4, height = 4)
+
+## Fig S12E ## ----
+SI_matched <- SI %>%
+  filter(DonorID %in% Combined_matched$DonorID)
+
+SI_matched %>%
+  filter(diagnosis != "T1D") %>%
+  anova_test(log(SI) ~ dataset + age + sex*diagnosis) #sig diagnosis and dataset
+model <- SI_matched %>% filter(diagnosis != "T1D") %>%
+  lm(log(SI) ~ dataset + age + sex*diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ diagnosis | sex)
+pairs(emmeans_res, adjust = "tukey") #sig for both sexes
+
+SI_matched %>%
+  filter(diagnosis != "T1D") %>%
+  ggplot(aes(x=sex, y=log(SI))) +
+  geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9), aes(fill = diagnosis))+
+  scale_fill_manual(values = c("grey50", "#FFCE2C")) +
+  ggnewscale::new_scale_fill() +
+  geom_quasirandom(size = 2, shape = 21, colour = "black", alpha = 0.75, aes(group = diagnosis, fill = dataset), dodge.width=0.9) +
+  scale_fill_manual(values = c("#50B5AD","#113ED1")) +
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 3.6, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.1))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 3.6, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.15))+
+  scale_y_continuous(limits = c(0,4.))+
+  ylab("log(stimulation index, 15 or\n16.7 mM glucose/3 mM glucose))") +
+  xlab("")+
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line()  
+  )
+ggsave("Output/Final figures/FigS12/FigS12E.tiff", width = 4, height = 4)
 
 #Vanderbilt insulin perifusion data
 #clear environment
@@ -6291,7 +9517,8 @@ all_insulin_wide <- all_insulin_wide %>%
 #add metadata
 all_insulin_wide <- left_join(all_insulin_wide, donors, by = c("DonorID" = "donor_ID"))
 
-## Fig 7B ## ----
+
+## Fig S13H ## ----
 stimulus_data <- data.frame(
   xmin = c(3,12,42,63,63,72,93,93,102,123),
   xmax = c(12,42,63,72,72,93,102,102,150,132),
@@ -6340,11 +9567,11 @@ all_insulin_df %>%
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12))
-ggsave("Output/Fig7/Fig7B.tiff", width = 8, height = 4)
+ggsave("Output/Final figures/FigS13/FigS13H.tiff", width = 8, height = 4)
 
-## Fig 7G ## ----
+## Fig S13I ## ----
 hist(all_insulin_wide$baselineins)
 hist(log(all_insulin_wide$baselineins))
 all_insulin_wide %>%
@@ -6372,21 +9599,20 @@ all_insulin_wide %>%
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("log(baseline insulin secretion\n(ng/100 IEQs))") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
   theme_bw() +
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/Fig7/Fig7G.tiff", width = 4, height = 4)
+ggsave("Output/Final figures/FigS13/FigS13I.tiff", width = 4, height = 4)
 
-## Fig 7K ## ----
+## Fig S13J ## ----
 hist(all_insulin_wide$AUC.G16.7)
 hist(log(all_insulin_wide$AUC.G16.7))
 all_insulin_wide %>%
@@ -6414,7 +9640,6 @@ all_insulin_wide %>%
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("log(AUC secretion\n16.7 mM glucose)") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
   scale_y_continuous(limits = c(0.5,6)) +
   theme_bw() +
   theme(legend.position = "bottom",
@@ -6422,14 +9647,14 @@ all_insulin_wide %>%
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/Fig7/Fig7K.tiff", width = 4, height = 4)
+ggsave("Output/Final figures/FigS13/FigS13J.tiff", width = 4, height = 4)
 
-## Fig 7N ## ----
+## Fig S13K ## ----
 hist(all_insulin_wide$AUC.IBMX)
 hist(log(all_insulin_wide$AUC.IBMX))
 all_insulin_wide %>%
@@ -6457,7 +9682,6 @@ all_insulin_wide %>%
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("log(AUC secretion 16.7 mM\nglucose + 0.1 mM IBMX)") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
   scale_y_continuous(limits = c(0.5,6)) +
   theme_bw() +
   theme(legend.position = "bottom",
@@ -6465,14 +9689,14 @@ all_insulin_wide %>%
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/Fig7/Fig7N.tiff", width = 4, height = 4)
+ggsave("Output/Final figures/FigS13/FigS13K.tiff", width = 4, height = 4)
 
-## Fig 7P ## ----
+## Fig S13L ## ----
 hist(all_insulin_wide$AUC.KCl)
 hist(log(all_insulin_wide$AUC.KCl))
 all_insulin_wide %>%
@@ -6500,7 +9724,6 @@ all_insulin_wide %>%
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("log(AUC secretion\n20 mM KCl)") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
   scale_y_continuous(limits = c(0.5,5.1)) +
   theme_bw() +
   theme(legend.position = "bottom",
@@ -6508,14 +9731,260 @@ all_insulin_wide %>%
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/Fig7/Fig7P.tiff", width = 4, height = 4)
+ggsave("Output/Final figures/FigS13/FigS13L.tiff", width = 4, height = 4)
 
-## Fig S4H ## ----
+## Fig S14J ## ----
+Vanderbilt_perifusion_matched <- all_insulin_df %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  dplyr::select(DonorID, sex, simplified_diagnosis, age_years) %>%
+  distinct()
+
+Vanderbilt_perifusion_matched$Group <- as.logical(Vanderbilt_perifusion_matched$simplified_diagnosis == "T2D")
+Vanderbilt_perifusion_matched <- matchit(Group ~ age_years + sex,
+                                         data = Vanderbilt_perifusion_matched,
+                                         method = 'nearest', # can switch to 'exact' or 'optimal'
+                                         ratio = 1, 
+                                         exact = ~sex
+) 
+Vanderbilt_perifusion_matched <- match.data(Vanderbilt_perifusion_matched)
+table(Vanderbilt_perifusion_matched$sex, Vanderbilt_perifusion_matched$simplified_diagnosis)
+Vanderbilt_perifusion_matched %>%
+  group_by(sex) %>%
+  t_test(age_years ~ simplified_diagnosis) #sig for males
+
+Vanderbilt_perifusion_matched %>%
+  ggplot(aes(x=sex, y=age_years))+
+  geom_boxplot(aes(fill = simplified_diagnosis), alpha = 0.5, position = position_dodge(width = 0.9))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 70, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 70, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.02))+
+  scale_colour_manual(values = c("grey50", "#d65ac9")) +
+  scale_fill_manual(values = c("grey50", "#d65ac9")) +
+  xlab("")+
+  ylab("Age (years)") +
+  ylim(15,75)+
+  labs(fill = "Condition")+
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line() 
+  )
+ggsave("Output/Final figures/FigS14/FigS14J.tiff", width = 4, height = 4)
+
+## Fig S14I
+stimulus_data3 <- data.frame(
+  xmin = c(3,12,42,63,63,72,93,93,102,123),
+  xmax = c(12,42,63,72,72,93,102,102,150,132),
+  label = c("G\n5.6", "G 16.7", "G 5.6","G\n16.7","IBMX","G 5.6", "G\n1.7","Epi","G 5.6","KCl"),
+  ymin = c(7,8,7.5,8,9,7.5,8,9,7.5,8),    
+  ymax = c(8,8.5,8,9,9.5,8,9,9.5,8,8.5))
+
+all_insulin_df_matched <- all_insulin_df %>%
+  filter(DonorID %in% Vanderbilt_perifusion_matched$DonorID)
+all_insulin_df_matched %>%
+  filter(simplified_diagnosis %in% c("Control","T2D")) %>%
+  ungroup() %>%
+  group_by(Time.min, simplified_diagnosis, sex) %>%
+  summarise(
+    n = n(),
+    mean = mean(Insulin.ng.100IEQs.min, na.rm = TRUE),
+    sd = sd(Insulin.ng.100IEQs.min, na.rm = TRUE),
+    up = if (n > 2) mean + sd else NA_real_,
+    down = if (n > 2) mean - sd else NA_real_,
+    .groups = "drop"
+  ) %>%
+  ggplot(aes(x=Time.min, y=mean, colour = simplified_diagnosis, group = simplified_diagnosis)) +
+  geom_path(linewidth = 1)+
+  geom_ribbon(alpha = 0.2, colour = NA, (aes(ymax = up, ymin = down, fill = simplified_diagnosis)))+
+  scale_colour_manual(values = c("grey50", "#d65ac9")) +
+  scale_fill_manual(values = c("grey50", "#d65ac9")) +
+  ylab ("Insulin release (ng/100 IEQs)") +
+  xlab ("Time (min)") +
+  labs(colour = "Condition", fill = "Condition") +
+  scale_x_continuous(limits = c(3, 150)) +  
+  facet_wrap(~sex)+
+  geom_vline(xintercept = c(3,12,42,63,63,72,93,93,102,123), colour = "darkgrey", linetype = 5)+
+  geom_rect(
+    data = stimulus_data3,
+    aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
+    inherit.aes = FALSE,
+    fill = NA, colour = "grey30",size = 0.5,
+  ) +
+  geom_text(
+    data = stimulus_data3,
+    aes(x = (xmin + xmax)/2, y = (ymin+ymax)/2, label = label),
+    inherit.aes = FALSE,
+    size = 2
+  ) +
+  theme_bw()+
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12))
+ggsave("Output/Final figures/FigS14/FigS14I.tiff", width = 8, height = 4)
+
+## Fig S14K ## ----
+all_insulin_wide_matched <- all_insulin_wide %>%
+  filter(DonorID %in% Vanderbilt_perifusion_matched$DonorID)
+
+all_insulin_wide_matched %>%
+  ungroup() %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  anova_test(log(baselineins) ~ age_years + sex*simplified_diagnosis) #ns
+model <- all_insulin_wide_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  lm(log(baselineins) ~ age_years + sex*simplified_diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ simplified_diagnosis | sex)
+pairs(emmeans_res, adjust = "tukey") #ns
+
+all_insulin_wide_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  ggplot(aes(x=sex, y=log(baselineins), fill = simplified_diagnosis)) +
+  geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 0.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 0.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.1, 0.02))+
+  scale_colour_manual(values = c("grey50", "#d65ac9")) +
+  scale_fill_manual(values = c("grey50", "#d65ac9")) +
+  ylab("log(baseline insulin secretion\n(ng/100 IEQs))") +
+  xlab("")+
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line() 
+  )
+ggsave("Output/Final figures/FigS14/FigS14K.tiff", width = 4, height = 4)
+
+## Fig S14L ## ----
+all_insulin_wide_matched %>%
+  ungroup() %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  anova_test(log(AUC.G16.7) ~ age_years + sex*simplified_diagnosis) #sig for disease
+model <- all_insulin_wide_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  lm(log(AUC.G16.7) ~ age_years + sex*simplified_diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ simplified_diagnosis | sex)
+pairs(emmeans_res, adjust = "tukey") #p=0.0224 for ctrl vs T2D in females, 0.0899 in males
+
+all_insulin_wide_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  ggplot(aes(x=sex, y=log(AUC.G16.7), fill = simplified_diagnosis)) +
+  geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 4.6, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.03))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 4.6, label = "p=0.1", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  scale_colour_manual(values = c("grey50", "#d65ac9")) +
+  scale_fill_manual(values = c("grey50", "#d65ac9")) +
+  ylab("log(AUC secretion\n16.7 mM glucose)") +
+  xlab("")+
+  scale_y_continuous(limits = c(0.5,6)) +
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line() 
+  )
+ggsave("Output/Final figures/FigS14//FigS14L.tiff", width = 4, height = 4)
+
+## Fig S14M ## ----
+all_insulin_wide_matched %>%
+  ungroup() %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  anova_test(log(AUC.IBMX) ~ age_years + sex*simplified_diagnosis) #sig for disease
+model <- all_insulin_wide_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  lm(log(AUC.IBMX) ~ age_years + sex*simplified_diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ simplified_diagnosis | sex)
+pairs(emmeans_res, adjust = "tukey") #sig for both
+
+all_insulin_wide_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  ggplot(aes(x=sex, y=log(AUC.IBMX), fill = simplified_diagnosis)) +
+  geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 5, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.12))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 4.7, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.1))+
+  scale_colour_manual(values = c("grey50", "#d65ac9")) +
+  scale_fill_manual(values = c("grey50", "#d65ac9")) +
+  ylab("log(AUC secretion 16.7 mM\nglucose + 0.1 mM IBMX)") +
+  xlab("")+
+  scale_y_continuous(limits = c(0.5,6.4)) +
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line() 
+  )
+ggsave("Output/Final figures/FigS14/FigS14M.tiff", width = 4, height = 4)
+
+## Fig S14N ## ----
+all_insulin_wide_matched %>%
+  ungroup() %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  anova_test(log(AUC.KCl) ~ age_years + sex*simplified_diagnosis) #sig for disease
+model <- all_insulin_wide_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  lm(log(AUC.KCl) ~ age_years + sex*simplified_diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ simplified_diagnosis | sex)
+pairs(emmeans_res, adjust = "tukey") #p=0.0765 for ctrl vs T2D in females, p=0.0022 in males
+
+all_insulin_wide_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  ggplot(aes(x=sex, y=log(AUC.KCl), fill = simplified_diagnosis)) +
+  geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 4, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.2))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 4, label = "p=0.08", label.size = 4, size = 0.5, tip.length = c(0.02, 0.1))+
+  scale_colour_manual(values = c("grey50", "#d65ac9")) +
+  scale_fill_manual(values = c("grey50", "#d65ac9")) +
+  ylab("log(AUC secretion\n20 mM KCl)") +
+  xlab("")+
+  scale_y_continuous(limits = c(0.5,5.1)) +
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line() 
+  )
+ggsave("Output/Final figures/FigS14/FigS14N.tiff", width = 4, height = 4)
+
+
+## Fig S11H ## ----
 stimulus_data2 <- data.frame(
   xmin = c(3,12,42,63,63,72,93,93,102,123), 
   xmax = c(12,42,63,72,72,93,102,102,150,132),
@@ -6564,11 +10033,11 @@ all_insulin_df %>%
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12))
-ggsave("Output/FigS4/FigS4H.tiff", width = 5.5, height = 4)
+ggsave("Output/Final figures/FigS11/FigS11H.tiff", width = 5.5, height = 4)
 
-## Fig S4I ## ----
+## Fig S11I ## ----
 all_insulin_wide %>%
   ungroup() %>%
   filter(simplified_diagnosis == "Control") %>%
@@ -6592,14 +10061,14 @@ all_insulin_wide %>%
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS4/FigS4I.tiff", width = 3, height = 3)
+ggsave("Output/Final figures/FigS11/FigS11I.tiff", width = 3, height = 3)
 
-## Fig S4J ## ----
+## Fig S11J ## ----
 all_insulin_wide %>%
   ungroup() %>%
   filter(simplified_diagnosis == "Control") %>%
@@ -6623,14 +10092,14 @@ all_insulin_wide %>%
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS4/FigS4J.tiff", width = 3, height = 3)
+ggsave("Output/Final figures/FigS11/FigS11J.tiff", width = 3, height = 3)
 
-## Fig S4K ## ----
+## Fig S11K ## ----
 all_insulin_wide %>%
   ungroup() %>%
   filter(simplified_diagnosis == "Control") %>%
@@ -6654,14 +10123,14 @@ all_insulin_wide %>%
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS4/FigS4K.tiff", width = 3, height = 3)
+ggsave("Output/Final figures/FigS11/FigS11K.tiff", width = 3, height = 3)
 
-## Fig S4L ## ----
+## Fig S11L ## ----
 all_insulin_wide %>%
   ungroup() %>%
   filter(simplified_diagnosis == "Control") %>%
@@ -6685,12 +10154,12 @@ all_insulin_wide %>%
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS4/FigS4L.tiff", width = 3, height = 3)
+ggsave("Output/Final figures/FigS11/FigS11L.tiff", width = 3, height = 3)
 
 #Vanderbilt glucagon perifusion data
 all_glucagon <- list()
@@ -6762,8 +10231,8 @@ all_glucagon_wide <- all_glucagon_wide %>%
 #add metadata
 all_glucagon_wide <- left_join(all_glucagon_wide, donors, by = c("DonorID" = "donor_ID"))
 
-## Fig S7B ## ----
-stimulus_data3 <- data.frame(
+## Fig S17B ## ----
+stimulus_data4 <- data.frame(
   xmin = c(3,12,42,63,63,72,93,93,102,123),   
   xmax = c(12,42,63,72,72,93,102,102,150,132),  
   label = c("G\n5.6", "G 16.7", "G 5.6","G\n16.7","IBMX","G 5.6", "G\n1.7","Epi","G 5.6","KCl"),
@@ -6794,13 +10263,13 @@ all_glucagon_df %>%
   scale_y_continuous(limits = c(-40, 390)) +
   geom_vline(xintercept = c(3,12,42,63,63,72,93,93,102,123), colour = "darkgrey", linetype = 5)+
   geom_rect(
-    data = stimulus_data3,
+    data = stimulus_data4,
     aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
     inherit.aes = FALSE,
     fill = NA, colour = "grey30",linewidth = 0.5,
   ) +
   geom_text(
-    data = stimulus_data3,
+    data = stimulus_data4,
     aes(x = (xmin + xmax)/2, y = (ymin+ymax)/2, label = label),
     inherit.aes = FALSE,
     size = 2.5
@@ -6811,11 +10280,11 @@ all_glucagon_df %>%
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12))
-ggsave("Output/FigS7/FigS7B.tiff", width = 5.5, height = 4)
+ggsave("Output/Final figures/FigS17/FigS17B.tiff", width = 5.5, height = 4)
 
-## Fig S7D ## ----
+## Fig S17D ## ----
 hist(all_glucagon_wide$baselinegcg)
 hist(log(all_glucagon_wide$baselinegcg))
 all_glucagon_wide %>%
@@ -6841,14 +10310,14 @@ all_glucagon_wide %>%
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS7/FigS7D.tiff", width = 3, height = 3)
+ggsave("Output/Final figures/FigS17/FigS17D.tiff", width = 3, height = 3)
 
-## Fig S7F ## ----
+## Fig S17F ## ----
 hist(all_glucagon_wide$AUC.Epi)
 hist(log(all_glucagon_wide$AUC.Epi))
 all_glucagon_wide %>%
@@ -6874,14 +10343,14 @@ all_glucagon_wide %>%
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS7/FigS7F.tiff", width = 3, height = 3)
+ggsave("Output/Final figures/FigS17/FigS17F.tiff", width = 3, height = 3)
 
-## Fig S7H ## ----
+## Fig S17H ## ----
 hist(all_glucagon_wide$AUC.IBMX)
 hist(log(all_glucagon_wide$AUC.IBMX))
 all_glucagon_wide %>%
@@ -6907,14 +10376,14 @@ all_glucagon_wide %>%
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS7/FigS7H.tiff", width = 3, height = 3)
+ggsave("Output/Final figures/FigS17/FigS17H.tiff", width = 3, height = 3)
 
-## Fig S7J ## ----
+## Fig S17J ## ----
 hist(all_glucagon_wide$AUC.KCl)
 hist(log(all_glucagon_wide$AUC.KCl))
 all_glucagon_wide %>%
@@ -6940,15 +10409,15 @@ all_glucagon_wide %>%
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS7/FigS7J.tiff", width = 3, height = 3)
+ggsave("Output/Final figures/FigS17/FigS17J.tiff", width = 3, height = 3)
 
-## Fig S8B ## ----
-stimulus_data4 <- data.frame(
+## Fig S18B ## ----
+stimulus_data5 <- data.frame(
   xmin = c(3,12,42,63,63,72,93,93,102,123),         
   xmax = c(12,42,63,72,72,93,102,102,150,132), 
   label = c("G\n5.6", "G 16.7", "G 5.6","G\n16.7","IBMX","G 5.6", "G\n1.7","Epi","G 5.6","KCl"),
@@ -6981,13 +10450,13 @@ all_glucagon_df %>%
   facet_wrap(~sex)+
   geom_vline(xintercept = c(3,12,42,63,63,72,93,93,102,123), colour = "darkgrey", linetype = 5)+
   geom_rect(
-    data = stimulus_data4,
+    data = stimulus_data5,
     aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
     inherit.aes = FALSE,
     fill = NA, colour = "grey30",size = 0.5,
   ) +
   geom_text(
-    data = stimulus_data4,
+    data = stimulus_data5,
     aes(x = (xmin + xmax)/2, y = (ymin+ymax)/2, label = label),
     inherit.aes = FALSE,
     size = 2
@@ -6998,11 +10467,11 @@ all_glucagon_df %>%
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12))
-ggsave("Output/FigS8/FigS8B.tiff", width = 8, height = 4)
+ggsave("Output/Final figures/FigS18/FigS18B.tiff", width = 8, height = 4)
 
-## Fig S8D ## ----
+## Fig S18D ## ----
 all_glucagon_wide %>%
   ungroup() %>%
   filter(simplified_diagnosis != "T1D") %>%
@@ -7020,7 +10489,7 @@ all_glucagon_wide %>%
   ggplot(aes(x=sex, y=log(baselinegcg), fill = simplified_diagnosis)) +
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
   geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
-  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 5.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.1))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 5.6, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.1))+
   geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 5.8, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.1, 0.02))+
   geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 6, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 6.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
@@ -7028,22 +10497,20 @@ all_glucagon_wide %>%
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("log(baseline glucagon secretion\n(pg/100 IEQs))") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
   theme_bw() +
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS8/FigS8D.tiff", width = 4, height = 4)
+ggsave("Output/Final figures/FigS18/FigS18D.tiff", width = 4, height = 4)
 
-
-## Fig S8F ## ----
+## Fig S18F ## ----
 all_glucagon_wide %>%
   ungroup() %>%
   filter(simplified_diagnosis != "T1D") %>%
@@ -7069,21 +10536,20 @@ all_glucagon_wide %>%
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("log(AUC secretion\n1.7 mM glucose + Epi)") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
   theme_bw() +
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS8/FigS8F.tiff", width = 4, height = 4)
+ggsave("Output/Final figures/FigS18/FigS18F.tiff", width = 4, height = 4)
 
-## Fig S8H ## ----
+## Fig S18H ## ----
 all_glucagon_wide %>%
   ungroup() %>%
   filter(simplified_diagnosis != "T1D") %>%
@@ -7109,21 +10575,20 @@ all_glucagon_wide %>%
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("log(AUC secretion 16.7 mM\nglucose + 0.1 mM IBMX)") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
   theme_bw() +
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS8/FigS8H.tiff", width = 4, height = 4)
+ggsave("Output/Final figures/FigS18/FigS18H.tiff", width = 4, height = 4)
 
-## Fig S8J ## ----
+## Fig S18J ## ----
 all_glucagon_wide %>%
   ungroup() %>%
   filter(simplified_diagnosis != "T1D") %>%
@@ -7149,19 +10614,18 @@ all_glucagon_wide %>%
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("log(AUC secretion\n20 mM KCl)") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
   theme_bw() +
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS8/FigS8J.tiff", width = 4, height = 4)
+ggsave("Output/Final figures/FigS18/FigS18J.tiff", width = 4, height = 4)
 
 #Vanderbilt glucagon content data
 #Load data
@@ -7200,7 +10664,7 @@ head(glucagon.content_df)
 #Add metadata
 glucagon.content_df <- inner_join(glucagon.content_df, donors, by = c("DonorID" = "donor_ID")) 
 
-## Fig S8L ## ----
+## Fig S17L ## ----
 hist(glucagon.content_df$Glucagon.content.pg.IEQ)
 hist(log(glucagon.content_df$Glucagon.content.pg.IEQ))
 glucagon.content_df %>%
@@ -7216,25 +10680,24 @@ glucagon.content_df %>%
   geom_boxplot(alpha = 0.5)+
   geom_quasirandom(size = 2, shape = 21, aes(fill = sex)) +
   geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 8.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.25))+
-   scale_colour_manual(values = c("#50b5ad", "#dbac5a")) +
+  scale_colour_manual(values = c("#50b5ad", "#dbac5a")) +
   scale_fill_manual(values = c("#50b5ad", "#dbac5a")) +
   ylab("log(glucagon content\n(pg/IEQ))") +
   xlab("") +
-  labs(colour = "Condition", fill = "Condition") +
   theme_bw()+
   theme(legend.position = "none", panel.grid = element_blank())  +
   theme(
     axis.title = element_text(size = 14, colour = "black"),
     axis.text = element_text(size = 14, colour = "black"),
     plot.title = element_text(size = 14, hjust = 0.5),
-    legend.title = element_text(size = 14),
+    legend.title = element_blank(),
     legend.text = element_text(size = 12),
     panel.border = element_blank(),
     axis.line = element_line()  
   )
-ggsave("Output/FigS7/FigS7L.tiff", width = 3, height = 3)
+ggsave("Output/Final figures/FigS17/FigS17L.tiff", width = 3, height = 3)
 
-## Fig S8L ## ----
+## Fig S18L ## ----
 glucagon.content_df %>%
   ungroup() %>%
   filter(simplified_diagnosis != "T1D") %>%
@@ -7260,7 +10723,6 @@ glucagon.content_df %>%
   scale_fill_manual(values = c("grey50", "#d65ac9")) +
   ylab("log(glucagon content (pg/IEQ))") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
   scale_y_continuous(limits = c(3,10)) +
   theme_bw() +
   theme(legend.position = "bottom",
@@ -7268,127 +10730,104 @@ glucagon.content_df %>%
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS8/FigS8L.tiff", width = 5, height = 4)
+ggsave("Output/Final figures/FigS18/FigS18L.tiff", width = 5, height = 4)
 
-#Humanislets.com glucose perifusion data
-#clear environment
-rm(list = ls())
+#Age-matched
+## Fig S19D ## ----
+Vanderbilt_perifusion_matched_glucagon <- all_glucagon_df %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  dplyr::select(DonorID, sex, simplified_diagnosis, age_years) %>%
+  distinct()
 
-#read data and metadata
-peri_gluc <- read.csv("data/Humanislets.com/peri_gluc.csv")
-donor_data <- read.csv("data/Humanislets.com/donor.csv")
-donor_data <- donor_data %>%
-  mutate(diagnosis = case_when(
-    diagnosis == "None" ~ "Control",
-    diagnosis == "Type1" ~ "T1D",
-    diagnosis == "Type2" ~ "T2D"
-  ))
+Vanderbilt_perifusion_matched_glucagon$Group <- as.logical(Vanderbilt_perifusion_matched_glucagon$simplified_diagnosis == "T2D")
+Vanderbilt_perifusion_matched_glucagon <- matchit(Group ~ age_years + sex,
+                                                  data = Vanderbilt_perifusion_matched_glucagon,
+                                                  method = 'nearest', # can switch to 'exact' or 'optimal'
+                                                  ratio = 1, 
+                                                  exact = ~sex
+) 
+Vanderbilt_perifusion_matched_glucagon <- match.data(Vanderbilt_perifusion_matched_glucagon)
+table(Vanderbilt_perifusion_matched_glucagon$sex, Vanderbilt_perifusion_matched_glucagon$simplified_diagnosis)
+Vanderbilt_perifusion_matched_glucagon %>%
+  group_by(sex) %>%
+  t_test(age_years ~ simplified_diagnosis) #sig for males
+Vanderbilt_perifusion_matched_glucagon %>%
+  ggplot(aes(x=sex, y=age_years))+
+  geom_boxplot(aes(fill = simplified_diagnosis), alpha = 0.5, position = position_dodge(width = 0.9))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 70, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 68, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.02))+
+  scale_colour_manual(values = c("grey50", "#d65ac9")) +
+  scale_fill_manual(values = c("grey50", "#d65ac9")) +
+  xlab("")+
+  ylab("Age (years)") +
+  ylim(15,75)+
+  labs(fill = "Condition")+
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line() 
+  )
+ggsave("Output/Final figures/FigS19/FigS19D.tiff", width = 5, height = 4)
 
-#summarise per donor
-peri_gluc_means <- peri_gluc %>%
-  group_by(record_id) %>%
-  summarise_all(mean)
+## Fig S19C ## ----
+all_glucagon_df_matched <- all_glucagon_df %>%
+  filter(DonorID %in% Vanderbilt_perifusion_matched_glucagon$DonorID)
 
-#turn to long format
-peri_gluc_long <- peri_gluc_means %>%
-  dplyr::select(-replicate) %>%
-  pivot_longer(!record_id, names_to = "Time.min", values_to = "Insulin.release")
-peri_gluc_long$Time.min <- gsub("time_","",peri_gluc_long$Time.min)
-peri_gluc_long$Time.min <- as.numeric(peri_gluc_long$Time.min)
-head(peri_gluc_long)
+stimulus_data6 <- data.frame(
+  xmin = c(3,12,42,63,63,72,93,93,102,123),         
+  xmax = c(12,42,63,72,72,93,102,102,150,132), 
+  label = c("G\n5.6", "G 16.7", "G 5.6","G\n16.7","IBMX","G 5.6", "G\n1.7","Epi","G 5.6","KCl"),
+  ymin = c(280,320,300,320,360,300,320,360,300,320), 
+  ymax = c(320,340,320,360,380,320,360,380,320,340))
 
-#Add metadata
-peri_gluc_long <- inner_join(peri_gluc_long, donor_data, by = "record_id")
-
-#Calculate AUCs
-calculate.auc.G15 <- function(x){
-  if(sum(!is.na(x)) >= 2) {
-    x_interpolated <- na.approx(x, na.rm = FALSE)
-    time_points <- c(20,22.5,25,27.5,30,32.5,35,40,45,50,55,60,65)
-    auc_value <- auc(time_points, x_interpolated, type = 'linear')
-  } else {
-    auc_value <- NA
-  }
-  return(auc_value)
-}
-peri_gluc_means$AUC.G15 <- apply(peri_gluc_means[,c(7:19)], 1, calculate.auc.G15)
-
-calculate.auc.G6 <- function(x){
-  if(sum(!is.na(x)) >= 2) {
-    x_interpolated <- na.approx(x, na.rm = FALSE)
-    time_points <- c(85,90,92.5,95,97.5,100,102.5,105,107.5,110,112.5,115,117.5,120,122.5,125,127.5,130,135,140)
-    auc_value <- auc(time_points, x_interpolated, type = 'linear')
-  } else {
-    auc_value <- NA
-  }
-  return(auc_value)
-}
-peri_gluc_means$AUC.G6 <- apply(peri_gluc_means[,c(23:42)], 1, calculate.auc.G6)
-
-calculate.auc.KCl <- function(x){
-  if(sum(!is.na(x)) >= 2) {
-    x_interpolated <- na.approx(x, na.rm = FALSE)
-    time_points <- c(160,162.5,165,167.5,170,175,180,185,190)
-    auc_value <- auc(time_points, x_interpolated, type = 'linear')
-  } else {
-    auc_value <- NA
-  }
-  return(auc_value)
-}
-peri_gluc_means$AUC.KCl <- apply(peri_gluc_means[,c(46:54)], 1, calculate.auc.KCl)
-
-peri_gluc_means <- peri_gluc_means %>%
-  mutate(baseline.mean = rowMeans(across(c(time_5, time_10, time_15, time_20)), na.rm = TRUE))
-
-#add metadata
-peri_gluc_means <- left_join(peri_gluc_means, donor_data, by = "record_id")
-
-## Fig 7C ## ----
-stimulus_data <- data.frame(
-  xmin = c(0,20,90,160), 
-  xmax = c(20,70,140,190), 
-  label = c("G 3","G 15","G 6","KCl"),
-  ymin = c(630,630,630,630),  
-  ymax = c(660,660,660,660))
-
-peri_gluc_long %>%
-  filter(diagnosis %in% c("Control","T2D")) %>%
+all_glucagon_df_matched %>%
+  filter(simplified_diagnosis %in% c("Control","T2D")) %>%
   ungroup() %>%
-  group_by(Time.min, diagnosis, donorsex) %>%
+  group_by(Time.min, simplified_diagnosis, sex) %>%
   summarise(
     n = n(),
-    mean = mean(Insulin.release, na.rm = TRUE),
-    sd = sd(Insulin.release, na.rm = TRUE),
+    mean = mean(Glucagon.pg.100IEQs.min, na.rm = TRUE),
+    sd = sd(Glucagon.pg.100IEQs.min, na.rm = TRUE),
     up = if (n > 2) mean + sd else NA_real_,
     down = if (n > 2) mean - sd else NA_real_,
     .groups = "drop"
   ) %>%
-  ggplot(aes(x=Time.min, y=mean, colour = diagnosis, group = diagnosis)) +
+  ggplot(aes(x=Time.min, y=mean, colour = simplified_diagnosis, group = simplified_diagnosis)) +
+  #geom_point(size = 0.05) +
   geom_path(linewidth = 1)+
-  geom_ribbon(alpha = 0.2, colour = NA, (aes(ymax = up, ymin = down, fill = diagnosis)))+
-  scale_colour_manual(values = c("grey40", "#e04e34"))  +
-  scale_fill_manual(values = c("grey40", "#e04e34"))  +
-  ylab ("Insulin Release (\U03BCU/mL/65 islets)") +
+  #geom_smooth(aes(fill = simplified_diagnosis))+
+  geom_ribbon(alpha = 0.2, colour = NA, (aes(ymax = up, ymin = down, fill = simplified_diagnosis)))+
+  scale_colour_manual(values = c("grey50", "#d65ac9")) +
+  scale_fill_manual(values = c("grey50", "#d65ac9")) +
+  ylab ("Glucagon release (pg/100 IEQs)") +
   xlab ("Time (min)") +
   labs(colour = "Condition", fill = "Condition") +
-  facet_wrap(~donorsex)+
-  geom_vline(xintercept = c(0,20,70,90,140,160,190), colour = "darkgrey", linetype = 5)+
+  scale_x_continuous(limits = c(3, 150)) +  
+  facet_wrap(~sex)+
+  geom_vline(xintercept = c(3,12,42,63,63,72,93,93,102,123), colour = "darkgrey", linetype = 5)+
   geom_rect(
-    data = stimulus_data,
+    data = stimulus_data6,
     aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
     inherit.aes = FALSE,
-    fill = NA, colour = "grey30",size = 0.5
+    fill = NA, colour = "grey30",size = 0.5,
   ) +
   geom_text(
-    data = stimulus_data,
+    data = stimulus_data6,
     aes(x = (xmin + xmax)/2, y = (ymin+ymax)/2, label = label),
     inherit.aes = FALSE,
-    size = 3
+    size = 2
   ) +
   theme_bw()+
   theme(legend.position = "bottom",
@@ -7396,358 +10835,234 @@ peri_gluc_long %>%
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12))
-ggsave("Output/Fig7/Fig7C.tiff", width = 8, height = 4)
+ggsave("Output/Final figures/FigS19/FigS19C.tiff", width = 8, height = 4)
 
-## Fig 7H ## ----
-hist(peri_gluc_means$baseline.mean)
-hist(log(peri_gluc_means$baseline.mean))
-peri_gluc_means %>%
+## Fig S19F ## ----
+all_glucagon_wide_matched <- all_glucagon_wide %>%
+  filter(DonorID %in% Vanderbilt_perifusion_matched_glucagon$DonorID)
+
+all_glucagon_wide_matched %>%
   ungroup() %>%
-  filter(diagnosis != "T1D") %>%
-  anova_test(log(baseline.mean) ~ donorage + donorsex*diagnosis) #sig for sex and diagnosis
-model <- peri_gluc_means %>%
-  filter(diagnosis != "T1D") %>%
-  lm(log(baseline.mean) ~ donorage + donorsex*diagnosis, data = .)
-emmeans_res <- emmeans(model, ~ donorsex | diagnosis)
-pairs(emmeans_res, adjust = "tukey") #p=0.0419 for F-M in controls
-emmeans_res <- emmeans(model, ~ diagnosis | donorsex)
+  filter(simplified_diagnosis != "T1D") %>%
+  anova_test(log(baselinegcg) ~ age_years + sex*simplified_diagnosis) #ns
+model <- all_glucagon_wide_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  lm(log(baselinegcg) ~ age_years + sex*simplified_diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ simplified_diagnosis | sex)
 pairs(emmeans_res, adjust = "tukey") #ns
 
-peri_gluc_means %>%
-  filter(diagnosis != "T1D") %>%
-  ggplot(aes(x=donorsex, y=log(baseline.mean), fill = diagnosis)) +
+all_glucagon_wide_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  ggplot(aes(x=sex, y=log(baselinegcg), fill = simplified_diagnosis)) +
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
-  geom_quasirandom(size = 2, shape = 21, aes(group = diagnosis, fill = diagnosis), dodge.width=0.9) +
-  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 5.2, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.075))+
-  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 5.75, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.1))+
-  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 6, label = "*", label.size = 7, size = 0.5, tip.length = c(0.1, 0.02))+
-  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 6.75, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
-  scale_colour_manual(values = c("grey40", "#e04e34"))  +
-  scale_fill_manual(values = c("grey40", "#e04e34"))  +
-  ylab("log(baseline insulin secretion\n(\U03BCU/mL/65 islets))") +
+  geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 5.6, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.15))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 5.8, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.1, 0.02))+
+  scale_colour_manual(values = c("grey50", "#d65ac9")) +
+  scale_fill_manual(values = c("grey50", "#d65ac9")) +
+  ylab("log(baseline glucagon secretion\n(pg/100 IEQs))") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
-  scale_y_continuous(limits = c(0.5,6.75)) +
   theme_bw() +
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/Fig7/Fig7H.tiff", width = 4, height = 4)
+ggsave("Output/Final figures/FigS19/FigS19F.tiff", width = 4, height = 4)
 
-## Fig 7L ## ----
-hist(peri_gluc_means$AUC.G15)
-hist(log(peri_gluc_means$AUC.G15))
-peri_gluc_means %>%
+## Fig S19J ## ----
+all_glucagon_wide_matched %>%
   ungroup() %>%
-  filter(diagnosis != "T1D") %>%
-  anova_test(log(AUC.G15) ~ donorage + donorsex*diagnosis) #sig for diagnosis
-model <- peri_gluc_means %>%
-  filter(diagnosis != "T1D") %>%
-  lm(log(AUC.G15) ~ donorage + donorsex*diagnosis, data = .)
-emmeans_res <- emmeans(model, ~ donorsex | diagnosis)
+  filter(simplified_diagnosis != "T1D") %>%
+  anova_test(log(AUC.IBMX) ~ age_years + sex*simplified_diagnosis) #ns
+model <- all_glucagon_wide_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  lm(log(AUC.IBMX) ~ age_years + sex*simplified_diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ simplified_diagnosis | sex)
 pairs(emmeans_res, adjust = "tukey") #ns
-emmeans_res <- emmeans(model, ~ diagnosis | donorsex)
-pairs(emmeans_res, adjust = "tukey") #p=0.0597 for Ctrl vs T2D in females, p=0.0002 for males
 
-peri_gluc_means %>%
-  filter(diagnosis != "T1D") %>%
-  ggplot(aes(x=donorsex, y=log(AUC.G15), fill = diagnosis)) +
+all_glucagon_wide_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  ggplot(aes(x=sex, y=log(AUC.IBMX), fill = simplified_diagnosis)) +
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
-  geom_quasirandom(size = 2, shape = 21, aes(group = diagnosis, fill = diagnosis), dodge.width=0.9) +
-  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 10.3, label = "p=0.06", label.size = 4, size = 0.5, tip.length = c(0.02, 0.1))+
-  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 10.6, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.14))+
-  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 11.3, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.1, 0.02))+
-  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 12, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
-  scale_colour_manual(values = c("grey40", "#e04e34"))  +
-  scale_fill_manual(values = c("grey40", "#e04e34"))  +
-  ylab("log(AUC secretion\n15 mM glucose)") +
+  geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 9.1, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.25))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 8.8, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.1, 0.02))+
+  scale_colour_manual(values = c("grey50", "#d65ac9")) +
+  scale_fill_manual(values = c("grey50", "#d65ac9")) +
+  ylab("log(AUC secretion 16.7 mM\nglucose + 0.1 mM IBMX)") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
-  scale_y_continuous(limits = c(4,12)) +
   theme_bw() +
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/Fig7/Fig7L.tiff", width = 4, height = 4)
+ggsave("Output/Final figures/FigS19/FigS19J.tiff", width = 4, height = 4)
 
-## Fig 7I ## ----
-hist(peri_gluc_means$AUC.G6)
-hist(log(peri_gluc_means$AUC.G6))
-peri_gluc_means %>%
+## Fig S19H ## ----
+all_glucagon_wide_matched %>%
   ungroup() %>%
-  filter(diagnosis != "T1D") %>%
-  anova_test(log(AUC.G6) ~ donorage + donorsex*diagnosis) #sig for sex
-model <- peri_gluc_means %>%
-  filter(diagnosis != "T1D") %>%
-  lm(log(AUC.G6) ~ donorage + donorsex*diagnosis, data = .)
-emmeans_res <- emmeans(model, ~ donorsex | diagnosis)
-pairs(emmeans_res, adjust = "tukey") #o=0.0412 for F vs M in controls, 0.0829 in T2D
-emmeans_res <- emmeans(model, ~ diagnosis | donorsex)
+  filter(simplified_diagnosis != "T1D") %>%
+  anova_test(log(AUC.Epi) ~ age_years + sex*simplified_diagnosis) #ns
+model <- all_glucagon_wide_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  lm(log(AUC.Epi) ~ age_years + sex*simplified_diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ simplified_diagnosis | sex)
 pairs(emmeans_res, adjust = "tukey") #ns
 
-peri_gluc_means %>%
-  filter(diagnosis != "T1D") %>%
-  ggplot(aes(x=donorsex, y=log(AUC.G6), fill = diagnosis)) +
+all_glucagon_wide_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  ggplot(aes(x=sex, y=log(AUC.Epi), fill = simplified_diagnosis)) +
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
-  geom_quasirandom(size = 2, shape= 21, aes(group = diagnosis, fill = diagnosis), dodge.width=0.9) +
-  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 9.7, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.15))+
-  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 10.1, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.15))+
-  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 10.3, label = "*", label.size = 7, size = 0.5, tip.length = c(0.1, 0.02))+
-  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 11, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
-  scale_colour_manual(values = c("grey40", "#e04e34"))  +
-  scale_fill_manual(values = c("grey40", "#e04e34"))  +
-  ylab("log(AUC secretion\n6 mM glucose)") +
+  geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 9, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 9.1, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.12, 0.02))+
+  scale_colour_manual(values = c("grey50", "#d65ac9")) +
+  scale_fill_manual(values = c("grey50", "#d65ac9")) +
+  ylab("log(AUC secretion\n1.7 mM glucose + Epi)") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
-  scale_y_continuous(limits = c(6,11)) +
   theme_bw() +
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/Fig7/Fig7I.tiff", width = 4, height = 4)
+ggsave("Output/Final figures/FigS19/FigS19H.tiff", width = 4, height = 4)
 
-## Fig 7Q ## ----
-hist(peri_gluc_means$AUC.KCl)
-hist(log(peri_gluc_means$AUC.KCl))
-peri_gluc_means %>%
+## Fig S19L ## ----
+all_glucagon_wide_matched %>%
   ungroup() %>%
-  filter(diagnosis != "T1D") %>%
-  anova_test(log(AUC.KCl) ~ donorage + donorsex*diagnosis) #ns
-model <- peri_gluc_means %>%
-  filter(diagnosis != "T1D") %>%
-  lm(log(AUC.KCl) ~ donorage + donorsex*diagnosis, data = .)
-emmeans_res <- emmeans(model, ~ donorsex | diagnosis)
-pairs(emmeans_res, adjust = "tukey") #ns
-emmeans_res <- emmeans(model, ~ diagnosis | donorsex)
+  filter(simplified_diagnosis != "T1D") %>%
+  anova_test(log(AUC.KCl) ~ age_years + sex*simplified_diagnosis) #ns
+model <- all_glucagon_wide_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  lm(log(AUC.KCl) ~ age_years + sex*simplified_diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ simplified_diagnosis | sex)
 pairs(emmeans_res, adjust = "tukey") #ns
 
-peri_gluc_means %>%
-  filter(diagnosis != "T1D") %>%
-  ggplot(aes(x=donorsex, y=log(AUC.KCl), fill = diagnosis)) +
+all_glucagon_wide_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  ggplot(aes(x=sex, y=log(AUC.KCl), fill = simplified_diagnosis)) +
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
-  geom_quasirandom(size = 2, shape = 21, aes(group = diagnosis, fiill = diagnosis), dodge.width=0.9) +
-  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 9.4, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.15))+
-  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 9.8, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.15))+
-  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 10.1, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
-  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 10.4, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
-  scale_colour_manual(values = c("grey40", "#e04e34"))  +
-  scale_fill_manual(values = c("grey40", "#e04e34"))  +
-  ylab("log(AUC secretion\n30 mM KCl)") +
+  geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 8.4, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.15))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 8.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.1, 0.02))+
+  scale_colour_manual(values = c("grey50", "#d65ac9")) +
+  scale_fill_manual(values = c("grey50", "#d65ac9")) +
+  ylab("log(AUC secretion\n20 mM KCl)") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
   theme_bw() +
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/Fig7/Fig7Q.tiff", width = 4, height = 4)
+ggsave("Output/Final figures/FigS19/FigS19L.tiff", width = 4, height = 4)
 
-## Fig S4M ## ----
-stimulus_data2 <- data.frame(
-  xmin = c(0,20,90,160),
-  xmax = c(20,70,140,190),
-  label = c("G 3","G 15","G 6","KCl"),
-  ymin = c(rep(1000,4)),  
-  ymax = c(rep(1100,4)))
+## Fig S19O ## ----
+glucagon.content_matched <- glucagon.content_df %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  filter(Glucagon.content.pg.IEQ > 0) %>%
+  dplyr::select(DonorID, sex, simplified_diagnosis, age_years, Glucagon.content.pg.IEQ) %>%
+  distinct()
 
-peri_gluc_long %>%
-  filter(diagnosis %in% c("Control")) %>%
-  filter(donorage > 14, donorage < 40) %>%
-  ungroup() %>%
-  group_by(Time.min, donorsex) %>%
-  summarise(
-    n = n(),
-    mean = mean(Insulin.release, na.rm = TRUE),
-    sd = sd(Insulin.release, na.rm = TRUE),
-    up = if (n > 2) mean + sd else NA_real_,
-    down = if (n > 2) mean - sd else NA_real_,
-    .groups = "drop"
-  ) %>%
-  ggplot(aes(x=Time.min, y=mean, colour = donorsex, group = donorsex)) +
-  geom_path(linewidth = 1)+
-  geom_ribbon(alpha = 0.2, colour = NA, (aes(ymax = up, ymin = down, fill = donorsex)))+
-  scale_fill_manual(values = c("#113ed1", "#5e4114")) +
-  scale_colour_manual(values = c("#113ed1", "#5e4114")) +
-  ylab ("Insulin Release (\U03BCU/mL/65 islets)") +
-  xlab ("Time (min)") +
-  labs(colour = "Condition", fill = "Condition") +
-  geom_vline(xintercept = c(0,20,70,90,140,160,190), colour = "darkgrey", linetype = 5)+
-  geom_rect(
-    data = stimulus_data2,
-    aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
-    inherit.aes = FALSE,
-    fill = NA, colour = "grey30",size = 0.5
-  ) +
-  geom_text(
-    data = stimulus_data2,
-    aes(x = (xmin + xmax)/2, y = (ymin+ymax)/2, label = label),
-    inherit.aes = FALSE,
-    size = 3
-  ) +
-  theme_bw()+
-  theme(legend.position = "none",
+glucagon.content_matched$Group <- as.logical(glucagon.content_matched$simplified_diagnosis == "T2D")
+glucagon.content_matched <- matchit(Group ~ age_years + sex,
+                                    data = glucagon.content_matched,
+                                    method = 'nearest', # can switch to 'exact' or 'optimal'
+                                    ratio = 1, 
+                                    exact = ~sex
+) 
+glucagon.content_matched <- match.data(glucagon.content_matched)
+table(glucagon.content_matched$sex, glucagon.content_matched$simplified_diagnosis)
+
+glucagon.content_matched %>%
+  group_by(sex) %>%
+  t_test(age_years ~ simplified_diagnosis) #sig for males
+glucagon.content_matched %>%
+  ggplot(aes(x=sex, y=age_years))+
+  geom_boxplot(aes(fill = simplified_diagnosis), alpha = 0.5, position = position_dodge(width = 0.9))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 68, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 70, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  scale_colour_manual(values = c("grey50", "#d65ac9")) +
+  scale_fill_manual(values = c("grey50", "#d65ac9")) +
+  xlab("")+
+  ylab("Age (years)") +
+  ylim(15,75)+
+  labs(fill = "Condition")+
+  theme_bw() +
+  theme(legend.position = "bottom",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
-        legend.text = element_text(size = 12))
-ggsave("Output/FigS4/FigS4M.tiff", width = 5.5, height = 4)
-
-## Fig S4N ## ----
-peri_gluc_means %>%
-  filter(diagnosis == "Control") %>%
-  filter(donorage > 14, donorage < 40) %>%
-  anova_test(baseline.mean ~ donorage + donorsex) #ns
-
-peri_gluc_means %>%
-  filter(diagnosis == "Control") %>%
-  filter(donorage > 14, donorage < 40) %>%
-  ggplot(aes(x=donorsex, y=log(baseline.mean),  fill = donorsex)) +
-  geom_boxplot(alpha = 0.5)+
-  geom_quasirandom(size = 2, shape = 21, aes(fill = donorsex)) +
-  geom_bracket(inherit.aes = FALSE, xmin = 1, xmax = 2, y.position = 5.7, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.1, 0.02))+
-  scale_fill_manual(values = c("#113ed1", "#5e4114")) +
-  scale_colour_manual(values = c("#113ed1", "#5e4114")) +
-  ylab("log(baseline insulin secretion\n(\U03BCU/mL/65 islets))") +
-  xlab("")+
-  theme_bw()+
-  theme(legend.position = "none", panel.grid = element_blank())  +
-  theme(
-    axis.title = element_text(size = 14, colour = "black"),
-    axis.text = element_text(size = 14, colour = "black"),
-    plot.title = element_text(size = 14, hjust = 0.5),
-    legend.title = element_text(size = 14),
-    legend.text = element_text(size = 12),
-    panel.border = element_blank(), 
-    axis.line = element_line()  
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line() 
   )
-ggsave("Output/FigS4/FigS4N.tiff", width = 3, height = 3)
+ggsave("Output/Final figures/FigS19/FigS19O.tiff", width = 4, height = 4)
 
-## Fig S4O ## ----
-peri_gluc_means %>%
-  filter(diagnosis == "Control") %>%
-  filter(donorage > 14, donorage < 40) %>%
-  anova_test(AUC.G15 ~ donorage + donorsex) #p=0.029 for sex
+## Fig S19P ## ----
+glucagon.content_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  anova_test(log(Glucagon.content.pg.IEQ) ~ age_years + sex*simplified_diagnosis) #ns
+model <- glucagon.content_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  lm(log(Glucagon.content.pg.IEQ) ~ age_years + sex*simplified_diagnosis, data = .)
+emmeans_res <- emmeans(model, ~ simplified_diagnosis | sex)
+pairs(emmeans_res, adjust = "tukey") #ns
 
-peri_gluc_means %>%
-  filter(diagnosis == "Control") %>%
-  filter(donorage > 14, donorage < 40) %>%
-  ggplot(aes(x=donorsex, y=log(AUC.G15),  fill = donorsex)) +
-  geom_boxplot(alpha = 0.5)+
-  geom_quasirandom(size = 2, shape = 21, aes(fill = donorsex)) +
-  geom_bracket(inherit.aes = FALSE, xmin = 1, xmax = 2, y.position = 10.6, label = "*", label.size = 7, size = 0.5, tip.length = c(0.25, 0.02))+
-  scale_fill_manual(values = c("#113ed1", "#5e4114")) +
-  scale_colour_manual(values = c("#113ed1", "#5e4114")) +
-  ylab("log(AUC secretion\n15 mM glucose)") +
+glucagon.content_matched %>%
+  filter(simplified_diagnosis != "T1D") %>%
+  ggplot(aes(x=sex, y=log(Glucagon.content.pg.IEQ), fill = simplified_diagnosis)) +
+  geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
+  geom_quasirandom(size = 2, shape = 21, aes(group = simplified_diagnosis, fill = simplified_diagnosis), dodge.width=0.9) +
+  geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 8.9, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.1, 0.02))+
+  geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 8, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  scale_colour_manual(values = c("grey50", "#d65ac9")) +
+  scale_fill_manual(values = c("grey50", "#d65ac9")) +
+  ylab("log(glucagon content (pg/islet))") +
   xlab("")+
-  scale_y_continuous(limits = c(6.5,11))+
-  theme_bw()+
-  theme(legend.position = "none", panel.grid = element_blank())  +
-  theme(
-    axis.title = element_text(size = 14, colour = "black"),
-    axis.text = element_text(size = 14, colour = "black"),
-    plot.title = element_text(size = 14, hjust = 0.5),
-    legend.title = element_text(size = 14),
-    legend.text = element_text(size = 12),
-    panel.border = element_blank(), 
-    axis.line = element_line()  
+  scale_y_continuous(limits = c(3,9.5))+
+  theme_bw() +
+  theme(legend.position = "bottom",
+        panel.grid = element_blank(),
+        axis.title = element_text(size = 14, colour = "black"),
+        axis.text = element_text(size = 14, colour = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        panel.border = element_blank(),
+        axis.line = element_line()   
   )
-ggsave("Output/FigS4/FigS4O.tiff", width = 3, height = 3)
+ggsave("Output/Final figures/FigS19/FigS19P.tiff", width = 4, height = 4)
 
-## Fig S4P ## ----
-peri_gluc_means %>%
-  filter(diagnosis == "Control") %>%
-  filter(donorage > 14, donorage < 40) %>%
-  anova_test(AUC.G6 ~ donorage + donorsex) #p=0.031 for sex
-
-peri_gluc_means %>%
-  filter(diagnosis == "Control") %>%
-  filter(donorage > 14, donorage < 40) %>%
-  ggplot(aes(x=donorsex, y=log(AUC.G6),  fill = donorsex)) +
-  geom_boxplot(alpha = 0.5)+
-  geom_quasirandom(size = 2, shape = 21, aes(fill = donorsex)) +
-  geom_bracket(inherit.aes = FALSE, xmin = 1, xmax = 2, y.position = 10.1, label = "*", label.size = 7, size = 0.5, tip.length = c(0.2, 0.02))+
-  scale_fill_manual(values = c("#113ed1", "#5e4114")) +
-  scale_colour_manual(values = c("#113ed1", "#5e4114")) +
-  ylab("log(AUC secretion\n6 mM glucose)") +
-  xlab("")+
-  scale_y_continuous(limits = c(6.5,10.5))+
-  theme_bw()+
-  theme(legend.position = "none", panel.grid = element_blank())  +
-  theme(
-    axis.title = element_text(size = 14, colour = "black"),
-    axis.text = element_text(size = 14, colour = "black"),
-    plot.title = element_text(size = 14, hjust = 0.5),
-    legend.title = element_text(size = 14),
-    legend.text = element_text(size = 12),
-    panel.border = element_blank(), 
-    axis.line = element_line()  
-  )
-ggsave("Output/FigS4/FigS4P.tiff", width = 3, height = 3)
-
-## Fig S4Q ## ----
-peri_gluc_means %>%
-  filter(diagnosis == "Control") %>%
-  filter(donorage > 14, donorage < 40) %>%
-  anova_test(AUC.KCl ~ donorage + donorsex) #p=0.043 for sex
-
-peri_gluc_means %>%
-  filter(diagnosis == "Control") %>%
-  filter(donorage > 14, donorage < 40) %>%
-  ggplot(aes(x=donorsex, y=log(AUC.KCl),  fill = donorsex)) +
-  geom_boxplot(alpha = 0.5)+
-  geom_quasirandom(size = 2, shape = 21, aes(fill = donorsex)) +
-  geom_bracket(inherit.aes = FALSE, xmin = 1, xmax = 2, y.position = 9.7, label = "*", label.size = 7, size = 0.5, tip.length = c(0.25, 0.02))+
-  scale_fill_manual(values = c("#113ed1", "#5e4114")) +
-  scale_colour_manual(values = c("#113ed1", "#5e4114")) +
-  ylab("log(AUC secretion\n30 mM KCl)") +
-  xlab("")+
-  scale_y_continuous(limits = c(6.5,10))+
-  theme_bw()+
-  theme(legend.position = "none", panel.grid = element_blank())  +
-  theme(
-    axis.title = element_text(size = 14, colour = "black"),
-    axis.text = element_text(size = 14, colour = "black"),
-    plot.title = element_text(size = 14, hjust = 0.5),
-    legend.title = element_text(size = 14),
-    legend.text = element_text(size = 12),
-    panel.border = element_blank(), 
-    axis.line = element_line()  
-  )
-ggsave("Output/FigS4/FigS4Q.tiff", width = 3, height = 3)
-
-
-### Figures S5-6 ### ----
+### Figures S15-16 ### ----
 #clear environment
 rm(list = ls())
 
@@ -7768,6 +11083,10 @@ peri_leu <- read.csv("data/Humanislets.com/peri_leu.csv")
 peri_leu_means <- peri_leu %>%
   group_by(record_id) %>%
   summarise_all(mean)
+
+#convert to ng/100 islets
+peri_leu_means <- peri_leu_means %>%
+  mutate(across(-c(record_id, replicate), ~ .x * (34.848/1625)))
 
 #turn to long format
 peri_leu_long <- peri_leu_means %>%
@@ -7823,13 +11142,13 @@ peri_leu_means <- peri_leu_means %>%
 #add metadata
 peri_leu_means <- left_join(peri_leu_means, donor_data, by = "record_id")
 
-## Fig S5A ## ----
+## Fig S15A ## ----
 stimulus_data <- data.frame(
   xmin = c(0,20,90,160),
   xmax = c(20,70,140,190),
   label = c("G 3","Leu 5","Leu 5 + G 6","KCl"),
-  ymin = c(740,740,740,740),
-  ymax = c(820,820,820,820))
+  ymin = rep(16,4),
+  ymax = rep(18,4))
 
 peri_leu_long %>%
   filter(diagnosis %in% c("Control")) %>%
@@ -7849,9 +11168,8 @@ peri_leu_long %>%
   geom_ribbon(alpha = 0.2, colour = NA, (aes(ymax = up, ymin = down, fill = donorsex)))+
   scale_fill_manual(values = c("#113ed1", "#5e4114")) +
   scale_colour_manual(values = c("#113ed1", "#5e4114")) +
-  ylab ("Insulin Release (\U03BCU/mL/65 islets)") +
+  ylab ("Insulin Release (ng/100 islets)") +
   xlab ("Time (min)") +
-  labs(colour = "Condition", fill = "Condition") +
   geom_vline(xintercept = c(0,20,70,90,140,160,190), colour = "darkgrey", linetype = 5)+
   geom_rect(
     data = stimulus_data,
@@ -7871,11 +11189,11 @@ peri_leu_long %>%
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12))
-ggsave("Output/FigS5/FigS5A.tiff", width = 5.5, height = 4)
+ggsave("Output/Final figures/FigS15/FigS15A.tiff", width = 5.5, height = 4)
 
-## Fig S5B ## ----
+## Fig S15B ## ----
 hist(peri_leu_means$baseline.mean)
 hist(log(peri_leu_means$baseline.mean))
 peri_leu_means %>%
@@ -7889,27 +11207,26 @@ peri_leu_means %>%
   ggplot(aes(x=donorsex, y=log(baseline.mean), fill = donorsex)) +
   geom_boxplot(alpha = 0.5)+
   geom_quasirandom(size = 2, shape = 21, aes(fill = donorsex)) +
-  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 6, label = "*", label.size = 7, size = 0.5, tip.length = c(0.2, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 2.5, label = "*", label.size = 7, size = 0.5, tip.length = c(0.2, 0.02))+
   scale_fill_manual(values = c("#113ed1", "#5e4114")) +
   scale_colour_manual(values = c("#113ed1", "#5e4114")) +
-  ylab("log(mean baseline insulin\nsecretion (\U03BCU/mL/65 islets))") +
+  ylab("log(mean baseline insulin\nsecretion (ng/100 islets))") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
-  scale_y_continuous(limits = c(-0,6.5)) +
+  scale_y_continuous(limits = c(-3,3)) +
   theme_bw() +
   theme(legend.position = "none",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(), 
         axis.line = element_line() 
   )
-ggsave("Output/FigS5/FigS5B.tiff", width = 3, height = 3)
+ggsave("Output/Final figures/FigS15/FigS15B.tiff", width = 3, height = 3)
 
-## Fig S5C ## ----
+## Fig S15C ## ----
 hist(peri_leu_means$AUC.leu5)
 hist(log(peri_leu_means$AUC.leu5))
 peri_leu_means %>%
@@ -7923,27 +11240,26 @@ peri_leu_means %>%
   ggplot(aes(x=donorsex, y=log(AUC.leu5), fill = donorsex)) +
   geom_boxplot(alpha = 0.5)+
   geom_quasirandom(size = 2, shape = 21, aes(fill = donorsex)) +
-  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 10.5, label = "*", label.size = 7, size = 0.5, tip.length = c(0.35, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 6.5, label = "*", label.size = 7, size = 0.5, tip.length = c(0.35, 0.02))+
   scale_fill_manual(values = c("#113ed1", "#5e4114")) +
   scale_colour_manual(values = c("#113ed1", "#5e4114")) +
   ylab("log(AUC secretion\n5 mM leucine)") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
-  scale_y_continuous(limits = c(5,11)) +
+  scale_y_continuous(limits = c(1.5,7)) +
   theme_bw() +
   theme(legend.position = "none",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(), 
         axis.line = element_line() 
   )
-ggsave("Output/FigS5/FigS5C.tiff", width = 3, height = 3)
+ggsave("Output/Final figures/FigS15/FigS15C.tiff", width = 3, height = 3)
 
-## Fig S5D ## ----
+## Fig S15D ## ----
 hist(peri_leu_means$AUC.leu5glc6)
 hist(log(peri_leu_means$AUC.leu5glc6))
 peri_leu_means %>%
@@ -7957,27 +11273,26 @@ peri_leu_means %>%
   ggplot(aes(x=donorsex, y=log(AUC.leu5glc6), fill = donorsex)) +
   geom_boxplot(alpha = 0.5)+
   geom_quasirandom(size = 2, shape = 21, aes(fill = donorsex)) +
-  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 10.5, label = "*", label.size = 7, size = 0.5, tip.length = c(0.35, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 6.6, label = "*", label.size = 7, size = 0.5, tip.length = c(0.35, 0.02))+
   scale_fill_manual(values = c("#113ed1", "#5e4114")) +
   scale_colour_manual(values = c("#113ed1", "#5e4114")) +
   ylab("log(AUC secretion 5 mM\nleucine + 6 mM glucose)") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
-  scale_y_continuous(limits = c(5,11)) +
+  scale_y_continuous(limits = c(2.5,7)) +
   theme_bw() +
   theme(legend.position = "none",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(), 
         axis.line = element_line() 
   )
-ggsave("Output/FigS5/FigS5D.tiff", width = 3, height = 3)
+ggsave("Output/Final figures/FigS15/FigS15D.tiff", width = 3, height = 3)
 
-## Fig S5E ## ----
+## Fig S15E ## ----
 hist(peri_leu_means$AUC.KCl)
 hist(log(peri_leu_means$AUC.KCl))
 peri_leu_means %>%
@@ -7991,33 +11306,32 @@ peri_leu_means %>%
   ggplot(aes(x=donorsex, y=log(AUC.KCl), fill = donorsex)) +
   geom_boxplot(alpha = 0.5)+
   geom_quasirandom(size = 2, shape = 21, aes(fill = donorsex)) +
-  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 9.75, label = "*", label.size = 7, size = 0.5, tip.length = c(0.2, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 6, label = "*", label.size = 7, size = 0.5, tip.length = c(0.2, 0.02))+
   scale_fill_manual(values = c("#113ed1", "#5e4114")) +
   scale_colour_manual(values = c("#113ed1", "#5e4114")) +
   ylab("log(AUC secretion\n30 mM KCl) ") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
-  scale_y_continuous(limits = c(6,10.5)) +
+  scale_y_continuous(limits = c(2,6.5)) +
   theme_bw() +
   theme(legend.position = "none",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(), 
         axis.line = element_line() 
   )
-ggsave("Output/FigS5/FigS5E.tiff", width = 3, height = 3)
+ggsave("Output/Final figures/FigS15/FigS15E.tiff", width = 3, height = 3)
 
-## Fig S6A ## ----
+## Fig S16A ## ----
 stimulus_data2 <- data.frame(
   xmin = c(0,20,90,160),
   xmax = c(20,70,140,190), 
   label = c("G 3","Leu 5","Leu 5 + G 6","KCl"),
-  ymin = c(600,600,600,600),
-  ymax = c(630,630,630,630))
+  ymin = rep(12,4),
+  ymax = rep(13,4))
 
 peri_leu_long %>%
   filter(diagnosis %in% c("Control","T2D")) %>%
@@ -8036,7 +11350,7 @@ peri_leu_long %>%
   geom_ribbon(alpha = 0.2, colour = NA, (aes(ymax = up, ymin = down, fill = diagnosis)))+
   scale_colour_manual(values = c("grey40", "#e04e34"))  +
   scale_fill_manual(values = c("grey40", "#e04e34"))  +
-  ylab ("Insulin Release (\U03BCU/mL/65 islets)") +
+  ylab ("Insulin Release (ng/100 islets)") +
   xlab ("Time (min)") +
   labs(colour = "Condition", fill = "Condition") +
   facet_wrap(~donorsex) +
@@ -8059,11 +11373,11 @@ peri_leu_long %>%
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12))
-ggsave("Output/FigS6/FigS6A.tiff", width = 8, height = 4)
+ggsave("Output/Final figures/FigS16/FigS16A.tiff", width = 8, height = 4)
 
-## Fig S6B ## ----
+## Fig S16B ## ----
 peri_leu_means %>%
   ungroup() %>%
   filter(diagnosis != "T1D") %>%
@@ -8081,30 +11395,29 @@ peri_leu_means %>%
   ggplot(aes(x=donorsex, y=log(baseline.mean), fill = diagnosis)) +
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
   geom_quasirandom(size = 2, shape = 21, aes(group = diagnosis, fill = diagnosis), dodge.width=0.9) +
-  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.05))+
-  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 6, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.15))+
-  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 6.3, label = "*", label.size = 7, size = 0.5, tip.length = c(0.17, 0.02))+
-  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 7.2, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 1.2, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.05))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 2.4, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.15))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 2.7, label = "*", label.size = 7, size = 0.5, tip.length = c(0.17, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 3.6, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey40", "#e04e34"))  +
   scale_fill_manual(values = c("grey40", "#e04e34"))  +
-  ylab("log(baseline insulin secretion\n(\U03BCU/mL/65 islets))") +
+  ylab("log(baseline insulin secretion\n(ng/100 islets))") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
-  scale_y_continuous(limits = c(0,7.2)) +
+  scale_y_continuous(limits = c(-4,4)) +
   theme_bw() +
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS6/FigS6B.tiff", width = 5, height = 4)
+ggsave("Output/Final figures/FigS16/FigS16B.tiff", width = 5, height = 4)
 
-## Fig S6C ## ----
+## Fig S16C ## ----
 peri_leu_means %>%
   ungroup() %>%
   filter(diagnosis != "T1D") %>%
@@ -8122,30 +11435,29 @@ peri_leu_means %>%
   ggplot(aes(x=donorsex, y=log(AUC.leu5), fill = diagnosis)) +
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
   geom_quasirandom(size = 2, shape = 21, aes(group = diagnosis, fill = diagnosis), dodge.width=0.9) +
-  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 9.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.05))+
-  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 10.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.15))+
-  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 10.8, label = "*", label.size = 7, size = 0.5, tip.length = c(0.15, 0.02))+
-  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 11.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 6, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.05))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 7, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.15))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 7.5, label = "*", label.size = 7, size = 0.5, tip.length = c(0.15, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 9, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey40", "#e04e34"))  +
   scale_fill_manual(values = c("grey40", "#e04e34"))  +
   ylab("log(AUC secretion 5 mM leucine)") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
-  scale_y_continuous(limits = c(5,11.5)) +
+  scale_y_continuous(limits = c(0,10)) +
   theme_bw() +
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS6/FigS6C.tiff", width = 5, height = 4)
+ggsave("Output/Final figures/FigS16/FigS16C.tiff", width = 5, height = 4)
 
-## Fig S6D ## ----
+## Fig S16D ## ----
 peri_leu_means %>%
   ungroup() %>%
   filter(diagnosis != "T1D") %>%
@@ -8163,30 +11475,29 @@ peri_leu_means %>%
   ggplot(aes(x=donorsex, y=log(AUC.leu5glc6), fill = diagnosis)) +
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
   geom_quasirandom(size = 2, shape = 21, aes(group = diagnosis, fill = diagnosis), dodge.width=0.9) +
-  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 9.8, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.075))+
-  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 10.5, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.15))+
-  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 10.8, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
-  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 11.2, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 6.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.075))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 7, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.15))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 7.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 8.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey40", "#e04e34"))  +
   scale_fill_manual(values = c("grey40", "#e04e34"))  +
   ylab("log(AUC secretion 5 mM leucine\n+ 6 mM glucose)") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
-  scale_y_continuous(limits = c(5,11.2)) +
+  scale_y_continuous(limits = c(0,10)) +
   theme_bw() +
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS6/FigS6D.tiff", width = 5, height = 4)
+ggsave("Output/Final figures/FigS16/FigS16D.tiff", width = 5, height = 4)
 
-## Fig S6E ## ----
+## Fig S16E ## ----
 peri_leu_means %>%
   ungroup() %>%
   filter(diagnosis != "T1D") %>%
@@ -8204,28 +11515,27 @@ peri_leu_means %>%
   ggplot(aes(x=donorsex, y=log(AUC.KCl), fill = diagnosis)) +
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
   geom_quasirandom(size = 2, shape = 21, aes(group = diagnosis, fill = diagnosis), dodge.width=0.9) +
-  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 9.8, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.12))+
-  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 9.9, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.07))+
-  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 10.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
-  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 11, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 6.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.12))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 6.5, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.07))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 7.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 8.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey40", "#e04e34"))  +
   scale_fill_manual(values = c("grey40", "#e04e34"))  +
   ylab("log(AUC secretion 30 mM KCl) ") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
-  scale_y_continuous(limits = c(5,11)) +
+  scale_y_continuous(limits = c(-0.5,9)) +
   theme_bw() +
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS6/FigS6E.tiff", width = 5, height = 4)
+ggsave("Output/Final figures/FigS16/FigS16E.tiff", width = 5, height = 4)
 
 #Humanislets.com oleate/palmitate perifusion
 #metadata
@@ -8244,6 +11554,11 @@ peri_olp <- read.csv("data/Humanislets.com/peri_olp.csv")
 peri_olp_means <- peri_olp %>%
   group_by(record_id) %>%
   summarise_all(mean)
+
+#convert to ng/100 islets
+peri_olp_means <- peri_olp_means %>%
+  mutate(across(-c(record_id, replicate), ~ .x * (34.848/1625)))
+
 
 #turn to long format
 peri_olp_long <- peri_olp_means %>%
@@ -8299,13 +11614,13 @@ peri_olp_means <- peri_olp_means %>%
 #add metadata
 peri_olp_means <- left_join(peri_olp_means, donor_data, by = "record_id")
 
-## Fig S5F ## ----
+## Fig S15F ## ----
 stimulus_data <- data.frame(
   xmin = c(0,20,90,160), 
   xmax = c(20,70,140,190), 
   label = c("G 3","OLP 1.5","OLP 1.5 + G 6","KCl"),
-  ymin = c(rep(650,4)),     
-  ymax = c(rep(700,4)))
+  ymin = c(rep(15,4)),     
+  ymax = c(rep(17,4)))
 
 peri_olp_long %>%
   filter(diagnosis %in% c("Control")) %>%
@@ -8325,9 +11640,8 @@ peri_olp_long %>%
   geom_ribbon(alpha = 0.2, colour = NA, (aes(ymax = up, ymin = down, fill = donorsex)))+
   scale_fill_manual(values = c("#113ed1", "#5e4114")) +
   scale_colour_manual(values = c("#113ed1", "#5e4114")) +
-  ylab ("Insulin Release (\U03BCU/mL/65 islets)") +
+  ylab ("Insulin Release (ng/100 islets)") +
   xlab ("Time (min)") +
-  labs(colour = "Condition", fill = "Condition") +
   geom_vline(xintercept = c(0,20,70,90,140,160,190), colour = "darkgrey", linetype = 5)+
   geom_rect(
     data = stimulus_data,
@@ -8347,11 +11661,11 @@ peri_olp_long %>%
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12))
-ggsave("Output/FigS5/FigS5F.tiff", width = 5.5, height = 4)
+ggsave("Output/Final figures/FigS15/FigS15F.tiff", width = 5.5, height = 4)
 
-## Fig S5G ## ----
+## Fig S15G ## ----
 hist(peri_olp_means$baseline.mean)
 hist(log(peri_olp_means$baseline.mean))
 peri_olp_means %>%
@@ -8365,27 +11679,26 @@ peri_olp_means %>%
   ggplot(aes(x=donorsex, y=log(baseline.mean), fill = donorsex)) +
   geom_boxplot(alpha = 0.5)+
   geom_quasirandom(size = 2, shape = 21, aes(fill = donorsex)) +
-  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 6.2, label = "*", label.size = 7, size = 0.5, tip.length = c(0.2, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 2.5, label = "*", label.size = 7, size = 0.5, tip.length = c(0.2, 0.02))+
   scale_fill_manual(values = c("#113ed1", "#5e4114")) +
   scale_colour_manual(values = c("#113ed1", "#5e4114")) +
-  ylab("log(mean baseline insulin\nsecretion (\U03BCU/mL/65 islets))") +
+  ylab("log(mean baseline insulin\nsecretion (ng/100 islets))") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
-  scale_y_continuous(limits = c(1,6.5)) +
+  scale_y_continuous(limits = c(-3,3)) +
   theme_bw() +
   theme(legend.position = "none",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(), 
         axis.line = element_line() 
   )
-ggsave("Output/FigS5/FigS5G.tiff", width = 3, height = 3)
+ggsave("Output/Final figures/FigS15/FigS15G.tiff", width = 3, height = 3)
 
-## Fig S5H ## ----
+## Fig S15H ## ----
 hist(peri_olp_means$AUC.olp1.5)
 hist(log(peri_olp_means$AUC.olp1.5))
 peri_olp_means %>%
@@ -8399,27 +11712,26 @@ peri_olp_means %>%
   ggplot(aes(x=donorsex, y=log(AUC.olp1.5), fill = donorsex)) +
   geom_boxplot(alpha = 0.5)+
   geom_quasirandom(size = 2,shape = 21, aes(fill = donorsex)) +
-  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 10, label = "*", label.size = 7, size = 0.5, tip.length = c(0.45, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 6, label = "*", label.size = 7, size = 0.5, tip.length = c(0.45, 0.02))+
   scale_fill_manual(values = c("#113ed1", "#5e4114")) +
   scale_colour_manual(values = c("#113ed1", "#5e4114")) +
   ylab("log(AUC secretion 0.75 mM\noleate + 0.75 mM palmitate)") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
-  scale_y_continuous(limits = c(5,11)) +
+  scale_y_continuous(limits = c(2,7)) +
   theme_bw() +
   theme(legend.position = "none",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(), 
         axis.line = element_line() 
   )
-ggsave("Output/FigS5/FigS5H.tiff", width = 3, height = 3)
+ggsave("Output/Final figures/FigS15/FigS15H.tiff", width = 3, height = 3)
 
-## Fig S5I ## ----
+## Fig S15I ## ----
 hist(peri_olp_means$AUC.olp1.5glc6)
 hist(log(peri_olp_means$AUC.olp1.5glc6))
 peri_olp_means %>%
@@ -8433,27 +11745,26 @@ peri_olp_means %>%
   ggplot(aes(x=donorsex, y=log(AUC.olp1.5glc6), fill = donorsex)) +
   geom_boxplot(alpha = 0.5)+
   geom_quasirandom(size = 2, shape = 21, aes(fill = donorsex)) +
-  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 10.2, label = "*", label.size = 7, size = 0.5, tip.length = c(0.1, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 6.6, label = "*", label.size = 7, size = 0.5, tip.length = c(0.1, 0.02))+
   scale_fill_manual(values = c("#113ed1", "#5e4114")) +
   scale_colour_manual(values = c("#113ed1", "#5e4114")) +
   ylab("log(AUC secretion 0.75 mM\noleate + 0.75 mM palmitate\n+ 6 mM glucose)") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
-  scale_y_continuous(limits = c(5,11)) +
+  scale_y_continuous(limits = c(2,7)) +
   theme_bw() +
   theme(legend.position = "none",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(), 
         axis.line = element_line() 
   )
-ggsave("Output/FigS5/FigS5I.tiff", width = 3.25, height = 3)
+ggsave("Output/Final figures/FigS15/FigS15I.tiff", width = 3.25, height = 3)
 
-## Fig S5J ## ----
+## Fig S15J ## ----
 hist(peri_olp_means$AUC.KCl)
 hist(log(peri_olp_means$AUC.KCl))
 peri_olp_means %>%
@@ -8467,33 +11778,32 @@ peri_olp_means %>%
   ggplot(aes(x=donorsex, y=log(AUC.KCl), fill = donorsex)) +
   geom_boxplot(alpha = 0.5)+
   geom_quasirandom(size = 2, shape = 21, aes(fill = donorsex)) +
-  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 9.7, label = "*", label.size = 7, size = 0.5, tip.length = c(0.27, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1, xmax = 2, y.position = 6, label = "*", label.size = 7, size = 0.5, tip.length = c(0.27, 0.02))+
   scale_fill_manual(values = c("#113ed1", "#5e4114")) +
   scale_colour_manual(values = c("#113ed1", "#5e4114")) +
   ylab("log(AUC secretion\n30 mM KCl) ") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
-  scale_y_continuous(limits = c(6,10.2)) +
+  scale_y_continuous(limits = c(2,7)) +
   theme_bw() +
   theme(legend.position = "none",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(), 
         axis.line = element_line() 
   )
-ggsave("Output/FigS5/FigS5J.tiff", width = 3, height = 3)
+ggsave("Output/Final figures/FigS15/FigS15J.tiff", width = 3, height = 3)
 
-## Fig S6F ## ----
+## Fig S16F ## ----
 stimulus_data2 <- data.frame(
   xmin = c(0,20,90,160),
   xmax = c(20,70,140,190), 
   label = c("G 3","OLP 1.5","OLP 1.5 + G 6","KCl"),
-  ymin = rep(500,4),
-  ymax = rep(530,4))
+  ymin = rep(11.5,4),
+  ymax = rep(13,4))
 
 peri_olp_long %>%
   filter(diagnosis %in% c("Control","T2D")) %>%
@@ -8512,7 +11822,7 @@ peri_olp_long %>%
   geom_ribbon(alpha = 0.2, colour = NA, (aes(ymax = up, ymin = down, fill = diagnosis)))+
   scale_colour_manual(values = c("grey40", "#e04e34"))  +
   scale_fill_manual(values = c("grey40", "#e04e34"))  +
-  ylab ("Insulin Release (\U03BCU/mL/65 islets)") +
+  ylab ("Insulin Release (ng/100 islets)") +
   xlab ("Time (min)") +
   labs(colour = "Condition", fill = "Condition") +
   facet_wrap(~donorsex) +
@@ -8535,11 +11845,11 @@ peri_olp_long %>%
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12))
-ggsave("Output/FigS6/FigS6F.tiff", width = 8, height = 4)
+ggsave("Output/Final figures/FigS16/FigS16F.tiff", width = 8, height = 4)
 
-## Fig S6G ## ----
+## Fig S16G ## ----
 peri_olp_means %>%
   ungroup() %>%
   filter(diagnosis != "T1D") %>%
@@ -8557,30 +11867,29 @@ peri_olp_means %>%
   ggplot(aes(x=donorsex, y=log(baseline.mean), fill = diagnosis)) +
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
   geom_quasirandom(size = 2, shape = 21, aes(group = diagnosis, fill = diagnosis), dodge.width=0.9) +
-  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 5.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.25))+
-  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 6.2, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.15))+
-  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 6.4, label = "*", label.size = 7, size = 0.5, tip.length = c(0.12, 0.02))+
-  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 7.4, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 1.75, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.15))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 2.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.1))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 3, label = "*", label.size = 7, size = 0.5, tip.length = c(0.12, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 4, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey40", "#e04e34"))  +
   scale_fill_manual(values = c("grey40", "#e04e34"))  +
-  ylab("log(baseline insulin secretion\n(\U03BCU/mL/65 islets))") +
+  ylab("log(baseline insulin secretion\n(ng/100 islets))") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
-  scale_y_continuous(limits = c(0,7.4)) +
+  scale_y_continuous(limits = c(-2.5,4.5)) +
   theme_bw() +
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS6/FigS6G.tiff", width = 5, height = 4)
+ggsave("Output/Final figures/FigS16/FigS16G.tiff", width = 5, height = 4)
 
-## Fig S6H ## ----
+## Fig S16H ## ----
 peri_olp_means %>%
   ungroup() %>%
   filter(diagnosis != "T1D") %>%
@@ -8598,30 +11907,29 @@ peri_olp_means %>%
   ggplot(aes(x=donorsex, y=log(AUC.olp1.5), fill = diagnosis)) +
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
   geom_quasirandom(size = 2, shape = 21, aes(group = diagnosis, fill = diagnosis), dodge.width=0.9) +
-  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 9.1, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.1))+
-  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 10.1, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.3))+
-  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 10.3, label = "*", label.size = 7, size = 0.5, tip.length = c(0.175, 0.02))+
-  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 11, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 5.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.1))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 6.25, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.25))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 7, label = "*", label.size = 7, size = 0.5, tip.length = c(0.175, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 8, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey40", "#e04e34"))  +
   scale_fill_manual(values = c("grey40", "#e04e34"))  +
   ylab("log(AUC secretion 0.75 mM\noleate + 0.75 mM palmitate)") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
-  scale_y_continuous(limits = c(5,11)) +
+  scale_y_continuous(limits = c(1.5,8.5)) +
   theme_bw() +
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS6/FigS6H.tiff", width = 5, height = 4)
+ggsave("Output/Final figures/FigS16/FigS16H.tiff", width = 5, height = 4)
 
-## Fig S6I ## ----
+## Fig S16I ## ----
 peri_olp_means %>%
   ungroup() %>%
   filter(diagnosis != "T1D") %>%
@@ -8639,30 +11947,29 @@ peri_olp_means %>%
   ggplot(aes(x=donorsex, y=log(AUC.olp1.5glc6), fill = diagnosis)) +
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
   geom_quasirandom(size = 2, shape = 21, aes(group = diagnosis, fill = diagnosis), dodge.width=0.9) +
-  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 10, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.15))+
-  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 10.7, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.4))+
-  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 11, label = "*", label.size = 7, size = 0.5, tip.length = c(0.15, 0.02))+
-  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 12, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 6.5, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.2))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 7, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.3))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 7.5, label = "*", label.size = 7, size = 0.5, tip.length = c(0.1, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 8.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey40", "#e04e34"))  +
   scale_fill_manual(values = c("grey40", "#e04e34"))  +
   ylab("log(AUC secretion 0.75 mM\noleate + 0.75 mM palmitate\n+ 6 mM glucose)") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
-  scale_y_continuous(limits = c(5.5,12)) +
+  scale_y_continuous(limits = c(2,9)) +
   theme_bw() +
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS6/FigS6I.tiff", width = 5.25, height = 4)
+ggsave("Output/Final figures/FigS16/FigS16I.tiff", width = 5.25, height = 4)
 
-## Fig S6J ## ----
+## Fig S16J ## ----
 peri_olp_means %>%
   ungroup() %>%
   filter(diagnosis != "T1D") %>%
@@ -8680,27 +11987,27 @@ peri_olp_means %>%
   ggplot(aes(x=donorsex, y=log(AUC.KCl), fill = diagnosis)) +
   geom_boxplot(alpha = 0.5, position = position_dodge(width = 0.9))+
   geom_quasirandom(size = 2, shape = 21, aes(group = diagnosis, fill = diagnosis), dodge.width=0.9) +
-  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 10, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.25))+
-  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 10.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.25))+
-  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 10.8, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
-  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 11.2, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 6.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.25))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 7, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.25))+
+  geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 7.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
+  geom_bracket(inherit.aes = FALSE,xmin = 1.225, xmax = 2.225, y.position = 8.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_colour_manual(values = c("grey40", "#e04e34"))  +
   scale_fill_manual(values = c("grey40", "#e04e34"))  +
   ylab("log(AUC secretion 30 mM KCl) ") +
   xlab("")+
-  labs(colour = "Condition", fill = "Condition")+
+  scale_y_continuous(limits = c(1.5,9))+
   theme_bw() +
   theme(legend.position = "bottom",
         panel.grid = element_blank(),
         axis.title = element_text(size = 14, colour = "black"),
         axis.text = element_text(size = 14, colour = "black"),
         plot.title = element_text(size = 14, hjust = 0.5),
-        legend.title = element_text(size = 14),
+        legend.title = element_blank(),
         legend.text = element_text(size = 12),
         panel.border = element_blank(),
         axis.line = element_line() 
   )
-ggsave("Output/FigS6/FigS6J.tiff", width = 5, height = 4)
+ggsave("Output/Final figures/FigS16/FigS16J.tiff", width = 5, height = 4)
 
 ### Figure S1 ### ---
 #clear environment
@@ -8816,7 +12123,7 @@ age %>%
   theme_bw()+
   theme(panel.grid = element_blank(),
         axis.text = element_text(colour = "black"))
-ggsave("Output/FigS1/FigS1A.tiff", width = 6, height = 4)
+ggsave("Output/Final figures/FigS1/FigS1A.tiff", width = 6, height = 4)
 
 ## FIg S1B ## ----
 bmi <- metadata_bothdatasets %>%
@@ -8836,7 +12143,7 @@ bmi %>%
   theme_bw()+
   theme(panel.grid = element_blank(),
         axis.text = element_text(colour = "black"))
-ggsave("Output/FigS1/FigS1B.tiff", width = 6, height = 4)
+ggsave("Output/Final figures/FigS1/FigS1B.tiff", width = 6, height = 4)
 
 ## Fig S1C ## ----
 hba1c <- metadata_bothdatasets %>%
@@ -8855,7 +12162,7 @@ hba1c %>%
   theme_bw()+
   theme(panel.grid = element_blank(),
         axis.text = element_text(colour = "black"))
-ggsave("Output/FigS1/FigSC.tiff", width = 6, height = 4)
+ggsave("Output/Final figures/FigS1/FigSC.tiff", width = 6, height = 4)
 
 ## Fig S1D ## ----
 culturetime <- metadata_bothdatasets %>%
@@ -8875,154 +12182,137 @@ culturetime %>%
   theme_bw()+
   theme(panel.grid = element_blank(),
         axis.text = element_text(colour = "black"))
-ggsave("Output/FigS1/FigSD.tiff", width = 6, height = 4)
+ggsave("Output/Final figures/FigS1/FigSD.tiff", width = 6, height = 4)
 
 ### Table S1 ### ----
 #clear environment
 rm(list = ls())
 
 #read in sheets
-betascRNAseq <- read.csv("Output/Fig2/HPAP beta scRNAseq DEseq2 ctrls 15-39.csv")
-colnames(betascRNAseq)[1] <- "Gene"
-alphascRNAseq <- read.csv("Output/Fig2/HPAP alpha scRNAseq DEseq2 ctrls 15-39.csv")
-colnames(alphascRNAseq)[1] <- "Gene"
-bulkRNAseq <- read.csv("Output/Fig2/Humanisletscom bulk RNAseq DEseq2 ctrls 15-39.csv")
-bulkRNAseq <- bulkRNAseq[,2:8]
-bulkRNAseq <- bulkRNAseq[,c(7,1:6)]
-colnames(bulkRNAseq)[1] <- "Gene"
-bulkRNAseq$logFC <- -bulkRNAseq$logFC #get the direction to be consistent with others
+bulkRNAseq <- read.csv("Output/Final figures/Fig2/BulkHI and pbHPAP_combined_youngcontrols_dea_results_correctforage_dataset.csv")
+bulkRNAseq <- bulkRNAseq[,c(8,1:7)]
+betascRNAseq <- read.csv("Output/Final figures/FigS3/pbBeta_HPAPonly_youngcontrols_dea_results_correctforage_dataset.csv")
+betascRNAseq <- betascRNAseq[,c(8,1:7)]
+alphascRNAseq <- read.csv("Output/Final figures/FigS3/pbAlpha_HPAPonly_youngcontrols_dea_results_correctforage_dataset.csv")
+alphascRNAseq <- alphascRNAseq[,c(8,1:7)]
 
 #write as new sheet
 wb <- createWorkbook()
 addWorksheet(wb, "DE results")
 
-writeData(wb, sheet = "DE results", x = betascRNAseq, startRow = 2, startCol = 1)
-writeData(wb, sheet = "DE results", x = alphascRNAseq, startRow = 2, startCol = 8)
-writeData(wb, sheet = "DE results", x = bulkRNAseq, startRow = 2, startCol = 15)
+writeData(wb, sheet = "DE results", x = bulkRNAseq, startRow = 2, startCol = 1)
+writeData(wb, sheet = "DE results", x = betascRNAseq, startRow = 2, startCol = 10)
+writeData(wb, sheet = "DE results", x = alphascRNAseq, startRow = 2, startCol = 19)
 
-writeData(wb, sheet = "DE results", x = "HPAP beta-cell scRNAseq", startRow = 1, startCol = 1)
-writeData(wb, sheet = "DE results", x = "HPAP alpha-cell scRNAseq", startRow = 1, startCol = 8)
-writeData(wb, sheet = "DE results", x = "Humanislets.com bulk RNAseq", startRow = 1, startCol = 15)
+writeData(wb, sheet = "DE results", x = "Combined bulk RNAseq", startRow = 1, startCol = 1)
+writeData(wb, sheet = "DE results", x = "HPAP beta-cell scRNAseq", startRow = 1, startCol = 10)
+writeData(wb, sheet = "DE results", x = "HPAP alpha-cell scRNAseq", startRow = 1, startCol = 19)
 
-saveWorkbook(wb, "Output/Table S1.xlsx", overwrite = TRUE)
+saveWorkbook(wb, "Output/Final figures/Table S1.xlsx", overwrite = TRUE)
 
 ### Table S2 ### ----
 #clear environment
 rm(list = ls())
 
 #read in sheets and merge
-HIGO_CC <- read_excel("Output/Fig2/GSEA_p_bulk_RNAseq_youngcontrols.xlsx",sheet="GO_CC")
-HIGO_BP <- read_excel("Output/Fig2/GSEA_p_bulk_RNAseq_youngcontrols.xlsx",sheet="GO_BP")
-HIGO_MF <- read_excel("Output/Fig2/GSEA_p_bulk_RNAseq_youngcontrols.xlsx",sheet="GO_MF")
-HIGO <- bind_rows(HIGO_CC, HIGO_BP, HIGO_MF)
-HIGO$NES <- -HIGO$NES #reverse sign to change direction so positive is up in females
-HIGO$dataset <- rep("Humanislets.com bulk RNAseq", nrow(HIGO))
+CombinedGO_CC <- read_excel("Output/Final figures/Fig2/GSEA_p_BulkHI and pbHPAP_youngcontrols.xlsx",sheet="GO_CC")
+CombinedGO_BP <- read_excel("Output/Final figures/Fig2/GSEA_p_BulkHI and pbHPAP_youngcontrols.xlsx",sheet="GO_BP")
+CombinedGO_MF <- read_excel("Output/Final figures/Fig2/GSEA_p_BulkHI and pbHPAP_youngcontrols.xlsx",sheet="GO_MF")
+CombinedGO <- bind_rows(CombinedGO_CC, CombinedGO_BP, CombinedGO_MF)
+CombinedGO$dataset <- rep("Combined bulk RNAseq", nrow(CombinedGO))
 
-HPAPbetascGO_CC <- read_excel("Output/Fig2/GSEA_p_beta_scRNAseq_youngcontrols.xlsx",sheet="GO_CC")
-HPAPbetascGO_BP <- read_excel("Output/Fig2/GSEA_p_beta_scRNAseq_youngcontrols.xlsx",sheet="GO_BP")
-HPAPbetascGO_MF <- read_excel("Output/Fig2/GSEA_p_beta_scRNAseq_youngcontrols.xlsx",sheet="GO_MF")
+HPAPbetascGO_CC <- read_excel("Output/Final figures/FigS3/GSEA_p_HPAPonly_pbBeta_youngcontrols.xlsx",sheet="GO_CC")
+HPAPbetascGO_BP <- read_excel("Output/Final figures/FigS3/GSEA_p_HPAPonly_pbBeta_youngcontrols.xlsx",sheet="GO_BP")
+HPAPbetascGO_MF <- read_excel("Output/Final figures/FigS3/GSEA_p_HPAPonly_pbBeta_youngcontrols.xlsx",sheet="GO_MF")
 HPAPbetascGO <- bind_rows(HPAPbetascGO_CC, HPAPbetascGO_BP, HPAPbetascGO_MF)
 HPAPbetascGO$dataset <- rep("HPAP beta-cell scRNAseq", nrow(HPAPbetascGO))
 
-HPAPalphascGO_CC <- read_excel("Output/Fig2/GSEA_p_alpha_scRNAseq_youngcontrols.xlsx",sheet="GO_CC")
-HPAPalphascGO_BP <- read_excel("Output/Fig2/GSEA_p_alpha_scRNAseq_youngcontrols.xlsx",sheet="GO_BP")
-HPAPalphascGO_MF <- read_excel("Output/Fig2/GSEA_p_alpha_scRNAseq_youngcontrols.xlsx",sheet="GO_MF")
+HPAPalphascGO_CC <- read_excel("Output/Final figures/FigS3/GSEA_p_HPAPonly_pbAlpha_youngcontrols.xlsx",sheet="GO_CC")
+HPAPalphascGO_BP <- read_excel("Output/Final figures/FigS3/GSEA_p_HPAPonly_pbAlpha_youngcontrols.xlsx",sheet="GO_BP")
+HPAPalphascGO_MF <- read_excel("Output/Final figures/FigS3/GSEA_p_HPAPonly_pbAlpha_youngcontrols.xlsx",sheet="GO_MF")
 HPAPalphascGO <- bind_rows(HPAPalphascGO_CC, HPAPalphascGO_BP, HPAPalphascGO_MF)
 HPAPalphascGO$dataset <- rep("HPAP alpha-cell scRNAseq", nrow(HPAPalphascGO))
 
-combined <- bind_rows(HIGO, HPAPbetascGO, HPAPalphascGO)
-combined <- combined %>% arrange(p.adjust)
-head(combined)
+all <- bind_rows(CombinedGO, HPAPbetascGO, HPAPalphascGO)
+all <- all %>% arrange(p.adjust)
+head(all)
 
-write.csv(combined, "Output/Table S2.csv")
+write.csv(all, "Output/Final figures/Table S2.csv")
 
 ### Table S3 ### ----
 #clear environment
 rm(list = ls())
 
 #read in sheet
-proteomics <- read.csv("Output/Fig2/prot_dea_results_correctforage_controls_15to39.csv")
+proteomics <- read.csv("Output/Final figures/Fig2/prot_dea_results_correctforage_controls_15to39.csv")
 
 #write as new sheet
-write.csv(proteomics, "Output/Table S3.csv")
+write.csv(proteomics, "Output/Final figures/Table S3.csv")
 
 ### Table S4 ### ----
 #clear environment
 rm(list = ls())
 
 #read and write sheets
-sheet_CC <- read.xlsx("Output/Fig2/GSEA_p_proteomics_youngcontrols.xlsx",sheet="GO_CC")
-sheet_BP <- read.xlsx("Output/Fig2/GSEA_p_proteomics_youngcontrols.xlsx",sheet="GO_BP")
-sheet_MF <- read.xlsx("Output/Fig2/GSEA_p_proteomics_youngcontrols.xlsx",sheet="GO_MF")
+sheet_CC <- read.xlsx("Output/Final figures/Fig2/GSEA_p_proteomics_youngcontrols.xlsx",sheet="GO_CC")
+sheet_BP <- read.xlsx("Output/Final figures/Fig2/GSEA_p_proteomics_youngcontrols.xlsx",sheet="GO_BP")
+sheet_MF <- read.xlsx("Output/Final figures/Fig2/GSEA_p_proteomics_youngcontrols.xlsx",sheet="GO_MF")
 sheet <- bind_rows(sheet_CC, sheet_BP, sheet_MF)
-sheet$NES <- -sheet$NES #reverse sign to change direction so positive is up in females
 sheet <- sheet %>% arrange(p.adjust)
 
-write.csv(sheet, "Output/Table S4.csv")
+write.csv(sheet, "Output/Final figures/Table S4.csv")
 
 ### Table S5 ### ----
 #clear environment
 rm(list = ls())
 
 #read in sheets
-betascRNAseq <- read.csv("Output/Fig3/Female ctrl vs T2D beta scRNAseq.csv")
-colnames(betascRNAseq)[1] <- "Gene"
-betascRNAseq <- betascRNAseq[,1:6]
-alphascRNAseq <- read.csv("Output/Fig3/Female ctrl vs T2D alpha scRNAseq.csv")
-colnames(alphascRNAseq)[1] <- "Gene"
-alphascRNAseq <- alphascRNAseq[,1:6]
-bulkRNAseq <- read.csv("Output/Fig3/Humanisletscom bulkRNAseq F Ctrl vs F T2D.csv")
-bulkRNAseq <- bulkRNAseq[,2:8]
-bulkRNAseq <- bulkRNAseq[,c(7,1:6)]
-colnames(bulkRNAseq)[1] <- "Gene"
-bulkRNAseq <- bulkRNAseq %>% arrange(pval)
-bulkRNAseq$logFC <- -bulkRNAseq$logFC #get the direction to be consistent with others
+bulkRNAseq <- read.csv("Output/Final figures/Fig3-4/BulkHI and pbHPAP_combined_F_dea_results_correctforage_dataset.csv")
+bulkRNAseq <- bulkRNAseq[,c(8,1:7)]
+betascRNAseq <- read.csv("Output/Final figures/FigS4/beta HPAP only_F_dea_results_correctforage_dataset.csv")
+betascRNAseq <- betascRNAseq[,c(8,1:7)]
+alphascRNAseq <- read.csv("Output/Final figures/FigS4/alpha HPAP only_F_dea_results_correctforage_dataset.csv")
+alphascRNAseq <- alphascRNAseq[,c(8,1:7)]
 
 #write as new sheet
 wb <- createWorkbook()
 addWorksheet(wb, "DE results")
 
-writeData(wb, sheet = "DE results", x = betascRNAseq, startRow = 2, startCol = 1)
-writeData(wb, sheet = "DE results", x = alphascRNAseq, startRow = 2, startCol = 8)
-writeData(wb, sheet = "DE results", x = bulkRNAseq, startRow = 2, startCol = 15)
+writeData(wb, sheet = "DE results", x = bulkRNAseq, startRow = 2, startCol = 1)
+writeData(wb, sheet = "DE results", x = betascRNAseq, startRow = 2, startCol = 10)
+writeData(wb, sheet = "DE results", x = alphascRNAseq, startRow = 2, startCol = 19)
 
-writeData(wb, sheet = "DE results", x = "HPAP beta-cell scRNAseq", startRow = 1, startCol = 1)
-writeData(wb, sheet = "DE results", x = "HPAP alpha-cell scRNAseq", startRow = 1, startCol = 8)
-writeData(wb, sheet = "DE results", x = "Humanislets.com bulk RNAseq", startRow = 1, startCol = 15)
+writeData(wb, sheet = "DE results", x = "Combined bulk RNAseq", startRow = 1, startCol = 1)
+writeData(wb, sheet = "DE results", x = "HPAP beta-cell scRNAseq", startRow = 1, startCol = 10)
+writeData(wb, sheet = "DE results", x = "HPAP alpha-cell scRNAseq", startRow = 1, startCol = 19)
 
-saveWorkbook(wb, "Output/Table S5.xlsx", overwrite = TRUE)
+saveWorkbook(wb, "Output/Final figures/Table S5.xlsx", overwrite = TRUE)
 
 ### Table S6 ### ----
 #clear environment
 rm(list = ls())
 
 #read in sheets
-betascRNAseq <- read.csv("Output/Fig3/Male ctrl vs T2D beta scRNAseq.csv")
-colnames(betascRNAseq)[1] <- "Gene"
-betascRNAseq <- betascRNAseq[,1:6]
-alphascRNAseq <- read.csv("Output/Fig3/Male ctrl vs T2D alpha scRNAseq.csv")
-colnames(alphascRNAseq)[1] <- "Gene"
-alphascRNAseq <- alphascRNAseq[,1:6]
-bulkRNAseq <- read.csv("Output/Fig3/Humanisletscom bulkRNAseq M Ctrl vs M T2D.csv")
-bulkRNAseq <- bulkRNAseq[,2:8]
-bulkRNAseq <- bulkRNAseq[,c(7,1:6)]
-colnames(bulkRNAseq)[1] <- "Gene"
-bulkRNAseq <- bulkRNAseq %>% arrange(pval)
-bulkRNAseq$logFC <- -bulkRNAseq$logFC #get the direction to be consistent with others
+bulkRNAseq <- read.csv("Output/Final figures/Fig3-4/BulkHI and pbHPAP_combined_M_dea_results_correctforage_dataset.csv")
+bulkRNAseq <- bulkRNAseq[,c(8,1:7)]
+betascRNAseq <- read.csv("Output/Final figures/FigS4/beta HPAP only_M_dea_results_correctforage_dataset.csv")
+betascRNAseq <- betascRNAseq[,c(8,1:7)]
+alphascRNAseq <- read.csv("Output/Final figures/FigS4/alpha HPAP only_M_dea_results_correctforage_dataset.csv")
+alphascRNAseq <- alphascRNAseq[,c(8,1:7)]
 
 #write as new sheet
 wb <- createWorkbook()
 addWorksheet(wb, "DE results")
 
-writeData(wb, sheet = "DE results", x = betascRNAseq, startRow = 2, startCol = 1)
-writeData(wb, sheet = "DE results", x = alphascRNAseq, startRow = 2, startCol = 8)
-writeData(wb, sheet = "DE results", x = bulkRNAseq, startRow = 2, startCol = 15)
+writeData(wb, sheet = "DE results", x = bulkRNAseq, startRow = 2, startCol = 1)
+writeData(wb, sheet = "DE results", x = betascRNAseq, startRow = 2, startCol = 10)
+writeData(wb, sheet = "DE results", x = alphascRNAseq, startRow = 2, startCol = 19)
 
-writeData(wb, sheet = "DE results", x = "HPAP beta-cell scRNAseq", startRow = 1, startCol = 1)
-writeData(wb, sheet = "DE results", x = "HPAP alpha-cell scRNAseq", startRow = 1, startCol = 8)
-writeData(wb, sheet = "DE results", x = "Humanislets.com bulk RNAseq", startRow = 1, startCol = 15)
+writeData(wb, sheet = "DE results", x = "Combined bulk RNAseq", startRow = 1, startCol = 1)
+writeData(wb, sheet = "DE results", x = "HPAP beta-cell scRNAseq", startRow = 1, startCol = 10)
+writeData(wb, sheet = "DE results", x = "HPAP alpha-cell scRNAseq", startRow = 1, startCol = 19)
 
-saveWorkbook(wb, "Output/Table S6.xlsx", overwrite = TRUE)
+saveWorkbook(wb, "Output/Final figures/Table S6.xlsx", overwrite = TRUE)
 
 
 ### Table S7 ### ----
@@ -9030,105 +12320,102 @@ saveWorkbook(wb, "Output/Table S6.xlsx", overwrite = TRUE)
 rm(list = ls())
 
 #read in sheets and combine
-HIGO_F_CC <- read_excel("Output/Fig3/GSEA_p_bulkRNAseq_FCtrlvsT2D.xlsx",sheet="GO_CC")
-HIGO_F_BP <- read_excel("Output/Fig3/GSEA_p_bulkRNAseq_FCtrlvsT2D.xlsx",sheet="GO_BP")
-HIGO_F_MF <- read_excel("Output/Fig3/GSEA_p_bulkRNAseq_FCtrlvsT2D.xlsx",sheet="GO_MF")
-HIGO_F <- bind_rows(HIGO_F_CC, HIGO_F_BP, HIGO_F_MF)
-HIGO_F$NES <- -HIGO_F$NES #make consistent with scRNAseq direction
-HIGO_F$dataset <- rep("Humanislets.com bulk RNAseq", nrow(HIGO_F))
+CombinedGO_F_CC <- read_excel("Output/Final figures/Fig3-4/GSEA_p_BulkHI and pbHPAP_F.xlsx",sheet="GO_CC")
+CombinedGO_F_BP <- read_excel("Output/Final figures/Fig3-4/GSEA_p_BulkHI and pbHPAP_F.xlsx",sheet="GO_BP")
+CombinedGO_F_MF <- read_excel("Output/Final figures/Fig3-4/GSEA_p_BulkHI and pbHPAP_F.xlsx",sheet="GO_MF")
+CombinedGO_F <- bind_rows(CombinedGO_F_CC, CombinedGO_F_BP, CombinedGO_F_MF)
+CombinedGO_F$dataset <- rep("Combined bulk RNAseq", nrow(CombinedGO_F))
 
-
-HPAPbetascGO_F_CC <- read_excel("Output/Fig3/GSEA_p_beta_scRNAseq_F_ctrlvsT2D.xlsx",sheet="GO_CC")
-HPAPbetascGO_F_BP <- read_excel("Output/Fig3/GSEA_p_beta_scRNAseq_F_ctrlvsT2D.xlsx",sheet="GO_BP")
-HPAPbetascGO_F_MF <- read_excel("Output/Fig3/GSEA_p_beta_scRNAseq_F_ctrlvsT2D.xlsx",sheet="GO_MF")
+HPAPbetascGO_F_CC <- read_excel("Output/Final figures/FigS4/GSEA_p_beta_HPAPonly_F.xlsx",sheet="GO_CC")
+HPAPbetascGO_F_BP <- read_excel("Output/Final figures/FigS4/GSEA_p_beta_HPAPonly_F.xlsx",sheet="GO_BP")
+HPAPbetascGO_F_MF <- read_excel("Output/Final figures/FigS4/GSEA_p_beta_HPAPonly_F.xlsx",sheet="GO_MF")
 HPAPbetascGO_F <- bind_rows(HPAPbetascGO_F_CC, HPAPbetascGO_F_BP, HPAPbetascGO_F_MF)
 HPAPbetascGO_F$dataset <- rep("HPAP beta-cell scRNAseq", nrow(HPAPbetascGO_F))
 
-HPAPalphascGO_F_CC <- read_excel("Output/Fig3/GSEA_p_alpha_scRNAseq_F_ctrlvsT2D.xlsx",sheet="GO_CC")
-HPAPalphascGO_F_BP <- read_excel("Output/Fig3/GSEA_p_alpha_scRNAseq_F_ctrlvsT2D.xlsx",sheet="GO_BP")
-HPAPalphascGO_F_MF <- read_excel("Output/Fig3/GSEA_p_alpha_scRNAseq_F_ctrlvsT2D.xlsx",sheet="GO_MF")
+HPAPalphascGO_F_CC <- read_excel("Output/Final figures/FigS4/GSEA_p_alpha_HPAPonly_F.xlsx",sheet="GO_CC")
+HPAPalphascGO_F_BP <- read_excel("Output/Final figures/FigS4/GSEA_p_alpha_HPAPonly_F.xlsx",sheet="GO_BP")
+HPAPalphascGO_F_MF <- read_excel("Output/Final figures/FigS4/GSEA_p_alpha_HPAPonly_F.xlsx",sheet="GO_MF")
 HPAPalphascGO_F <- bind_rows(HPAPalphascGO_F_CC, HPAPalphascGO_F_BP, HPAPalphascGO_F_MF)
 HPAPalphascGO_F$dataset <- rep("HPAP alpha-cell scRNAseq", nrow(HPAPalphascGO_F))
 
-combined <- bind_rows(HIGO_F, HPAPbetascGO_F, HPAPalphascGO_F)
-combined <- combined %>% arrange(p.adjust)
-head(combined)
+all <- bind_rows(CombinedGO_F, HPAPbetascGO_F, HPAPalphascGO_F)
+all <- all %>% arrange(p.adjust)
+head(all)
 
-write.csv(combined, "Output/Table S7.csv")
+write.csv(all, "Output/Final figures/Table S7.csv")
 
-### Table S8 ### ----
+### Table S18 ### ----
 #clear environment
 rm(list = ls())
 
 #read in sheets and combine
-HIGO_M_CC <- read_excel("Output/Fig3/GSEA_p_bulkRNAseq_MCtrlvsT2D.xlsx",sheet="GO_CC")
-HIGO_M_BP <- read_excel("Output/Fig3/GSEA_p_bulkRNAseq_MCtrlvsT2D.xlsx",sheet="GO_BP")
-HIGO_M_MF <- read_excel("Output/Fig3/GSEA_p_bulkRNAseq_MCtrlvsT2D.xlsx",sheet="GO_MF")
-HIGO_M <- bind_rows(HIGO_M_CC, HIGO_M_BP, HIGO_M_MF)
-HIGO_M$NES <- -HIGO_M$NES #make consistent with scRNAseq direction
-HIGO_M$dataset <- rep("Humanislets.com bulk RNAseq", nrow(HIGO_M))
+CombinedGO_M_CC <- read_excel("Output/Final figures/Fig3-4/GSEA_p_BulkHI and pbHPAP_M.xlsx",sheet="GO_CC")
+CombinedGO_M_BP <- read_excel("Output/Final figures/Fig3-4/GSEA_p_BulkHI and pbHPAP_M.xlsx",sheet="GO_BP")
+CombinedGO_M_MF <- read_excel("Output/Final figures/Fig3-4/GSEA_p_BulkHI and pbHPAP_M.xlsx",sheet="GO_MF")
+CombinedGO_M <- bind_rows(CombinedGO_M_CC, CombinedGO_M_BP, CombinedGO_M_MF)
+CombinedGO_M$dataset <- rep("Combined bulk RNAseq", nrow(CombinedGO_M))
 
-HPAPbetascGO_M_CC <- read_excel("Output/Fig3/GSEA_p_beta_scRNAseq_M_ctrlvsT2D.xlsx",sheet="GO_CC")
-HPAPbetascGO_M_BP <- read_excel("Output/Fig3/GSEA_p_beta_scRNAseq_M_ctrlvsT2D.xlsx",sheet="GO_BP")
-HPAPbetascGO_M_MF <- read_excel("Output/Fig3/GSEA_p_beta_scRNAseq_M_ctrlvsT2D.xlsx",sheet="GO_MF")
+HPAPbetascGO_M_CC <- read_excel("Output/Final figures/FigS4/GSEA_p_beta_HPAPonly_M.xlsx",sheet="GO_CC")
+HPAPbetascGO_M_BP <- read_excel("Output/Final figures/FigS4/GSEA_p_beta_HPAPonly_M.xlsx",sheet="GO_BP")
+HPAPbetascGO_M_MF <- read_excel("Output/Final figures/FigS4/GSEA_p_beta_HPAPonly_M.xlsx",sheet="GO_MF")
 HPAPbetascGO_M <- bind_rows(HPAPbetascGO_M_CC, HPAPbetascGO_M_BP, HPAPbetascGO_M_MF)
 HPAPbetascGO_M$dataset <- rep("HPAP beta-cell scRNAseq", nrow(HPAPbetascGO_M))
 
-HPAPalphascGO_M_CC <- read_excel("Output/Fig3/GSEA_p_alpha_scRNAseq_M_ctrlvsT2D.xlsx",sheet="GO_CC")
-HPAPalphascGO_M_BP <- read_excel("Output/Fig3/GSEA_p_alpha_scRNAseq_M_ctrlvsT2D.xlsx",sheet="GO_BP")
-HPAPalphascGO_M_MF <- read_excel("Output/Fig3/GSEA_p_alpha_scRNAseq_M_ctrlvsT2D.xlsx",sheet="GO_MF")
+HPAPalphascGO_M_CC <- read_excel("Output/Final figures/FigS4/GSEA_p_alpha_HPAPonly_M.xlsx",sheet="GO_CC")
+HPAPalphascGO_M_BP <- read_excel("Output/Final figures/FigS4/GSEA_p_alpha_HPAPonly_M.xlsx",sheet="GO_BP")
+HPAPalphascGO_M_MF <- read_excel("Output/Final figures/FigS4/GSEA_p_alpha_HPAPonly_M.xlsx",sheet="GO_MF")
 HPAPalphascGO_M <- bind_rows(HPAPalphascGO_M_CC, HPAPalphascGO_M_BP, HPAPalphascGO_M_MF)
 HPAPalphascGO_M$dataset <- rep("HPAP alpha-cell scRNAseq", nrow(HPAPalphascGO_M))
 
 
-combined <- bind_rows(HIGO_M, HPAPbetascGO_M, HPAPalphascGO_M)
-combined <- combined %>% arrange(p.adjust)
-head(combined)
+all <- bind_rows(CombinedGO_M, HPAPbetascGO_M, HPAPalphascGO_M)
+all <- all %>% arrange(p.adjust)
+head(all)
 
-write.csv(combined, "Output/Table S8.csv")
+write.csv(all, "Output/Final figures/Table S8.csv")
 
 ### Table S9 ### ----
 #clear environment
 rm(list = ls())
 
 #read in sheet
-proteomics <- read.csv("Output/Fig4/prot_dea_results_correctforage_F.csv")
+proteomics <- read.csv("Output/Final figures/Fig3-4/prot_dea_results_correctforage_F.csv")
 
 #write as new sheet
-write.csv(proteomics, "Output/Table S9.csv")
+write.csv(proteomics, "Output/Final figures/Table S9.csv")
 
 ### Table S10 ### ----
 #clear environment
 rm(list = ls())
 
 #read in sheet
-proteomics <- read.csv("Output/Fig4/prot_dea_results_correctforage_M.csv")
+proteomics <- read.csv("Output/Final figures/Fig3-4/prot_dea_results_correctforage_M.csv")
 
 #write as new sheet
-write.csv(proteomics, "Output/Table S10.csv")
+write.csv(proteomics, "Output/Final figures/Table S10.csv")
 
 ### Table S11 ### ----
 #clear environment
 rm(list = ls())
 
 #read and write sheets
-sheet_CC <- read.xlsx("Output/Fig4/GSEA_p_proteomics_F_controlvsT2D.xlsx",sheet="GO_CC")
-sheet_BP <- read.xlsx("Output/Fig4/GSEA_p_proteomics_F_controlvsT2D.xlsx",sheet="GO_BP")
-sheet_MF <- read.xlsx("Output/Fig4/GSEA_p_proteomics_F_controlvsT2D.xlsx",sheet="GO_MF")
+sheet_CC <- read.xlsx("Output/Final figures/Fig3-4/GSEA_p_proteomics_F_controlvsT2D.xlsx",sheet="GO_CC")
+sheet_BP <- read.xlsx("Output/Final figures/Fig3-4/GSEA_p_proteomics_F_controlvsT2D.xlsx",sheet="GO_BP")
+sheet_MF <- read.xlsx("Output/Final figures/Fig3-4/GSEA_p_proteomics_F_controlvsT2D.xlsx",sheet="GO_MF")
 sheet <- bind_rows(sheet_CC, sheet_BP, sheet_MF)
 sheet <- sheet %>% arrange(p.adjust)
 
-write.csv(sheet, "Output/Table S11.csv")
+write.csv(sheet, "Output/Final figures/Table S11.csv")
 
 ### Table S12 ### ----
 #clear environment
 rm(list = ls())
 
 #read and write sheets
-sheet_CC <- read.xlsx("Output/Fig4/GSEA_p_proteomics_M_controlvsT2D.xlsx",sheet="GO_CC")
-sheet_BP <- read.xlsx("Output/Fig4/GSEA_p_proteomics_M_controlvsT2D.xlsx",sheet="GO_BP")
-sheet_MF <- read.xlsx("Output/Fig4/GSEA_p_proteomics_M_controlvsT2D.xlsx",sheet="GO_MF")
+sheet_CC <- read.xlsx("Output/Final figures/Fig3-4/GSEA_p_proteomics_M_controlvsT2D.xlsx",sheet="GO_CC")
+sheet_BP <- read.xlsx("Output/Final figures/Fig3-4/GSEA_p_proteomics_M_controlvsT2D.xlsx",sheet="GO_BP")
+sheet_MF <- read.xlsx("Output/Final figures/Fig3-4/GSEA_p_proteomics_M_controlvsT2D.xlsx",sheet="GO_MF")
 sheet <- bind_rows(sheet_CC, sheet_BP, sheet_MF)
 sheet <- sheet %>% arrange(p.adjust)
 
-write.csv(sheet, "Output/Table S12.csv")
+write.csv(sheet, "Output/Final figures/Table S12.csv")
