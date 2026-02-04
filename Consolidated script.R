@@ -9026,7 +9026,7 @@ mean_3G %>%
   scale_fill_manual(values = c("grey50", "#FFCE2C")) +
   ggnewscale::new_scale_fill() +
   geom_quasirandom(size = 2, shape = 21, colour = "black", alpha = 0.75, aes(group = diagnosis, fill = dataset), dodge.width=0.9) +
-  scale_fill_manual(values = c("#50B5AD","#113ED1")) +
+  scale_fill_manual(values = c("#113ED1", "#50B5AD")) +
   geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 1.8, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.1))+
   geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 2, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.1))+
   geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 2.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
@@ -9075,7 +9075,7 @@ max_HG %>%
   scale_fill_manual(values = c("grey50", "#FFCE2C")) +
   ggnewscale::new_scale_fill() +
   geom_quasirandom(size = 2, shape = 21, colour = "black", alpha = 0.75, aes(group = diagnosis, fill = dataset), dodge.width=0.9) +
-  scale_fill_manual(values = c("#50B5AD","#113ED1")) +
+  scale_fill_manual(values = c("#113ED1", "#50B5AD")) +
   geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 3.4, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.1))+
   geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 4.2, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.2))+
   geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 4.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
@@ -9125,7 +9125,7 @@ max_KCl %>%
   scale_fill_manual(values = c("grey50", "#FFCE2C")) +
   ggnewscale::new_scale_fill() +
   geom_quasirandom(size = 2, shape = 21, colour = "black", alpha = 0.75, aes(group = diagnosis, fill = dataset), dodge.width=0.9) +
-  scale_fill_manual(values = c("#50B5AD","#113ED1")) +
+  scale_fill_manual(values = c("#113ED1", "#50B5AD")) +
   geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 3.2, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.1))+
   geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 3.6, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.1))+
   geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 4, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
@@ -9170,7 +9170,7 @@ SI %>%
   scale_fill_manual(values = c("grey50", "#FFCE2C")) +
   ggnewscale::new_scale_fill() +
   geom_quasirandom(size = 2, shape = 21, colour = "black", alpha = 0.75, aes(group = diagnosis, fill = dataset), dodge.width=0.9) +
-  scale_fill_manual(values = c("#50B5AD","#113ED1")) +
+  scale_fill_manual(values = c("#113ED1", "#50B5AD")) +
   geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 4, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.15))+
   geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 4.7, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.3))+
   geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.775, y.position = 5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.02))+
@@ -9218,7 +9218,7 @@ Combined_matched %>%
   scale_fill_manual(values = c("grey50", "#FFCE2C")) +
   ggnewscale::new_scale_fill() +
   geom_quasirandom(size = 2, shape = 21, colour = "black", alpha = 0.75, aes(group = diagnosis, fill = dataset), dodge.width=0.9) +
-  scale_fill_manual(values = c("#50B5AD","#113ED1")) +
+  scale_fill_manual(values = c("#113ED1", "#50B5AD")) +
   geom_bracket(inherit.aes = FALSE, xmin = 1.775, xmax = 2.225, y.position = 72, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.02))+
   geom_bracket(inherit.aes = FALSE, xmin = 0.775, xmax = 1.225, y.position = 70, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.02))+
   xlab("")+
@@ -9257,7 +9257,7 @@ mean_3G_matched %>%
   scale_fill_manual(values = c("grey50", "#FFCE2C")) +
   ggnewscale::new_scale_fill() +
   geom_quasirandom(size = 2, shape = 21, colour = "black", alpha = 0.75, aes(group = diagnosis, fill = dataset), dodge.width=0.9) +
-  scale_fill_manual(values = c("#50B5AD","#113ED1")) +
+  scale_fill_manual(values = c("#113ED1", "#50B5AD")) +
   geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 1.5, label = "ns", label.size = 4, size = 0.5, tip.length = c(0.02, 0.075))+
   geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 1.4, label = "*", label.size = 7, size = 0.5, tip.length = c(0.1, 0.02))+
   scale_y_continuous(limits = c(-4,2.5))+
@@ -9296,7 +9296,7 @@ max_HG_matched %>%
   scale_fill_manual(values = c("grey50", "#FFCE2C")) +
   ggnewscale::new_scale_fill() +
   geom_quasirandom(size = 2, shape = 21, colour = "black", alpha = 0.75, aes(group = diagnosis, fill = dataset), dodge.width=0.9) +
-  scale_fill_manual(values = c("#50B5AD","#113ED1")) +
+  scale_fill_manual(values = c("#113ED1", "#50B5AD")) +
   geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 3, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.1))+
   geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 2.9, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.05))+
   scale_y_continuous(limits = c(-3,3.5))+
@@ -9334,7 +9334,7 @@ max_KCl_matched %>%
   scale_fill_manual(values = c("grey50", "#FFCE2C")) +
   ggnewscale::new_scale_fill() +
   geom_quasirandom(size = 2, shape = 21, colour = "black", alpha = 0.75, aes(group = diagnosis, fill = dataset), dodge.width=0.9) +
-  scale_fill_manual(values = c("#50B5AD","#113ED1")) +
+  scale_fill_manual(values = c("#113ED1", "#50B5AD")) +
   geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 3.3, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.15))+
   geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 3, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.02))+
   scale_y_continuous(limits = c(-3,4.5))+
@@ -9372,7 +9372,7 @@ SI_matched %>%
   scale_fill_manual(values = c("grey50", "#FFCE2C")) +
   ggnewscale::new_scale_fill() +
   geom_quasirandom(size = 2, shape = 21, colour = "black", alpha = 0.75, aes(group = diagnosis, fill = dataset), dodge.width=0.9) +
-  scale_fill_manual(values = c("#50B5AD","#113ED1")) +
+  scale_fill_manual(values = c("#113ED1", "#50B5AD")) +
   geom_bracket(inherit.aes = FALSE,xmin = 0.775, xmax = 1.225, y.position = 3.6, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.1))+
   geom_bracket(inherit.aes = FALSE,xmin = 1.775, xmax = 2.225, y.position = 3.6, label = "*", label.size = 7, size = 0.5, tip.length = c(0.02, 0.15))+
   scale_y_continuous(limits = c(0,4.))+
